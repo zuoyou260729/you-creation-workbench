@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="柚">
+  <meta name="theme-color" content="#FF6A00">
+  <title>柚 · 创作工作台</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+  <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+  <div class="app">
+    <!-- ========== 左侧纵向导航栏 ========== -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-mark">柚</div>
+        <span class="brand-text">柚工坊</span>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-page="daily-plan">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <path d="M9 16l2 2 4-4"/>
+          </svg>
+          <span class="nav-label">每日计划</span>
+        </li>
+        <li class="nav-item" data-page="topic-inspiration">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18h6"/>
+            <path d="M10 22h4"/>
+            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+          </svg>
+          <span class="nav-label">选题灵感</span>
+        </li>
+        <li class="nav-item" data-page="hot-videos">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15.91 11.27a4 4 0 0 0-5.32-5.3"/>
+            <path d="M13.5 6.5l.5-.5a2.83 2.83 0 0 1 4 4l-.5.5"/>
+            <path d="M14 16l-4-4"/>
+            <path d="M9 21c-3.5 0-6-2.5-6-6 0-4 3-7 7-7"/>
+            <path d="M12 21c3.5 0 6-2.5 6-6 0-1.5-.5-3-1.5-4"/>
+            <path d="M7.5 12.5L11 16"/>
+          </svg>
+          <span class="nav-label">爆款二创</span>
+        </li>
+        <li class="nav-item" data-page="content-review">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M7 16l4-8 4 5 5-9"/>
+          </svg>
+          <span class="nav-label">内容复盘</span>
+        </li>
+      </ul>
+      <div class="sidebar-footer">
+        <div class="time-display" id="currentTime"></div>
+        <button class="install-btn" id="installBtn">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/>
+          </svg>
+          安装到桌面
+        </button>
+      </div>
+    </nav>
+
+    <!-- ========== 主内容区 ========== -->
+    <main class="main">
+
+      <!-- ===== 页面1: 每日计划 ===== -->
+      <section class="page active" id="page-daily-plan">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">每日计划</h1>
+            <p class="page-date" id="todayDate"></p>
+          </div>
+          <div class="progress-ring-wrap">
+            <svg class="progress-ring" width="56" height="56">
+              <circle class="progress-ring-bg" cx="28" cy="28" r="24" />
+              <circle class="progress-ring-fg" cx="28" cy="28" r="24" id="progressRingFg" />
+            </svg>
+            <span class="progress-text" id="progressText">0/0</span>
+          </div>
+        </header>
+
+        <div class="task-add-bar">
+          <input type="text" class="task-input" id="taskInput" placeholder="新增任务..." maxlength="40">
+          <input type="time" class="task-time-input" id="taskTimeInput" value="09:00">
+          <button class="task-add-btn" id="taskAddBtn">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="task-list" id="taskList"></div>
+
+        <div class="task-empty" id="taskEmpty" style="display:none">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <p>暂无任务，添加一个开始今天吧</p>
+        </div>
+      </section>
+
+      <!-- ===== 页面2: 选题灵感 ===== -->
+      <section class="page" id="page-topic-inspiration">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">选题灵感</h1>
+            <p class="page-date">每日 09:00 自动采集爆款视频</p>
+          </div>
+        </header>
+
+        <div class="platform-tabs">
+          <button class="platform-tab active" data-platform="douyin">抖音</button>
+          <button class="platform-tab" data-platform="bilibili">B站</button>
+          <button class="platform-tab" data-platform="xiaohongshu">小红书</button>
+        </div>
+
+        <div class="data-refresh-bar">
+          <span class="data-date" id="topicDataDate">等待数据...</span>
+          <button class="refresh-btn" id="topicRefreshBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+            </svg>
+            刷新
+          </button>
+        </div>
+
+        <div class="card-list" id="topicList"></div>
+
+        <div class="empty-state" id="topicEmpty">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+            <path d="M9 18h6"/><path d="M10 22h4"/>
+            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+          </svg>
+          <p>今日数据采集中</p>
+          <p class="empty-sub">每天早上 9:00 自动更新爆款视频分析</p>
+        </div>
+      </section>
+
+      <!-- ===== 页面3: 爆款热点视频/二创 ===== -->
+      <section class="page" id="page-hot-videos">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">爆款热点 / 二创</h1>
+            <p class="page-date">每日 09:00 自动采集家居智能赛道热点</p>
+          </div>
+        </header>
+
+        <div class="data-refresh-bar">
+          <span class="data-date" id="hotDataDate">等待数据...</span>
+          <button class="refresh-btn" id="hotRefreshBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+            </svg>
+            刷新
+          </button>
+        </div>
+
+        <div class="card-list" id="hotList"></div>
+
+        <div class="empty-state" id="hotEmpty">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+            <path d="M15.91 11.27a4 4 0 0 0-5.32-5.3"/>
+            <path d="M13.5 6.5l.5-.5a2.83 2.83 0 0 1 4 4l-.5.5"/>
+            <path d="M14 16l-4-4"/>
+            <path d="M9 21c-3.5 0-6-2.5-6-6 0-4 3-7 7-7"/>
+          </svg>
+          <p>今日热点采集中</p>
+          <p class="empty-sub">每天早上 9:00 自动更新家居装修/智能家居二创素材</p>
+        </div>
+      </section>
+
+      <!-- ===== 页面4: 内容复盘 ===== -->
+      <section class="page" id="page-content-review">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">内容复盘</h1>
+            <p class="page-date">录入数据，智能诊断优化方向</p>
+          </div>
+        </header>
+
+        <form class="review-form" id="reviewForm">
+          <div class="form-grid">
+            <div class="form-field">
+              <label>播放量</label>
+              <input type="number" id="rPlays" placeholder="如 12500" min="0" required>
+            </div>
+            <div class="form-field">
+              <label>点赞</label>
+              <input type="number" id="rLikes" placeholder="如 320" min="0" required>
+            </div>
+            <div class="form-field">
+              <label>评论</label>
+              <input type="number" id="rComments" placeholder="如 45" min="0" required>
+            </div>
+            <div class="form-field">
+              <label>转发</label>
+              <input type="number" id="rShares" placeholder="如 18" min="0" required>
+            </div>
+            <div class="form-field">
+              <label>完播率 (%)</label>
+              <input type="number" id="rCompletion" placeholder="如 25.5" min="0" max="100" step="0.1" required>
+            </div>
+            <div class="form-field">
+              <label>流量来源</label>
+              <select id="rTraffic">
+                <option value="推荐">推荐流量</option>
+                <option value="关注">关注页</option>
+                <option value="搜索">搜索流量</option>
+                <option value="个人主页">个人主页</option>
+                <option value="其他">其他</option>
+              </select>
+            </div>
+            <div class="form-field form-field-full">
+              <label>作品标题/备注</label>
+              <input type="text" id="rTitle" placeholder="如：5万预算爆改20平出租屋" maxlength="50">
+            </div>
+          </div>
+          <button type="submit" class="primary-btn">生成诊断报告</button>
+        </form>
+
+        <div class="analysis-result" id="analysisResult" style="display:none"></div>
+
+        <div class="history-section" id="historySection" style="display:none">
+          <h2 class="section-subtitle">历史记录</h2>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- 安装引导横幅（常驻可见，支持直接安装或给出菜单指引） -->
+  <div class="install-banner" id="installBanner">
+    <div class="ib-icon">柚</div>
+    <div class="ib-text">
+      <strong>柚工坊</strong>
+      <span>添加到主屏幕，像 APP 一样用，图标是橘色"柚"</span>
+    </div>
+    <button class="ib-btn" id="installBannerBtn">添加</button>
+    <button class="ib-close" id="installBannerClose" aria-label="关闭">×</button>
+  </div>
+
+  <!-- 安装指引弹窗（浏览器不支持直接安装时展示） -->
+  <div class="install-modal" id="installModal">
+    <div class="im-card">
+      <h3>如何添加到主屏幕</h3>
+      <p class="im-sub">用手机 <b>Chrome 浏览器</b> 打开本页面后：</p>
+      <ol class="im-steps">
+        <li>点击右上角 <b>⋮</b>（三个点）菜单</li>
+        <li>选择 <b>「添加到主屏幕」</b> / 「安装应用」</li>
+        <li>点「添加」，桌面即出现橘色"柚"图标</li>
+      </ol>
+      <p class="im-note">提示：微信里打开的链接需先点右上角「···」→「在浏览器打开」，再按上面操作。</p>
+      <button class="primary-btn" id="installModalClose">我知道了</button>
+    </div>
+  </div>
+
+  <!-- Toast 通知 -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // 注册 PWA Service Worker，支持离线使用与"添加到主屏幕"
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./sw.js').then(function(reg) {
+          console.log('SW registered', reg.scope);
+        }).catch(function(err) {
+          console.warn('SW register failed', err);
+        });
+      });
+    }
+  </script>
+  <script src="js/app.js"></script>
+</body>
+</html>
