@@ -251,7 +251,7 @@
     <div class="ib-icon">柚</div>
     <div class="ib-text">
       <strong>柚工坊</strong>
-      <span>添加到主屏幕，像 APP 一样用，图标是橘色"柚"</span>
+      <span>安装到桌面，像 APP 一样用（橘色"柚"图标，无浏览器角标）</span>
     </div>
     <button class="ib-btn" id="installBannerBtn">添加</button>
     <button class="ib-close" id="installBannerClose" aria-label="关闭">×</button>
@@ -260,14 +260,14 @@
   <!-- 安装指引弹窗（浏览器不支持直接安装时展示） -->
   <div class="install-modal" id="installModal">
     <div class="im-card">
-      <h3>如何添加到主屏幕</h3>
-      <p class="im-sub">用手机 <b>Chrome 浏览器</b> 打开本页面后：</p>
+      <h3>如何安装（无浏览器角标）</h3>
+      <p class="im-sub">用手机 <b>Chrome 浏览器</b> 打开本页面：</p>
       <ol class="im-steps">
-        <li>点击右上角 <b>⋮</b>（三个点）菜单</li>
-        <li>选择 <b>「添加到主屏幕」</b> / 「安装应用」</li>
-        <li>点「添加」，桌面即出现橘色"柚"图标</li>
+        <li>若桌面已有<b>带 Chrome 角标的旧图标</b>，先长按它选「移除 / 卸载」——留着它 Chrome 就不会再弹干净安装框。</li>
+        <li>点右下角 <b>⋮</b> 菜单，找并点 <b>「安装应用」</b>（注意：要选"安装应用"，<u>不是</u>"添加到主屏幕"；后者在 OPPO 上会变成带角标的书签）。</li>
+        <li>在 Chrome 弹出的安装确认中点「安装」，桌面即出现干净的橘色"柚"图标。</li>
       </ol>
-      <p class="im-note">提示：微信里打开的链接需先点右上角「···」→「在浏览器打开」，再按上面操作。</p>
+      <p class="im-note">如果 Chrome 菜单里没有「安装应用」，说明安装提示被暂时屏蔽了：直接点本页底部「添加」按钮，让 Chrome 自己弹出安装框再确认即可。微信里打开需先「在浏览器打开」。</p>
       <button class="primary-btn" id="installModalClose">我知道了</button>
     </div>
   </div>
