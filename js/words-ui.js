@@ -280,7 +280,7 @@
   }
   async function showCurrent(autoPush) {
     const key = R.queue[R.idx];
-    if (!key) { $('#wWordEn').textContent = '🎉 本轮已背完'; $('#wWordIpa').textContent = ''; $('#wMeaning').style.display = 'none'; $('#wShowMeaning').style.display = 'none'; return; }
+    if (!key) { $('#wWordEn').textContent = '🎉 本轮已背完'; $('#wWordIpa').textContent = ''; $('#wMeaning').style.display = 'none'; $('#wShowMeaning').style.display = 'none'; $('#wNextBtn').style.display = 'none'; return; }
     const w = await W.dbGet(key);
     if (!w) { R.idx++; if (R.idx < R.queue.length) return showCurrent(); else { $('#wWordEn').textContent = '🎉 本轮已背完'; return; } }
     R.curKey = key;
@@ -289,13 +289,19 @@
     $('#wWordIpa').textContent = w.ipa || '';
     $('#wMeaning').style.display = 'none';
     $('#wMeaning').textContent = w.cn;
-    $('#wShowMeaning').style.display = 'inline-flex';   // 中文释义按钮始终可见
-    $('#wNextBtn').style.display = 'block';              // 下一个按钮始终可见
+    $('#wShowMeaning').style.display = 'inline-flex';   // 单词出现时：中文释义按钮可见
+    $('#wNextBtn').style.display = 'none';              // 单词出现时：下一个按钮隐藏，释义出现后才显示
     $('#wKeyMark').classList.toggle('on', !!w.isKey);
     updateReviewStat();
     if (autoPush) saveSession();
   }
   function pushView(key) { if (R.viewStack[R.viewStack.length - 1] !== key) R.viewStack.push(key); }
+  // 显示中文释义：展示释义、隐藏"中文释义"按钮、显示"下一个"按钮
+  function revealMeaning() {
+    $('#wMeaning').style.display = 'block';
+    $('#wShowMeaning').style.display = 'none';
+    $('#wNextBtn').style.display = 'block';
+  }
   async function goNext() {
     R.idx++;
     if (R.idx >= R.queue.length) {
@@ -321,6 +327,7 @@
         $('#wWordEn').textContent = w.en; $('#wWordIpa').textContent = w.ipa || '';
         $('#wMeaning').style.display = 'none'; $('#wMeaning').textContent = w.cn;
         $('#wShowMeaning').style.display = 'inline-flex';
+        $('#wNextBtn').style.display = 'none';
         $('#wKeyMark').classList.toggle('on', !!w.isKey);
       }
     })();
@@ -331,7 +338,7 @@
     W.recordReview(R.curKey);
     reviewWordsCache = await W.getAllWords();
     if (action === 'fuzzy' || action === 'unknown') {
-      $('#wMeaning').style.display = 'block';
+      revealMeaning();
     }
     schedulePush();
     if (action === 'know') { await goNext(); }
@@ -339,7 +346,7 @@
   }
   function initWordReview() {
     $('#wSpeakBtn').addEventListener('click', () => { const t = $('#wWordEn').textContent; if (t) speak(t); });
-    $('#wShowMeaning').addEventListener('click', () => { const m = $('#wMeaning'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; });
+    $('#wShowMeaning').addEventListener('click', () => revealMeaning());
     $('#wKnowBtn').addEventListener('click', () => doReview('know'));
     $('#wFuzzyBtn').addEventListener('click', () => doReview('fuzzy'));
     $('#wUnknownBtn').addEventListener('click', () => doReview('unknown'));
