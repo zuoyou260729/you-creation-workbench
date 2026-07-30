@@ -284,24 +284,25 @@
     const w = await W.dbGet(key);
     if (!w) { R.idx++; if (R.idx < R.queue.length) return showCurrent(); else { $('#wWordEn').textContent = '🎉 本轮已背完'; return; } }
     R.curKey = key;
+    pushView(key);   // 栈顶=当前词，保证"上一个"精确回退一步
     $('#wWordEn').textContent = w.en;
     $('#wWordIpa').textContent = w.ipa || '';
     $('#wMeaning').style.display = 'none';
     $('#wMeaning').textContent = w.cn;
-    $('#wShowMeaning').style.display = 'inline-flex';
+    $('#wShowMeaning').style.display = 'inline-flex';   // 中文释义按钮始终可见
+    $('#wNextBtn').style.display = 'block';              // 下一个按钮始终可见
     $('#wKeyMark').classList.toggle('on', !!w.isKey);
     updateReviewStat();
     if (autoPush) saveSession();
   }
   function pushView(key) { if (R.viewStack[R.viewStack.length - 1] !== key) R.viewStack.push(key); }
   async function goNext() {
-    pushView(R.curKey);
     R.idx++;
     if (R.idx >= R.queue.length) {
       // 本轮结束，基于最新权重重建队列
       reviewWordsCache = await W.getAllWords();
       const q = buildQueue(reviewWordsCache);
-      if (!q.length) { R.queue = []; R.idx = 0; showCurrent(); return; }
+      if (!q.length) { R.queue = []; R.idx = 0; await showCurrent(true); return; }
       R.queue = q; R.idx = 0;
     }
     await showCurrent(true);
@@ -338,7 +339,7 @@
   }
   function initWordReview() {
     $('#wSpeakBtn').addEventListener('click', () => { const t = $('#wWordEn').textContent; if (t) speak(t); });
-    $('#wShowMeaning').addEventListener('click', () => { $('#wMeaning').style.display = 'block'; });
+    $('#wShowMeaning').addEventListener('click', () => { const m = $('#wMeaning'); m.style.display = (m.style.display === 'block') ? 'none' : 'block'; });
     $('#wKnowBtn').addEventListener('click', () => doReview('know'));
     $('#wFuzzyBtn').addEventListener('click', () => doReview('fuzzy'));
     $('#wUnknownBtn').addEventListener('click', () => doReview('unknown'));
