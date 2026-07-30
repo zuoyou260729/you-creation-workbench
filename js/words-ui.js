@@ -219,8 +219,6 @@
     $('#wSyncBtn').addEventListener('click', () => doSync(true));
     renderPending();
     renderDbList();
-    // 打开录入页时静默从云端拉取一次（联网则更新本地）
-    W.syncFromCloud().then(r => { if (r.pulled) renderDbList(); }).catch(() => {});
   }
 
   /* ==========================================
@@ -413,6 +411,8 @@
     initWordInput();
     initWordReview();
     initWordList();
+    // 启动即静默从云端拉取一次（联网则更新本地，使手机端能拿到电脑端新词）
+    W.syncFromCloud().then(r => { if (r.pulled) { renderDbList(); renderList(); } }).catch(() => {});
     // 进入对应页时按需刷新
     $$('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
