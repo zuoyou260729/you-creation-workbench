@@ -40,13 +40,17 @@
     window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
   }
 
-  // 改动后防抖推云端
-  let _pushTimer = null;
+  // 改动后防抖推云端（保存即自动推；缺 Token 时给一次提示而非静默失败）
+  let _pushTimer = null, _patWarned = false;
   function schedulePush() {
     clearTimeout(_pushTimer);
     _pushTimer = setTimeout(() => {
-      W.syncToCloud().then(() => console.log('auto push ok')).catch(e => console.warn('auto push skip', e.message));
-    }, 30000);
+      W.syncToCloud().then(() => console.log('auto push ok')).catch(e => {
+        if (e && e.message === 'NO_PAT') {
+          if (!_patWarned) { showToast('未设置同步Token：在本机点「同步」并粘贴一次即可自动上传'); _patWarned = true; }
+        } else console.warn('auto push skip', e && e.message);
+      });
+    }, 1200);
   }
 
   /* ==========================================
@@ -407,12 +411,22 @@
   }
 
   /* ===== 初始化 ===== */
+  async function autoSyncOnOpen() {
+    try {
+      const r = await W.syncFromCloud();
+      if (r.pulled) { renderDbList(); renderList(); showToast(`已从云端拉取 ${r.pulled} 条`); }
+      // 若本机已存 Token，则把本地词（含电脑之前未上传的旧词）推上云端，保证双向合并
+      if (W.getPat()) {
+        W.syncToCloud().then(() => console.log('open auto push ok')).catch(e => console.warn('open auto push skip', e && e.message));
+      }
+    } catch (e) { console.warn('auto pull skip', e && e.message); }
+  }
   function boot() {
     initWordInput();
     initWordReview();
     initWordList();
-    // 启动即静默从云端拉取一次（联网则更新本地，使手机端能拿到电脑端新词）
-    W.syncFromCloud().then(r => { if (r.pulled) { renderDbList(); renderList(); } }).catch(() => {});
+    // 启动即从云端拉取一次（联网则更新本地，使手机端能拿到电脑端新词；电脑端已设Token时回推本地旧词）
+    autoSyncOnOpen();
     // 进入对应页时按需刷新
     $$('.nav-item').forEach(item => {
       item.addEventListener('click', () => {
