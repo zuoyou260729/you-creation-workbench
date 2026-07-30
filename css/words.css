@@ -114,7 +114,9 @@
   padding: 12px; background: var(--accent-bg); border-radius: var(--radius-sm); width: 100%;
 }
 .w-review-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
-.w-review-actions .w-btn { flex: 1 1 40%; min-width: 120px; padding: 14px; font-size: 15px; }
+.w-review-actions .w-btn { flex: 1 1 30%; min-width: 90px; padding: 14px; font-size: 15px; }
+/* 下一个按钮独占一行，始终清晰可见 */
+#wNextBtn { flex: 1 1 100%; background: var(--accent); color: #fff; border: 1px solid var(--accent); font-weight: 700; }
 .w-b-know { background: var(--success); }
 .w-b-fuzzy { background: var(--warning); }
 .w-b-unknown { background: var(--danger); }
