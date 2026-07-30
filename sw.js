@@ -2,7 +2,7 @@
    服务 worker - 应用壳缓存 + 离线缓存 + 重连合并
    版本升级后旧缓存自动清理；data/ 走 network-first 保证重连后拿到云端最新数据
    ========================================== */
-const CACHE = 'you-workbench-v3';
+const CACHE = 'you-workbench-v4';
 const ASSETS = [
   './',
   './index.html',
