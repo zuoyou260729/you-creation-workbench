@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#FF6A00">
   <title>柚 · 创作工作台</title>
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/words.css">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
@@ -60,6 +61,30 @@
             <path d="M7 16l4-8 4 5 5-9"/>
           </svg>
           <span class="nav-label">内容复盘</span>
+        </li>
+        <li class="nav-item" data-page="word-input">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+          </svg>
+          <span class="nav-label">单词库录入</span>
+        </li>
+        <li class="nav-item" data-page="word-review">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"/>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <polyline points="7 23 3 19 7 15"/>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          <span class="nav-label">单词背诵</span>
+        </li>
+        <li class="nav-item" data-page="word-list">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          <span class="nav-label">词库列表</span>
         </li>
       </ul>
       <div class="sidebar-footer">
@@ -243,6 +268,107 @@
         </div>
       </section>
 
+      <!-- ===== 页面5: 单词库录入 ===== -->
+      <section class="page" id="page-word-input">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">单词库录入</h1>
+            <p class="page-date">粘贴或导入，自动判重合并</p>
+          </div>
+          <button class="w-sync-btn" id="wSyncBtn">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            同步
+          </button>
+        </header>
+
+        <div class="w-input-area">
+          <div class="w-row">
+            <label class="w-file-label">导入 Excel/CSV
+              <input type="file" id="wFileInput" accept=".xlsx,.xls,.csv">
+            </label>
+            <button class="w-btn w-btn-ghost" id="wLoadSample">载入示例</button>
+          </div>
+          <textarea id="wTextInput" class="w-textarea" placeholder="粘贴内容，格式：英文:中文，多条用 ；或换行分隔&#10;例：apple:苹果；banana:香蕉"></textarea>
+          <div class="w-row">
+            <input type="text" id="wEnInput" class="w-inline" placeholder="单条英文">
+            <input type="text" id="wCnInput" class="w-inline" placeholder="单条中文">
+            <input type="text" id="wIpaInput" class="w-inline w-ipa" placeholder="IPA(可选)">
+            <button class="w-btn" id="wAddOne">添加</button>
+          </div>
+          <div class="w-row w-actions">
+            <button class="primary-btn" id="wSaveBtn">保存</button>
+            <button class="w-btn w-btn-ghost" id="wClearInput">清空文本</button>
+            <button class="w-btn w-btn-ghost w-pc-only" id="wDownloadDb">下载词库</button>
+          </div>
+          <div class="w-tip">判重：英文重复且中文不同会自动合并（逗号分隔去重）。保存时自动联网补全音标，失败留空可手填。</div>
+        </div>
+
+        <div class="w-preview">
+          <div class="w-preview-head">
+            <span>待保存列表（<span id="wPendingCount">0</span>）</span>
+            <button class="w-btn w-btn-ghost" id="wClearPending">清空</button>
+          </div>
+          <div class="w-pending-list" id="wPendingList"></div>
+        </div>
+
+        <div class="w-db-section">
+          <div class="w-db-head">
+            <h2>已存词库（<span id="wDbCount">0</span>）</h2>
+            <button class="w-btn w-btn-ghost w-pc-only" id="wDownloadDb2">下载</button>
+          </div>
+          <div class="w-db-list" id="wDbList"></div>
+        </div>
+      </section>
+
+      <!-- ===== 页面6: 单词背诵 ===== -->
+      <section class="page" id="page-word-review">
+        <header class="page-header">
+          <button class="w-prev" id="wPrevWord">‹ 上一个</button>
+          <div class="page-title-center">
+            <h1 class="page-title">单词背诵</h1>
+            <p class="page-date" id="wReviewStat"></p>
+          </div>
+          <button class="w-key-mark" id="wKeyMark" title="标记为重点单词">!</button>
+        </header>
+
+        <div class="w-review">
+          <div class="w-card-review">
+            <div class="w-word-en" id="wWordEn">点击下方开始</div>
+            <div class="w-word-ipa" id="wWordIpa"></div>
+            <button class="w-speak" id="wSpeakBtn" aria-label="美式发音">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            </button>
+            <button class="w-meaning-btn" id="wShowMeaning">中文释义</button>
+            <div class="w-meaning" id="wMeaning" style="display:none"></div>
+          </div>
+          <div class="w-review-actions">
+            <button class="w-btn w-b-know" id="wKnowBtn">认识</button>
+            <button class="w-btn w-b-fuzzy" id="wFuzzyBtn">模糊</button>
+            <button class="w-btn w-b-unknown" id="wUnknownBtn">不认识</button>
+            <button class="w-btn w-btn-ghost" id="wNextBtn">下一个</button>
+          </div>
+        </div>
+        <div class="w-review-progress" id="wReviewProgress"></div>
+      </section>
+
+      <!-- ===== 页面7: 词库列表 ===== -->
+      <section class="page" id="page-word-list">
+        <header class="page-header">
+          <div>
+            <h1 class="page-title">词库列表</h1>
+            <p class="page-date">共 <span id="wListTotal">0</span> 词</p>
+          </div>
+          <button class="w-btn w-btn-ghost w-pc-only" id="wListDownload">下载</button>
+        </header>
+        <div class="w-list-tabs">
+          <button class="w-tab active" data-tab="all">所有单词库</button>
+          <button class="w-tab" data-tab="key">重点单词库</button>
+        </div>
+        <div class="w-search"><input type="search" id="wSearchInput" placeholder="搜索英文或中文（模糊匹配）"></div>
+        <div class="w-list" id="wList"></div>
+        <div class="w-pager" id="wPager"></div>
+      </section>
+
     </main>
   </div>
 
@@ -287,6 +413,9 @@
       });
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="js/words-db.js"></script>
+  <script src="js/words-ui.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
