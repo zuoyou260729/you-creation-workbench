@@ -388,7 +388,10 @@
   const REVIEW_KEY = 'wb_reviews';
 
   function initContentReview() {
-    $('#reviewForm').addEventListener('submit', e => {
+    // 内容复盘已停用（改为占位页），相关表单元素不存在时直接跳过
+    const form = document.getElementById('reviewForm');
+    if (!form) return;
+    form.addEventListener('submit', e => {
       e.preventDefault();
       handleReviewSubmit();
     });

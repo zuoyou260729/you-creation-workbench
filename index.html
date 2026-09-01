@@ -10,6 +10,7 @@
   <title>柚 · 创作工作台</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/words.css">
+  <link rel="stylesheet" href="css/items.css">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
@@ -61,6 +62,29 @@
             <path d="M7 16l4-8 4 5 5-9"/>
           </svg>
           <span class="nav-label">内容复盘</span>
+        </li>
+        <li class="nav-item" data-page="items" data-subpage="overview">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+          <span class="nav-label">物品统计</span>
+        </li>
+        <li class="nav-item" data-page="items" data-subpage="categories">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          <span class="nav-label">物品分类</span>
+        </li>
+        <li class="nav-item" data-page="items" data-subpage="expiring">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span class="nav-label">到期清单</span>
+          <span class="nav-badge" id="iNavExpiringBadge" style="display:none">0</span>
         </li>
         <li class="nav-item" data-page="word-input">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -211,60 +235,23 @@
         </div>
       </section>
 
-      <!-- ===== 页面4: 内容复盘 ===== -->
+      <!-- ===== 页面4: 内容复盘（已停用） ===== -->
       <section class="page" id="page-content-review">
         <header class="page-header">
           <div>
             <h1 class="page-title">内容复盘</h1>
-            <p class="page-date">录入数据，智能诊断优化方向</p>
+            <p class="page-date">功能暂未开放</p>
           </div>
         </header>
 
-        <form class="review-form" id="reviewForm">
-          <div class="form-grid">
-            <div class="form-field">
-              <label>播放量</label>
-              <input type="number" id="rPlays" placeholder="如 12500" min="0" required>
-            </div>
-            <div class="form-field">
-              <label>点赞</label>
-              <input type="number" id="rLikes" placeholder="如 320" min="0" required>
-            </div>
-            <div class="form-field">
-              <label>评论</label>
-              <input type="number" id="rComments" placeholder="如 45" min="0" required>
-            </div>
-            <div class="form-field">
-              <label>转发</label>
-              <input type="number" id="rShares" placeholder="如 18" min="0" required>
-            </div>
-            <div class="form-field">
-              <label>完播率 (%)</label>
-              <input type="number" id="rCompletion" placeholder="如 25.5" min="0" max="100" step="0.1" required>
-            </div>
-            <div class="form-field">
-              <label>流量来源</label>
-              <select id="rTraffic">
-                <option value="推荐">推荐流量</option>
-                <option value="关注">关注页</option>
-                <option value="搜索">搜索流量</option>
-                <option value="个人主页">个人主页</option>
-                <option value="其他">其他</option>
-              </select>
-            </div>
-            <div class="form-field form-field-full">
-              <label>作品标题/备注</label>
-              <input type="text" id="rTitle" placeholder="如：5万预算爆改20平出租屋" maxlength="50">
-            </div>
-          </div>
-          <button type="submit" class="primary-btn">生成诊断报告</button>
-        </form>
-
-        <div class="analysis-result" id="analysisResult" style="display:none"></div>
-
-        <div class="history-section" id="historySection" style="display:none">
-          <h2 class="section-subtitle">历史记录</h2>
-          <div class="history-list" id="historyList"></div>
+        <div class="i-placeholder-page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          <h2>功能暂未开放</h2>
+          <p>该功能正在筹备中，敬请期待</p>
         </div>
       </section>
 
@@ -369,6 +356,423 @@
         <div class="w-pager" id="wPager"></div>
       </section>
 
+      <!-- ===== 页面8: 物品统计模块 ===== -->
+      <section class="page" id="page-items">
+
+        <!-- 总览 -->
+        <div class="i-subpage active" id="i-subpage-overview">
+          <div class="i-page-header">
+            <h1>物品统计</h1>
+          </div>
+
+          <div class="i-asset-card">
+            <div class="i-asset-label">总资产</div>
+            <div class="i-asset-amount" id="iTotalAsset"><span class="i-currency">¥</span>0.00</div>
+            <button class="i-eye-btn" id="iEyeBtn" aria-label="切换金额显示">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <div class="i-stat-row">
+              <div class="i-stat-card">
+                <div class="i-stat-title">平均每日成本</div>
+                <div class="i-stat-value" id="iAvgDailyCost">¥0.00</div>
+              </div>
+              <div class="i-stat-card">
+                <div class="i-stat-title">物品容量</div>
+                <div class="i-stat-value" id="iCapacityText">0 / 9999</div>
+                <div class="i-progress-bar"><div class="i-progress-fill" id="iCapacityFill" style="width:0%"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="i-expiring-module" id="iExpiringModule" style="display:none">
+            <div class="i-expiring-head">
+              <h3>即将到期</h3>
+              <span class="i-expiring-more" id="iExpiringMore">查看全部</span>
+            </div>
+            <div class="i-expiring-list"></div>
+          </div>
+
+          <div class="i-section-bar">
+            <h2 class="i-section-title">我的物品</h2>
+            <div class="i-toolbar">
+              <button class="i-tool-btn" id="iFilterBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                筛选
+              </button>
+              <button class="i-tool-btn" id="iSortBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10"/><path d="M11 9h7"/><path d="M11 13h4"/><path d="M3 17l3 3 3-3"/><path d="M6 18V4"/></svg>
+                排序
+              </button>
+              <button class="i-tool-btn" id="iGalleryBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <span>画廊</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="iItemsContainer">
+            <div class="i-empty">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+              <p>还没有物品，点击右下角添加吧</p>
+            </div>
+          </div>
+
+          <button class="i-fab" id="iAddItemFab" aria-label="添加物品">+</button>
+        </div>
+
+        <!-- 添加物品 -->
+        <div class="i-subpage" id="i-subpage-add">
+          <div class="i-page-header">
+            <button class="i-back" id="iCancelItemBtn">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              返回
+            </button>
+            <h1>添加物品</h1>
+            <span></span>
+          </div>
+
+          <div class="i-tabs">
+            <button class="i-tab active" id="iFormTabSingle">单个物品</button>
+            <button class="i-tab" id="iFormTabBatch">批量物品</button>
+          </div>
+
+          <div id="iSingleFields">
+            <div class="i-form-card">
+              <div class="i-field">
+                <div class="i-name-icon-row">
+                  <input type="text" class="i-input" id="iName" placeholder="请输入物品名称">
+                  <button type="button" class="i-icon-picker-btn" id="iIconBtn">📦</button>
+                </div>
+              </div>
+              <div class="i-field">
+                <div class="i-category-trigger" id="iCategoryTrigger">
+                  <span>分类</span>
+                  <div class="i-value"><span class="i-placeholder">请选择分类</span></div>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="i-form-card">
+              <div class="i-field">
+                <label class="i-field-label">购入价格</label>
+                <div class="i-input-group"><span class="i-prefix">¥</span><input type="number" id="iPrice" placeholder="0.00" step="0.01"></div>
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">预期日均/单次成本（选填）</label>
+                <div class="i-input-group"><span class="i-prefix">¥</span><input type="number" id="iExpectedDaily" placeholder="0.00" step="0.01"></div>
+              </div>
+            </div>
+
+            <div class="i-form-card">
+              <div class="i-field-label" style="margin-bottom:12px">时间线</div>
+              <div class="i-date-row" data-target="#iPurchaseDate">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  购入日期
+                </div>
+                <div class="i-value"><input type="date" id="iPurchaseDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+              </div>
+              <div class="i-date-row" data-target="#iProductionDate">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  生产日期
+                </div>
+                <div class="i-value"><input type="date" id="iProductionDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+              </div>
+              <div class="i-date-row" data-target="#iRetireDate">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  退役日期（选填）
+                </div>
+                <div class="i-value empty"><input type="date" id="iRetireDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+              </div>
+              <div class="i-date-row" id="iExpiryDateTrigger">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  有效期
+                </div>
+                <div class="i-value empty"><input type="date" id="iExpiryDate" style="border:none;background:transparent;font-size:14px;color:inherit" readonly placeholder="请选择"></div>
+              </div>
+            </div>
+
+            <div class="i-form-card">
+              <div class="i-field-label" style="margin-bottom:12px">计算方式</div>
+              <div class="i-tabs" style="margin-bottom:0">
+                <label class="i-tab active" style="cursor:pointer"><input type="radio" name="calcMode" id="iCalcTime" value="time" checked style="display:none"> 按时间</label>
+                <label class="i-tab" style="cursor:pointer"><input type="radio" name="calcMode" id="iCalcFreq" value="freq" style="display:none"> 按频次</label>
+                <label class="i-tab" style="cursor:pointer"><input type="radio" name="calcMode" id="iCalcNone" value="none" style="display:none"> 不计算</label>
+              </div>
+            </div>
+
+            <div class="i-form-card">
+              <div class="i-field">
+                <label class="i-field-label">使用次数</label>
+                <input type="number" class="i-input" id="iUsageCount" placeholder="0">
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">累计维护支出</label>
+                <div class="i-input-group"><span class="i-prefix">¥</span><input type="number" id="iMaintenance" placeholder="0.00" step="0.01"></div>
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">存放位置</label>
+                <input type="text" class="i-input" id="iLocation" placeholder="物品放在哪里了？">
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">备注说明</label>
+                <textarea class="i-textarea" id="iMemo" rows="2" placeholder="关于此物品的特别记忆"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div id="iBatchFields" style="display:none">
+            <div class="i-form-card">
+              <div class="i-field">
+                <div class="i-name-icon-row">
+                  <input type="text" class="i-input" id="iBatchName" placeholder="请输入库存品名称">
+                  <button type="button" class="i-icon-picker-btn" id="iBatchIconBtn">📦</button>
+                </div>
+              </div>
+              <div class="i-field">
+                <div class="i-category-trigger" id="iBatchCategoryTrigger" onclick="document.getElementById('iCategoryTrigger').click()">
+                  <span>分类</span>
+                  <div class="i-value"><span class="i-placeholder">请选择分类</span></div>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <div class="i-form-card">
+              <div class="i-field-label" style="margin-bottom:12px">库存信息</div>
+              <div class="i-field i-switch-row">
+                <span>物品数量</span>
+                <div class="i-stepper"><button type="button" id="iQtyMinus">-</button><input type="number" id="iQty" value="1"><button type="button" id="iQtyPlus">+</button></div>
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">物品单价</label>
+                <div class="i-input-group"><span class="i-prefix">¥</span><input type="number" id="iBatchUnitPrice" placeholder="0.00" step="0.01"></div>
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">物品总价</label>
+                <div class="i-input-group"><span class="i-prefix">¥</span><input type="number" id="iBatchTotalPrice" placeholder="0.00" step="0.01"></div>
+              </div>
+              <div class="i-date-row" data-target="#iBatchPurchaseDate">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  入库日期
+                </div>
+                <div class="i-value"><input type="date" id="iBatchPurchaseDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+              </div>
+              <div class="i-date-row" data-target="#iBatchProductionDate">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  生产日期
+                </div>
+                <div class="i-value"><input type="date" id="iBatchProductionDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+              </div>
+              <div class="i-date-row" id="iBatchExpiryDateTrigger">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  有效期
+                </div>
+                <div class="i-value empty"><input type="date" id="iBatchExpiryDate" style="border:none;background:transparent;font-size:14px;color:inherit" readonly placeholder="请选择"></div>
+              </div>
+              <div class="i-field i-switch-row" style="margin-top:14px">
+                <span>入库后立即取用 1 件</span>
+                <div class="i-switch" id="iAutoTakeOne"></div>
+              </div>
+            </div>
+
+            <div class="i-form-card">
+              <div class="i-field">
+                <label class="i-field-label">存放位置</label>
+                <input type="text" class="i-input" id="iBatchLocation" placeholder="物品放在哪里了？">
+              </div>
+              <div class="i-field">
+                <label class="i-field-label">备注说明</label>
+                <textarea class="i-textarea" id="iBatchMemo" rows="2" placeholder="关于此物品的特别记忆"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="i-form-actions">
+            <button type="button" class="i-btn-cancel" id="iCancelItemBtn2">取消</button>
+            <button type="button" class="i-btn-primary" id="iSaveItemBtn">✓ 保存物品</button>
+          </div>
+        </div>
+
+        <!-- 分类管理 -->
+        <div class="i-subpage" id="i-subpage-categories">
+          <div class="i-page-header">
+            <button class="i-back" id="iCatBackBtn">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              返回
+            </button>
+            <h1>我的分类</h1>
+            <span></span>
+          </div>
+          <p style="color:var(--i-text-sec);font-size:13px;margin-bottom:16px">让每一件物品都有清晰的归处</p>
+
+          <div class="i-cat-search"><input type="text" id="iCatSearch" placeholder="搜索分类"></div>
+          <div class="i-cat-tabs">
+            <button class="i-cat-tab active" id="iCatTabMy">我的分类</button>
+            <button class="i-cat-tab" id="iCatTabSys">系统分类（只读）</button>
+          </div>
+          <button class="i-btn i-btn-primary i-add-cat-btn" id="iAddPrimaryBtn">+ 新增一级分类</button>
+          <div id="iMyCategories"></div>
+          <div id="iSysView" style="display:none">
+            <div class="i-chip-row" id="iSysChipRow"></div>
+            <div class="i-sys-grid" id="iSysGrid"></div>
+          </div>
+        </div>
+
+        <!-- 到期完整清单 -->
+        <div class="i-subpage" id="i-subpage-expiring">
+          <div class="i-page-header">
+            <button class="i-back" id="iExpiringBackBtn">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              返回
+            </button>
+            <h1>到期清单</h1>
+            <span></span>
+          </div>
+          <div id="iExpiringSummary" style="font-size:14px;color:var(--i-text-sec);margin-bottom:14px">0 件即将到期 / 0 件已过期</div>
+          <div id="iExpiringList"></div>
+        </div>
+
+        <!-- 通用弹层：文本输入 -->
+        <div class="i-modal" id="iTextModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3 id="iTextModalTitle">新增</h3><button class="i-modal-close" data-close-modal="iTextModal">×</button></div>
+            <input type="text" class="i-input" id="iTextModalInput" placeholder="请输入名称" style="margin-bottom:16px">
+            <div class="i-modal-actions">
+              <button class="i-btn-reset" data-close-modal="iTextModal" id="iTextModalCancel">取消</button>
+              <button class="i-btn-primary" id="iTextModalSave">保存</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 通用弹层：图标+文本输入 -->
+        <div class="i-modal" id="iIconTextModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3 id="iIconTextModalTitle">新增</h3><button class="i-modal-close" data-close-modal="iIconTextModal">×</button></div>
+            <input type="text" class="i-input" id="iIconTextModalInput" placeholder="请输入名称" style="margin-bottom:12px">
+            <div class="i-icon-grid" id="iIconTextGrid" style="margin-bottom:16px"></div>
+            <div class="i-modal-actions">
+              <button class="i-btn-reset" data-close-modal="iIconTextModal" id="iIconTextModalCancel">取消</button>
+              <button class="i-btn-primary" id="iIconTextModalSave">保存</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 图标选择器 -->
+        <div class="i-modal" id="iIconModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>选择图标</h3><button class="i-modal-close" data-close-modal="iIconModal">×</button></div>
+            <div class="i-icon-grid" id="iIconGrid" style="margin-bottom:16px"></div>
+            <button class="i-btn-primary" id="iIconModalConfirm" style="width:100%">确定</button>
+          </div>
+        </div>
+
+        <!-- 分类选择器 -->
+        <div class="i-modal" id="iCategoryModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>选择分类</h3><button class="i-modal-close" data-close-modal="iCategoryModal">×</button></div>
+            <div id="iCategoryList"></div>
+          </div>
+        </div>
+
+        <!-- 日期选择器 -->
+        <div class="i-modal" id="iDateModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>选择日期</h3><button class="i-modal-close" data-close-modal="iDateModal">×</button></div>
+            <div class="i-date-picker-cols">
+              <div class="i-date-col" id="iDateYear"></div>
+              <div class="i-date-col" id="iDateMonth"></div>
+              <div class="i-date-col" id="iDateDay"></div>
+            </div>
+            <button class="i-btn-primary" id="iDateConfirm" style="width:100%">确认</button>
+          </div>
+        </div>
+
+        <!-- 有效期数字+单位 -->
+        <div class="i-modal" id="iExpiryModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>有效期</h3><button class="i-modal-close" data-close-modal="iExpiryModal">×</button></div>
+            <input type="number" class="i-expiry-input" id="iExpiryInput" placeholder="请输入数字" inputmode="numeric">
+            <div class="i-expiry-units" id="iExpiryUnits">
+              <button type="button" data-unit="day" class="active">天</button>
+              <button type="button" data-unit="month">月</button>
+              <button type="button" data-unit="year">年</button>
+            </div>
+            <button class="i-btn-primary" id="iExpiryConfirm" style="width:100%">确认</button>
+          </div>
+        </div>
+
+        <!-- 排序弹层 -->
+        <div class="i-modal" id="iSortModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>物品排序</h3><button class="i-modal-close" data-close-modal="iSortModal">×</button></div>
+            <div class="i-option-group"><div class="i-option-title">排序字段</div><div class="i-options" id="iSortFields"></div></div>
+            <div class="i-option-group"><div class="i-option-title">排序方向</div><div class="i-options" id="iSortDirs"></div></div>
+            <div class="i-modal-actions">
+              <button class="i-btn-reset" id="iSortReset">恢复默认</button>
+              <button class="i-btn-primary" id="iSortApply">应用排序</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 筛选弹层 -->
+        <div class="i-modal" id="iFilterModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>筛选物品</h3><button class="i-modal-close" data-close-modal="iFilterModal">×</button></div>
+            <div id="iFilterCategories"></div>
+            <div class="i-filter-section">
+              <div class="i-filter-section-title">状态</div>
+              <div class="i-options" id="iFilterStatuses"></div>
+            </div>
+            <div class="i-filter-section">
+              <div class="i-filter-section-title">收藏</div>
+              <button class="i-option" id="iFilterStarred" data-type="starred">仅看收藏</button>
+            </div>
+            <div class="i-modal-actions">
+              <button class="i-btn-reset" id="iFilterReset">清空</button>
+              <button class="i-btn-primary" id="iFilterApply">应用筛选</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 物品详情 -->
+        <div class="i-modal" id="iDetailModal">
+          <div class="i-modal-card">
+            <div class="i-modal-head"><h3>物品详情</h3><button class="i-modal-close" id="iDetailClose">×</button></div>
+            <div class="i-detail-head">
+              <div class="i-detail-icon" id="iDetailIcon">📦</div>
+              <div class="i-detail-title">
+                <h3 id="iDetailName">--</h3>
+                <p id="iDetailCat">--</p>
+              </div>
+            </div>
+            <div class="i-detail-grid">
+              <div class="i-detail-cell"><div class="i-detail-cell-label">总价值</div><div class="i-detail-cell-value" id="iDetailTotal">--</div></div>
+              <div class="i-detail-cell"><div class="i-detail-cell-label">日均成本</div><div class="i-detail-cell-value" id="iDetailDaily">--</div></div>
+              <div class="i-detail-cell"><div class="i-detail-cell-label">数量</div><div class="i-detail-cell-value" id="iDetailQty">--</div></div>
+              <div class="i-detail-cell"><div class="i-detail-cell-label">有效期</div><div class="i-detail-cell-value" id="iDetailExpiry">--</div></div>
+            </div>
+            <div class="i-detail-actions">
+              <button class="i-use" id="iDetailUse">使用 1 件</button>
+              <button class="i-scrap" id="iDetailScrap">报废</button>
+              <button class="i-retire" id="iDetailRetire">退役</button>
+            </div>
+            <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button class="i-btn" id="iDetailEdit">编辑</button>
+              <button class="i-btn" style="color:var(--i-danger)" id="iDetailDelete">删除</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
     </main>
   </div>
 
@@ -417,5 +821,6 @@
   <script src="js/words-db.js"></script>
   <script src="js/words-ui.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/items.js"></script>
 </body>
 </html>
