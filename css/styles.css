@@ -1187,3 +1187,35 @@ button {
     pointer-events: none;
   }
 }
+
+/* 新版本更新提示条：Service Worker 检测到新版本并激活后显示，点击刷新。
+   放在顶部居中，避开底部常驻的安装横幅，也避免被抽屉/弹层遮挡。 */
+.sw-update-bar {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%) translateY(-18px);
+  z-index: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(100% - 32px);
+  padding: 9px 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(255, 106, 0, 0.36);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.sw-update-bar.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.sw-update-bar:active { opacity: .85; }

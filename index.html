@@ -836,20 +836,65 @@
     </div>
   </div>
 
+  <!-- 新版本更新提示（点击刷新） -->
+  <button class="sw-update-bar" id="swUpdateBar">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+    </svg>
+    发现新版本 · 点击刷新
+  </button>
+
   <!-- Toast 通知 -->
   <div class="toast" id="toast"></div>
 
   <script>
     // 注册 PWA Service Worker，支持离线使用与"添加到主屏幕"
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('./sw.js').then(function(reg) {
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      var sw = navigator.serviceWorker;
+      // 本次加载时是否已有 SW 在控制：首次安装为 false，之后为 true。
+      // 只有非首次才提示更新，避免首次访问就弹"发现新版本"。
+      var hadController = !!sw.controller;
+
+      function showUpdateBar() {
+        var bar = document.getElementById('swUpdateBar');
+        if (bar) bar.classList.add('show');
+      }
+
+      window.addEventListener('load', function () {
+        // updateViaCache:'none' —— 每次进入都向网络校验 sw.js，
+        // 不用 HTTP 缓存里的旧副本（GitHub Pages 的 max-age 会推迟新版本被发现，
+        // 是"刷新了却还是旧版"的主因之一）。
+        sw.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
           console.log('SW registered', reg.scope);
-        }).catch(function(err) {
-          console.warn('SW register failed', err);
-        });
+          if (!hadController) return;   // 首次安装不提示
+          // 已有等待中的新 SW
+          if (reg.waiting) showUpdateBar();
+          // 新 SW 开始安装 -> 监听其激活
+          reg.addEventListener('updatefound', function () {
+            var w = reg.installing;
+            if (!w) return;
+            w.addEventListener('statechange', function () {
+              if (w.state === 'activated') showUpdateBar();
+            });
+          });
+        }).catch(function (err) { console.warn('SW register failed', err); });
       });
-    }
+
+      // 新 SW 接管页面后提示一次（此时旧缓存已被清理，刷新即可拿到新版）
+      sw.addEventListener('controllerchange', function () {
+        if (hadController) showUpdateBar();
+      });
+
+      // 点击提示条 -> 刷新加载新版本
+      var bar = document.getElementById('swUpdateBar');
+      if (bar) {
+        bar.addEventListener('click', function () {
+          bar.textContent = '正在刷新…';
+          window.location.reload();
+        });
+      }
+    })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="js/words-db.js"></script>
