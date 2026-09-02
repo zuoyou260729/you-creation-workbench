@@ -53,6 +53,64 @@
     });
   }
 
+  /* ===== 移动端侧边栏抽屉：默认隐藏，左缘右滑呼出(浮层不改布局)，5 秒后自动隐藏 ===== */
+  function initMobileDrawer() {
+    const sidebar = $('#sidebar');
+    if (!sidebar) return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const isMobile = () => mq.matches;
+    let hideTimer = null;
+
+    function open() {
+      if (!isMobile()) return;
+      sidebar.classList.add('open');
+      reschedule();
+    }
+    function close() {
+      sidebar.classList.remove('open');
+      clearTimeout(hideTimer);
+    }
+    function reschedule() {
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(close, 5000);
+    }
+
+    // 触摸手势：屏幕左缘(≤40px)向右滑呼出；抽屉打开后在其上向左滑收起
+    let sx = 0, sy = 0, tracking = false, wasOpen = false;
+    document.addEventListener('touchstart', (e) => {
+      if (!isMobile()) return;
+      const t = e.touches[0];
+      sx = t.clientX; sy = t.clientY;
+      wasOpen = sidebar.classList.contains('open');
+      tracking = (sx <= 40 && !wasOpen) || wasOpen;
+    }, { passive: true });
+    document.addEventListener('touchmove', (e) => {
+      if (!tracking || !isMobile()) return;
+      const t = e.touches[0];
+      const dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) < 24) return;                       // 位移太小
+      if (Math.abs(dx) < Math.abs(dy)) { tracking = false; return; } // 纵向滚动，放弃
+      if (!wasOpen && dx > 50) open();
+      else if (wasOpen && dx < -50) close();
+      tracking = false;                                    // 一次手势只触发一次
+    }, { passive: true });
+    document.addEventListener('touchend', () => { tracking = false; }, { passive: true });
+
+    // 抽屉内交互刷新隐藏计时；点击导航项后收起（initNavigation 仍会完成页面切换）
+    sidebar.addEventListener('touchstart', reschedule, { passive: true });
+    sidebar.addEventListener('click', (e) => {
+      if (e.target.closest('.nav-item')) close(); else reschedule();
+    });
+
+    // 抽屉打开时点击抽屉外部（主内容）立即收起
+    document.addEventListener('click', (e) => {
+      if (isMobile() && sidebar.classList.contains('open') && !sidebar.contains(e.target)) close();
+    });
+
+    // 尺寸变化到桌面端时复位
+    if (mq.addEventListener) mq.addEventListener('change', () => { if (!isMobile()) close(); });
+  }
+
   /* ===== 时钟 ===== */
   function initClock() {
     function update() {
@@ -785,6 +843,7 @@ const EMBEDDED = {
   /* ===== 初始化 ===== */
   document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
+    initMobileDrawer();
     initClock();
     initDailyPlan();
     initTopicInspiration();

@@ -1122,3 +1122,35 @@ button {
 .main::-webkit-scrollbar-thumb:hover {
   background: var(--text-tertiary);
 }
+
+/* ========== 移动端侧边栏抽屉 ==========
+   手机端(<768px)：默认隐藏，从屏幕左缘向右滑呼出；
+   以固定定位浮层覆盖在内容之上，不改变主内容排版布局；
+   呼出后 5 秒自动隐藏（app.js initMobileDrawer 控制）。
+   电脑端(>=768px)：侧边栏保持原样，不受本段影响。 */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sidebar-w-expanded);   /* 展开宽度，带文字标签更便于点选 */
+    z-index: 600;
+    transform: translateX(-105%);
+    transition: transform var(--transition);
+    box-shadow: none;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-md);
+  }
+  /* 抽屉展开时显示文字标签 */
+  .sidebar.open .brand-text,
+  .sidebar.open .nav-label {
+    opacity: 1;
+  }
+  /* 主内容始终占满全宽（侧边栏脱离文档流，不参与布局） */
+  .main {
+    width: 100%;
+  }
+}

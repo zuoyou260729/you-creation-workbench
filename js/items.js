@@ -372,11 +372,16 @@
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
   function renderIcon(icon, alt='', cls=''){
     if(!icon) icon='📁';
+    let inner;
     if(icon.includes('/') || icon.startsWith('data:')){
-      return `<img src="${icon}" class="i-icon-img${cls?' '+cls:''}" alt="${escapeHtml(alt)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">` +
-             `<span class="i-icon-fallback${cls?' '+cls:''}" style="display:none">📁</span>`;
+      inner = `<img src="${icon}" class="i-icon-img" alt="${escapeHtml(alt)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">` +
+              `<span class="i-icon-fallback" style="display:none">📁</span>`;
+    } else {
+      inner = `<span class="i-icon-emoji">${icon}</span>`;
     }
-    return `<span class="i-icon-emoji${cls?' '+cls:''}">${icon}</span>`;
+    // 传了容器类时用 <span> 包一层做固定尺寸圆形容器，img 在内部按 70% 居中，
+    // 避免容器类(width:34px)与 .i-icon-img(width:70%) 同加在 <img> 上互相覆盖成椭圆。
+    return cls ? `<span class="${cls}">${inner}</span>` : inner;
   }
   function showToast(msg){
     let toast=document.getElementById('toast');
