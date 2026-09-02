@@ -1154,3 +1154,36 @@ button {
     width: 100%;
   }
 }
+
+/* 手机端侧边栏呼出手柄：
+   系统「边缘滑动返回」只拦截【滑动】不拦截【点击】，故用点击手柄呼出最稳；
+   右滑触发区也已挪到系统边缘区之外（见 app.js EDGE_SAFE）。 */
+.sidebar-handle { display: none; }
+
+@media (max-width: 767px) {
+  .sidebar-handle {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 590;                     /* 略低于抽屉(600) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 62px;
+    padding: 0;
+    border: none;
+    border-radius: 0 14px 14px 0;
+    background: rgba(255, 106, 0, 0.14);
+    color: var(--accent);
+    box-shadow: 1px 0 6px rgba(0, 0, 0, 0.06);
+    transition: opacity var(--transition), background .2s;
+  }
+  .sidebar-handle:active { background: rgba(255, 106, 0, 0.32); }
+  /* 抽屉展开时隐藏手柄（手柄紧邻 sidebar，用兄弟选择器） */
+  .sidebar.open ~ .sidebar-handle {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

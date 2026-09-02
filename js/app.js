@@ -53,12 +53,17 @@
     });
   }
 
-  /* ===== 移动端侧边栏抽屉：默认隐藏，左缘右滑呼出(浮层不改布局)，5 秒后自动隐藏 ===== */
+  /* ===== 移动端侧边栏抽屉：默认隐藏，呼出(浮层不改布局)，5 秒后自动隐藏 =====
+     冲突处理：系统「边缘滑动返回」是 OS 级手势，会独占屏幕最外侧区域且网页无法拦截。
+     对策：①右滑触发区挪到系统边缘区之外(EDGE_SAFE)；②额外提供点击式呼出手柄
+     （系统返回只认【滑动】不认【点击】，故点击手柄最稳）。 */
   function initMobileDrawer() {
     const sidebar = $('#sidebar');
+    const handle = $('#sidebarHandle');
     if (!sidebar) return;
     const mq = window.matchMedia('(max-width: 767px)');
     const isMobile = () => mq.matches;
+    const EDGE_SAFE = 64;   // 距左边缘 64px 以内视为系统手势区，不响应右滑
     let hideTimer = null;
 
     function open() {
@@ -75,24 +80,46 @@
       hideTimer = setTimeout(close, 5000);
     }
 
-    // 触摸手势：屏幕左缘(≤40px)向右滑呼出；抽屉打开后在其上向左滑收起
+    // 点击手柄呼出（最可靠）：stopPropagation 避免被「点击外部立即收起」逻辑误关
+    if (handle) {
+      handle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (sidebar.classList.contains('open')) close(); else open();
+      });
+    }
+
+    // 起始点是否落在可横向滚动的容器内（chip 行 / tab 等），若是则让位给内容横向滚动
+    function inScrollableX(el) {
+      while (el && el !== document.body) {
+        const ox = getComputedStyle(el).overflowX;
+        if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 4) return true;
+        el = el.parentElement;
+      }
+      return false;
+    }
+
+    // 触摸手势：在系统边缘安全区之外向右滑呼出；抽屉打开后在其上向左滑收起
     let sx = 0, sy = 0, tracking = false, wasOpen = false;
     document.addEventListener('touchstart', (e) => {
       if (!isMobile()) return;
       const t = e.touches[0];
       sx = t.clientX; sy = t.clientY;
       wasOpen = sidebar.classList.contains('open');
-      tracking = (sx <= 40 && !wasOpen) || wasOpen;
+      const tag = (e.target.tagName || '').toLowerCase();
+      const isField = tag === 'input' || tag === 'textarea' || tag === 'select';
+      // 未打开：起点需在系统边缘区之外、且不在横向滚动区/输入框内才响应
+      // 已打开：允许在其上向左滑收起
+      tracking = isField ? false : (wasOpen ? true : (sx >= EDGE_SAFE && !inScrollableX(e.target)));
     }, { passive: true });
     document.addEventListener('touchmove', (e) => {
       if (!tracking || !isMobile()) return;
       const t = e.touches[0];
       const dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) < 24) return;                       // 位移太小
-      if (Math.abs(dx) < Math.abs(dy)) { tracking = false; return; } // 纵向滚动，放弃
-      if (!wasOpen && dx > 50) open();
+      if (Math.abs(dx) < 30) return;                                  // 位移太小
+      if (Math.abs(dx) < Math.abs(dy) * 1.5) { tracking = false; return; } // 非横向主导，放弃
+      if (!wasOpen && dx > 60) open();
       else if (wasOpen && dx < -50) close();
-      tracking = false;                                    // 一次手势只触发一次
+      tracking = false;                                               // 一次手势只触发一次
     }, { passive: true });
     document.addEventListener('touchend', () => { tracking = false; }, { passive: true });
 
