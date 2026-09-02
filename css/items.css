@@ -351,7 +351,7 @@
   width: 72px;
   height: 72px;
   flex-shrink: 0;
-  border-radius: var(--i-radius-sm);
+  border-radius: 50%;
   background: var(--i-bg);
   display: flex;
   align-items: center;
@@ -554,7 +554,7 @@
 .i-icon-picker-btn {
   width: 56px;
   height: 56px;
-  border-radius: var(--i-radius-sm);
+  border-radius: 50%;
   background: var(--i-bg);
   border: 1px dashed var(--i-border);
   display: flex;
@@ -1026,7 +1026,7 @@
 }
 .i-detail-icon {
   width: 72px; height: 72px;
-  border-radius: var(--i-radius);
+  border-radius: 50%;
   background: var(--i-bg);
   display: flex; align-items: center; justify-content: center;
   font-size: 36px;
@@ -1161,6 +1161,151 @@
 .i-detail-actions button {
   border: none;
   cursor: pointer;
+}
+
+/* ===== 新增/编辑二级分类弹窗（截图1） ===== */
+.i-child-modal { padding: 22px; }
+.i-child-head { margin-bottom: 20px; }
+.i-child-head h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--i-text);
+  margin-bottom: 6px;
+}
+.i-child-subtitle {
+  font-size: 13px;
+  color: var(--i-text-sec);
+}
+.i-child-body { margin-bottom: 24px; }
+.i-child-body .i-input {
+  margin-bottom: 16px;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.i-child-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--i-border);
+  border-radius: var(--i-radius);
+  background: var(--i-surface);
+  cursor: pointer;
+  transition: background .2s;
+}
+.i-child-icon-row:active { background: var(--i-bg); }
+.i-child-icon-preview {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--i-bg);
+  color: var(--i-text-sec);
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.i-child-icon-preview img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+.i-child-icon-text { flex: 1; min-width: 0; }
+.i-child-icon-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--i-text);
+  margin-bottom: 2px;
+}
+.i-child-icon-hint {
+  font-size: 13px;
+  color: var(--i-text-ter);
+}
+.i-child-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--i-text-ter);
+  flex-shrink: 0;
+}
+
+/* ===== 分类图标选择器（截图2） ===== */
+.i-picker-modal { padding: 18px; }
+.i-picker-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.i-picker-head h3 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--i-text);
+  margin-bottom: 4px;
+}
+.i-picker-head p {
+  font-size: 13px;
+  color: var(--i-text-sec);
+}
+.i-picker-chips {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.i-picker-chips::-webkit-scrollbar { display: none; }
+.i-picker-chip {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--i-border);
+  background: var(--i-surface);
+  color: var(--i-text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+}
+.i-picker-chip.active {
+  background: var(--i-primary);
+  color: #fff;
+  border-color: var(--i-primary);
+}
+.i-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  padding-bottom: 20px;
+}
+.i-picker-grid button {
+  aspect-ratio: 1;
+  border-radius: 16px;
+  background: var(--i-bg);
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  cursor: pointer;
+  transition: all .18s;
+}
+.i-picker-grid button.selected {
+  background: var(--i-primary-light);
+  border-color: var(--i-primary);
+}
+.i-picker-grid button img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.i-picker-grid button .i-icon-emoji {
+  font-size: 28px;
+  line-height: 1;
 }
 
 /* ===== 内容复盘占位页 ===== */

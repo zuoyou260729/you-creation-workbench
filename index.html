@@ -652,16 +652,43 @@
           </div>
         </div>
 
-        <!-- 通用弹层：图标+文本输入 -->
+        <!-- 新增/编辑二级分类（截图1 样式） -->
         <div class="i-modal" id="iIconTextModal">
-          <div class="i-modal-card">
-            <div class="i-modal-head"><h3 id="iIconTextModalTitle">新增</h3><button class="i-modal-close" data-close-modal="iIconTextModal">×</button></div>
-            <input type="text" class="i-input" id="iIconTextModalInput" placeholder="请输入名称" style="margin-bottom:12px">
-            <div class="i-icon-grid" id="iIconTextGrid" style="margin-bottom:16px"></div>
+          <div class="i-modal-card i-child-modal">
+            <div class="i-child-head">
+              <h3 id="iIconTextModalTitle">新增二级分类</h3>
+              <p class="i-child-subtitle">使用简洁明确的名称，方便记录时快速选择。</p>
+            </div>
+            <div class="i-child-body">
+              <input type="text" class="i-input" id="iIconTextModalInput" placeholder="例如：天幕">
+              <div class="i-child-icon-row" id="iChildIconRow">
+                <div class="i-child-icon-preview" id="iChildIconPreview">+</div>
+                <div class="i-child-icon-text">
+                  <div class="i-child-icon-label">分类图标</div>
+                  <div class="i-child-icon-hint" id="iChildIconHint">请选择一个图标</div>
+                </div>
+                <svg class="i-child-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
             <div class="i-modal-actions">
               <button class="i-btn-reset" data-close-modal="iIconTextModal" id="iIconTextModalCancel">取消</button>
               <button class="i-btn-primary" id="iIconTextModalSave">保存</button>
             </div>
+          </div>
+        </div>
+
+        <!-- 分类图标选择器（截图2 样式） -->
+        <div class="i-modal" id="iCatIconPickerModal">
+          <div class="i-modal-card i-picker-modal">
+            <div class="i-picker-head">
+              <div>
+                <h3>选择图标</h3>
+                <p>选择最符合分类含义的图标</p>
+              </div>
+              <button class="i-modal-close" data-close-modal="iCatIconPickerModal">×</button>
+            </div>
+            <div class="i-picker-chips" id="iPickerChips"></div>
+            <div class="i-picker-grid" id="iPickerGrid"></div>
           </div>
         </div>
 

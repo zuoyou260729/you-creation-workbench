@@ -241,7 +241,6 @@
     'sys_office:胶粘用品':'assets/items/icons/sys_office_胶粘用品.png',
     'sys_office:裁剪用品':'assets/items/icons/sys_office_裁剪用品.png',
     'sys_office:计算器':'assets/items/icons/sys_office_计算器.png',
-    'sys_other:其他物品':'assets/items/icons/sys_other_其他物品.png',
     'sys_other:礼品':'assets/items/icons/sys_other_礼品.png',
     'sys_other:票券':'assets/items/icons/sys_other_票券.png',
     'sys_outdoor:健身器材':'assets/items/icons/sys_outdoor_健身器材.png',
@@ -1130,17 +1129,63 @@
   }
   function openIconTextModal(title, value, icon, onSave){
     temp.selectedIcon=icon||'📁';
-    const modal=$('#iIconTextModal');
+    temp.iconTextSaveCallback=onSave;
     $('#iIconTextModalTitle').textContent=title;
     $('#iIconTextModalInput').value=value||'';
-    renderIconGrid($('#iIconTextGrid'), temp.selectedIcon, v=>{ temp.selectedIcon=v; });
+    updateChildIconPreview();
     openModal('iIconTextModal');
     $('#iIconTextModalSave').onclick=()=>{
       const v=$('#iIconTextModalInput').value.trim();
       if(!v){ showToast('名称不能为空'); return; }
-      onSave(v, temp.selectedIcon);
+      if(temp.iconTextSaveCallback) temp.iconTextSaveCallback(v, temp.selectedIcon);
       closeModal('iIconTextModal');
     };
+  }
+
+  function updateChildIconPreview(){
+    const preview=$('#iChildIconPreview');
+    const hint=$('#iChildIconHint');
+    if(!preview) return;
+    const icon=temp.selectedIcon||'📁';
+    if(icon.includes('/') || icon.startsWith('data:')){
+      preview.innerHTML=`<img src="${icon}" alt="" loading="lazy" onerror="this.style.display='none';this.parentNode.textContent='📁'">`;
+    }else{
+      preview.textContent=icon;
+    }
+    if(hint) hint.textContent=(icon==='📁'||!icon)?'请选择一个图标':'已选择';
+  }
+
+  function openCatIconPicker(){
+    temp.pickerPrimary=temp.pickerPrimary || SYSTEM_PRIMARY[0].id;
+    renderCatIconPicker();
+    openModal('iCatIconPickerModal');
+  }
+
+  function renderCatIconPicker(){
+    const selected=temp.pickerPrimary;
+    $('#iPickerChips').innerHTML=SYSTEM_PRIMARY.map(p=>`
+      <button type="button" class="i-picker-chip ${selected===p.id?'active':''}" data-id="${p.id}">${escapeHtml(p.name)}</button>
+    `).join('');
+    $$('#iPickerChips .i-picker-chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        temp.pickerPrimary=btn.dataset.id;
+        renderCatIconPicker();
+      });
+    });
+
+    const list=getSystemSecondary(selected);
+    $('#iPickerGrid').innerHTML=list.map(c=>`
+      <button type="button" class="${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
+        ${renderIcon(c.icon, c.name)}
+      </button>
+    `).join('');
+    $$('#iPickerGrid button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        temp.selectedIcon=btn.dataset.icon;
+        updateChildIconPreview();
+        closeModal('iCatIconPickerModal');
+      });
+    });
   }
 
   function openCategoryPicker(){
@@ -1430,6 +1475,7 @@
     $('#iIconModalConfirm')?.addEventListener('click',()=>closeModal('iIconModal'));
     $('#iTextModalCancel')?.addEventListener('click',()=>closeModal('iTextModal'));
     $('#iIconTextModalCancel')?.addEventListener('click',()=>closeModal('iIconTextModal'));
+    $('#iChildIconRow')?.addEventListener('click', openCatIconPicker);
     $('#iDetailClose')?.addEventListener('click',()=>closeModal('iDetailModal'));
   }
 
