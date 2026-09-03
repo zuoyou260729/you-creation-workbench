@@ -53,89 +53,197 @@
     });
   }
 
-  /* ===== 移动端侧边栏抽屉：默认隐藏，呼出(浮层不改布局)，5 秒后自动隐藏 =====
-     冲突处理：系统「边缘滑动返回」是 OS 级手势，会独占屏幕最外侧区域且网页无法拦截。
-     对策：①右滑触发区挪到系统边缘区之外(EDGE_SAFE)；②额外提供点击式呼出手柄
-     （系统返回只认【滑动】不认【点击】，故点击手柄最稳）。 */
-  function initMobileDrawer() {
-    const sidebar = $('#sidebar');
-    const handle = $('#sidebarHandle');
-    if (!sidebar) return;
+  /* ===== 手机端底部标签栏导航（仅 <768px；电脑端仍是左侧边栏） =====
+     根栏 4 项：每日计划 / 小红书 / 英语 / 物品收纳
+     点击后 3 个分区会「进入下一层级」(pushState)，底部换成该分区子标签栏；
+     手机系统左右边缘滑动返回 = 浏览器后退 = popstate，据此回到上一层。
+     这样彻底不与系统边缘手势冲突（不再需要抽屉/手柄）。 */
+  const TAB_SECTIONS = {
+    xhs: {
+      title: '小红书',
+      tabs: [
+        { key: 'inspiration', label: '选题灵感', page: 'page-topic-inspiration' },
+        { key: 'hot',         label: '爆款二创', page: 'page-hot-videos' },
+        { key: 'review',      label: '内容复盘', page: 'page-content-review' },
+      ],
+    },
+    en: {
+      title: '英语',
+      tabs: [
+        { key: 'input',  label: '单词库录入', page: 'page-word-input' },
+        { key: 'recite', label: '单词背诵',   page: 'page-word-review' },
+        { key: 'list',   label: '词库列表',   page: 'page-word-list' },
+      ],
+    },
+    items: {
+      title: '物品收纳',
+      // 三个入口共用 #page-items，靠侧边栏 nav-item 的 data-subpage 切换子页
+      tabs: [
+        { key: 'overview',   label: '物品统计', page: 'page-items', subpage: 'overview' },
+        { key: 'categories', label: '物品分类', page: 'page-items', subpage: 'categories' },
+        { key: 'expiring',   label: '到期清单', page: 'page-items', subpage: 'expiring' },
+      ],
+    },
+  };
+
+  function initMobileTabbar() {
+    const rootBar = $('#tabbarRoot');
+    const subBar  = $('#tabbarSub');
+    if (!rootBar || !subBar) return;
     const mq = window.matchMedia('(max-width: 767px)');
     const isMobile = () => mq.matches;
-    const EDGE_SAFE = 64;   // 距左边缘 64px 以内视为系统手势区，不响应右滑
-    let hideTimer = null;
 
-    function open() {
-      if (!isMobile()) return;
-      sidebar.classList.add('open');
-      reschedule();
-    }
-    function close() {
-      sidebar.classList.remove('open');
-      clearTimeout(hideTimer);
-    }
-    function reschedule() {
-      clearTimeout(hideTimer);
-      hideTimer = setTimeout(close, 5000);
+    let currentSection = null;   // null = 根层级；否则为 'xhs' | 'en' | 'items'
+
+    /* ---- 显示某个页面（复用已有的 .page 切换机制） ---- */
+    function showPage(pageId) {
+      $$('.page').forEach(p => p.classList.remove('active'));
+      const el = document.getElementById(pageId);
+      if (el) el.classList.add('active');
+      const main = $('.main');
+      if (main) main.scrollTop = 0;
     }
 
-    // 点击手柄呼出（最可靠）：stopPropagation 避免被「点击外部立即收起」逻辑误关
-    if (handle) {
-      handle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (sidebar.classList.contains('open')) close(); else open();
+    /* ---- 物品收纳：通过点击侧边栏对应 nav-item 来切换子页（items.js 已绑定 showSubpage） ---- */
+    function showItemsSubpage(subpage) {
+      const nav = document.querySelector('.nav-item[data-page="items"][data-subpage="' + subpage + '"]');
+      if (nav) { nav.click(); return; }
+      showPage('page-items');
+    }
+
+    /* ---- 进入根层级 ---- */
+    function goRoot(rootKey, pageId, pushHistory) {
+      currentSection = null;
+      rootBar.classList.remove('is-hidden');
+      subBar.classList.add('is-hidden');
+      $$('#tabbarRoot .tabbar-item').forEach(b => {
+        b.classList.toggle('active', b.dataset.root === rootKey);
+      });
+      showPage(pageId);
+      const st = { lvl: 0, root: rootKey, page: pageId };
+      if (pushHistory) history.pushState(st, '', '#/' + rootKey);
+      else history.replaceState(st, '', '#/' + rootKey);
+    }
+
+    /* ---- 进入某个分区（下一层级） ---- */
+    function goSection(sectionKey, subKey, pushHistory) {
+      const cfg = TAB_SECTIONS[sectionKey];
+      if (!cfg) return;
+      const tab = cfg.tabs.find(t => t.key === subKey) || cfg.tabs[0];
+      currentSection = sectionKey;
+
+      rootBar.classList.add('is-hidden');
+      subBar.classList.remove('is-hidden');
+      renderSubBar(sectionKey, tab.key);
+
+      if (tab.subpage) showItemsSubpage(tab.subpage);
+      else showPage(tab.page);
+
+      const st = { lvl: 1, section: sectionKey, sub: tab.key };
+      if (pushHistory) history.pushState(st, '', '#/' + sectionKey + '/' + tab.key);
+      else history.replaceState(st, '', '#/' + sectionKey + '/' + tab.key);
+    }
+
+    /* ---- 复用侧边栏现有图标，保持「图标+文字」观感一致 ---- */
+    function iconForTab(page, subpage) {
+      let nav = null;
+      if (subpage) {
+        nav = document.querySelector('.nav-item[data-page="items"][data-subpage="' + subpage + '"]');
+      } else {
+        nav = document.querySelector('.nav-item[data-page="' + String(page).replace('page-', '') + '"]');
+      }
+      const svg = nav && nav.querySelector('.nav-icon');
+      if (!svg) return '';
+      return svg.outerHTML.replace('class="nav-icon"', 'class="tabbar-icon"');
+    }
+
+    /* ---- 渲染子标签栏：返回格 + 该分区 3 个页面（图标+文字） ---- */
+    function renderSubBar(sectionKey, activeKey) {
+      const cfg = TAB_SECTIONS[sectionKey];
+      subBar.innerHTML =
+        '<button class="tabbar-item tabbar-back" data-back="1">' +
+          '<svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<polyline points="15 18 9 12 15 6"/>' +
+          '</svg>' +
+          '<span class="tabbar-label">返回</span>' +
+        '</button>' +
+        cfg.tabs.map(t =>
+          '<button class="tabbar-item' + (t.key === activeKey ? ' active' : '') + '" data-sub="' + t.key + '">' +
+            iconForTab(t.page, t.subpage) +
+            '<span class="tabbar-label">' + t.label + '</span>' +
+          '</button>'
+        ).join('');
+
+      // 返回：走 history.back()，与系统边缘滑动返回完全同一套历史
+      const backBtn = subBar.querySelector('[data-back]');
+      if (backBtn) backBtn.addEventListener('click', () => { history.back(); });
+
+      subBar.querySelectorAll('[data-sub]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          goSection(sectionKey, btn.dataset.sub, false);   // 子页间切换用 replace，后退直接出分区
+        });
       });
     }
 
-    // 起始点是否落在可横向滚动的容器内（chip 行 / tab 等），若是则让位给内容横向滚动
-    function inScrollableX(el) {
-      while (el && el !== document.body) {
-        const ox = getComputedStyle(el).overflowX;
-        if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 4) return true;
-        el = el.parentElement;
-      }
-      return false;
-    }
+    /* ---- 根栏点击 ----
+       根层级之间切换用 replaceState（不堆历史），只有「进入分区」才 pushState，
+       这样系统返回手势永远等于「回到上一层」。 */
+    $$('#tabbarRoot .tabbar-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!isMobile()) return;
+        if (btn.dataset.section) goSection(btn.dataset.section, null, true);
+        else goRoot(btn.dataset.root, btn.dataset.page, false);
+      });
+    });
 
-    // 触摸手势：在系统边缘安全区之外向右滑呼出；抽屉打开后在其上向左滑收起
-    let sx = 0, sy = 0, tracking = false, wasOpen = false;
-    document.addEventListener('touchstart', (e) => {
+    /* ---- 系统返回手势 / 浏览器后退 ---- */
+    window.addEventListener('popstate', () => {
       if (!isMobile()) return;
-      const t = e.touches[0];
-      sx = t.clientX; sy = t.clientY;
-      wasOpen = sidebar.classList.contains('open');
-      const tag = (e.target.tagName || '').toLowerCase();
-      const isField = tag === 'input' || tag === 'textarea' || tag === 'select';
-      // 未打开：起点需在系统边缘区之外、且不在横向滚动区/输入框内才响应
-      // 已打开：允许在其上向左滑收起
-      tracking = isField ? false : (wasOpen ? true : (sx >= EDGE_SAFE && !inScrollableX(e.target)));
-    }, { passive: true });
-    document.addEventListener('touchmove', (e) => {
-      if (!tracking || !isMobile()) return;
-      const t = e.touches[0];
-      const dx = t.clientX - sx, dy = t.clientY - sy;
-      if (Math.abs(dx) < 30) return;                                  // 位移太小
-      if (Math.abs(dx) < Math.abs(dy) * 1.5) { tracking = false; return; } // 非横向主导，放弃
-      if (!wasOpen && dx > 60) open();
-      else if (wasOpen && dx < -50) close();
-      tracking = false;                                               // 一次手势只触发一次
-    }, { passive: true });
-    document.addEventListener('touchend', () => { tracking = false; }, { passive: true });
-
-    // 抽屉内交互刷新隐藏计时；点击导航项后收起（initNavigation 仍会完成页面切换）
-    sidebar.addEventListener('touchstart', reschedule, { passive: true });
-    sidebar.addEventListener('click', (e) => {
-      if (e.target.closest('.nav-item')) close(); else reschedule();
+      const st = history.state;
+      if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
+        goSection(st.section, st.sub, false);
+      } else if (st && st.lvl === 0) {
+        goRoot(st.root, st.page, false);
+      } else {
+        // 没有状态信息 -> 回到根层级的每日计划
+        goRoot('daily', 'page-daily-plan', false);
+      }
     });
 
-    // 抽屉打开时点击抽屉外部（主内容）立即收起
-    document.addEventListener('click', (e) => {
-      if (isMobile() && sidebar.classList.contains('open') && !sidebar.contains(e.target)) close();
-    });
+    /* ---- 初始化 ----
+       延后一个 tick：items.js 在 app.js 之后加载，其 nav-item 点击绑定（切换物品子页）
+       要等它跑完才能用，否则直接进入物品分区会停在错误子页。 */
+    function initialRoute() {
+      if (!isMobile()) return;
+      // 1) 优先用 history.state；2) 其次解析 URL hash（刷新/分享链接场景）
+      let st = history.state;
+      if (!st || (!st.lvl && st.lvl !== 0)) {
+        const m = /^#\/([a-z]+)(?:\/([a-z]+))?/.exec(location.hash || '');
+        if (m && TAB_SECTIONS[m[1]]) st = { lvl: 1, section: m[1], sub: m[2] };
+      }
+      if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
+        goSection(st.section, st.sub, false);
+      } else if (st && st.lvl === 0 && st.page) {
+        goRoot(st.root, st.page, false);
+      } else {
+        goRoot('daily', 'page-daily-plan', false);
+      }
+    }
+    setTimeout(initialRoute, 0);
 
-    // 尺寸变化到桌面端时复位
-    if (mq.addEventListener) mq.addEventListener('change', () => { if (!isMobile()) close(); });
+    // 尺寸切到电脑端时，恢复常规页面显示（侧边栏由 CSS 负责显示）
+    if (mq.addEventListener) {
+      mq.addEventListener('change', () => {
+        if (!isMobile()) {
+          rootBar.classList.add('is-hidden');
+          subBar.classList.add('is-hidden');
+        } else if (!currentSection) {
+          rootBar.classList.remove('is-hidden');
+        } else {
+          subBar.classList.remove('is-hidden');
+        }
+      });
+    }
   }
 
   /* ===== 时钟 ===== */
@@ -870,7 +978,7 @@ const EMBEDDED = {
   /* ===== 初始化 ===== */
   document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
-    initMobileDrawer();
+    initMobileTabbar();
     initClock();
     initDailyPlan();
     initTopicInspiration();

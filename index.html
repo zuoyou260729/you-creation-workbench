@@ -122,13 +122,6 @@
       </div>
     </nav>
 
-    <!-- 手机端左侧呼出手柄（点击展开导航；点击不会被系统「边缘滑动返回」拦截） -->
-    <button class="sidebar-handle" id="sidebarHandle" aria-label="打开导航">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="9 6 15 12 9 18"/>
-      </svg>
-    </button>
-
     <!-- ========== 主内容区 ========== -->
     <main class="main">
 
@@ -835,6 +828,52 @@
       <button class="primary-btn" id="installModalClose">我知道了</button>
     </div>
   </div>
+
+  <!-- ========== 手机端底部标签栏（仅 <768px 显示；电脑端仍用左侧边栏） ==========
+       根栏 4 项：每日计划 / 小红书 / 英语 / 物品收纳
+       点击小红书·英语·物品收纳会「进入下一层级」，底部换成该分区的子标签栏，
+       手机系统左右边缘滑动返回（history popstate）即回到上一层。 -->
+  <nav class="tabbar" id="tabbarRoot">
+    <button class="tabbar-item active" data-root="daily" data-page="page-daily-plan">
+      <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <path d="M9 16l2 2 4-4"/>
+      </svg>
+      <span class="tabbar-label">每日计划</span>
+    </button>
+    <button class="tabbar-item" data-root="xhs" data-section="xhs">
+      <!-- 小红书：书本造型（品牌红） -->
+      <svg class="tabbar-icon tabbar-icon-xhs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 6.5C10.5 5 8.2 4.2 4 4.2V19c4.2 0 6.5.9 8 2.3 1.5-1.4 3.8-2.3 8-2.3V4.2c-4.2 0-6.5.8-8 2.3z"/>
+        <line x1="12" y1="6.5" x2="12" y2="21.3"/>
+      </svg>
+      <span class="tabbar-label">小红书</span>
+    </button>
+    <button class="tabbar-item" data-root="en" data-section="en">
+      <!-- 英语：Aa 字形 -->
+      <svg class="tabbar-icon tabbar-icon-en" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 20L9 5l6 15"/>
+        <path d="M5.2 14.5h7.6"/>
+        <path d="M16.5 20l4-9 4 9"/>
+        <path d="M17.9 16.8h5.2"/>
+      </svg>
+      <span class="tabbar-label">英语</span>
+    </button>
+    <button class="tabbar-item" data-root="items" data-section="items">
+      <!-- 物品收纳：收纳箱造型 -->
+      <svg class="tabbar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 7.5L12 3l9 4.5-9 4.5-9-4.5z"/>
+        <path d="M3 7.5V17l9 4.5 9-4.5V7.5"/>
+        <path d="M12 12v9.5"/>
+      </svg>
+      <span class="tabbar-label">物品收纳</span>
+    </button>
+  </nav>
+
+  <!-- 手机端底部子标签栏：进入某分区后显示（内容由 app.js 按分区渲染） -->
+  <nav class="tabbar is-hidden" id="tabbarSub"></nav>
 
   <!-- 新版本更新提示（点击刷新） -->
   <button class="sw-update-bar" id="swUpdateBar">

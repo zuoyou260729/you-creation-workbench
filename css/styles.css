@@ -1123,69 +1123,88 @@ button {
   background: var(--text-tertiary);
 }
 
-/* ========== 移动端侧边栏抽屉 ==========
-   手机端(<768px)：默认隐藏，从屏幕左缘向右滑呼出；
-   以固定定位浮层覆盖在内容之上，不改变主内容排版布局；
-   呼出后 5 秒自动隐藏（app.js initMobileDrawer 控制）。
-   电脑端(>=768px)：侧边栏保持原样，不受本段影响。 */
+/* ========== 手机端：隐藏左侧边栏，改用底部标签栏 ==========
+   电脑端(>=768px) 完全不受影响，仍是左侧常驻侧边栏。
+   手机端改用底部标签栏后，不再与系统「边缘滑动返回」抢手势。 */
 @media (max-width: 767px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: var(--sidebar-w-expanded);   /* 展开宽度，带文字标签更便于点选 */
-    z-index: 600;
-    transform: translateX(-105%);
-    transition: transform var(--transition);
-    box-shadow: none;
-  }
-  .sidebar.open {
-    transform: translateX(0);
-    box-shadow: var(--shadow-md);
-  }
-  /* 抽屉展开时显示文字标签 */
-  .sidebar.open .brand-text,
-  .sidebar.open .nav-label {
-    opacity: 1;
-  }
-  /* 主内容始终占满全宽（侧边栏脱离文档流，不参与布局） */
+  .sidebar { display: none !important; }
+
+  /* 主内容占满全宽，并留出底部标签栏高度，避免内容被遮住 */
   .main {
     width: 100%;
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  /* 常驻安装横幅上移，压在底部标签栏之上 */
+  .install-banner {
+    bottom: calc(58px + env(safe-area-inset-bottom));
   }
 }
 
-/* 手机端侧边栏呼出手柄：
-   系统「边缘滑动返回」只拦截【滑动】不拦截【点击】，故用点击手柄呼出最稳；
-   右滑触发区也已挪到系统边缘区之外（见 app.js EDGE_SAFE）。 */
-.sidebar-handle { display: none; }
+/* ========== 手机端底部标签栏 ==========
+   根栏(4项)：每日计划 / 小红书 / 英语 / 物品收纳
+   子栏：进入分区后显示（返回格 + 该分区的 3 个页面）
+   图标 + 文字同时显示，和电脑端展开侧边栏的观感一致。 */
+.tabbar { display: none; }
 
 @media (max-width: 767px) {
-  .sidebar-handle {
+  .tabbar {
     position: fixed;
     left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 590;                     /* 略低于抽屉(600) */
+    right: 0;
+    bottom: 0;
+    z-index: 650;
     display: flex;
+    align-items: stretch;
+    background: var(--surface);
+    border-top: 1px solid var(--border-light);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 14px rgba(0, 0, 0, 0.06);
+  }
+  .tabbar.is-hidden { display: none !important; }
+
+  .tabbar-item {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 62px;
-    padding: 0;
+    gap: 3px;
+    padding: 7px 2px 6px;
     border: none;
-    border-radius: 0 14px 14px 0;
-    background: rgba(255, 106, 0, 0.14);
-    color: var(--accent);
-    box-shadow: 1px 0 6px rgba(0, 0, 0, 0.06);
-    transition: opacity var(--transition), background .2s;
+    background: none;
+    color: var(--text-tertiary);
+    -webkit-tap-highlight-color: transparent;
+    transition: color .18s;
   }
-  .sidebar-handle:active { background: rgba(255, 106, 0, 0.32); }
-  /* 抽屉展开时隐藏手柄（手柄紧邻 sidebar，用兄弟选择器） */
-  .sidebar.open ~ .sidebar-handle {
-    opacity: 0;
-    pointer-events: none;
+  .tabbar-item:active { opacity: .7; }
+  .tabbar-item.active { color: var(--accent); }
+
+  .tabbar-icon {
+    width: 23px;
+    height: 23px;
+    flex-shrink: 0;
   }
+  .tabbar-label {
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* 小红书用品牌红，选中时更醒目（其余沿用主题橙） */
+  .tabbar-item.active .tabbar-icon-xhs { color: #FF2442; }
+
+  /* 子栏的「返回」格：窄一些，和 3 个页面格区分开 */
+  .tabbar-item.tabbar-back {
+    flex: 0 0 56px;
+    color: var(--text-secondary);
+  }
+  .tabbar-item.tabbar-back .tabbar-icon { width: 20px; height: 20px; }
 }
 
 /* 新版本更新提示条：Service Worker 检测到新版本并激活后显示，点击刷新。

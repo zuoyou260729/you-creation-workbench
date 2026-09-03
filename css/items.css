@@ -1148,6 +1148,11 @@
   .i-fab { bottom: 32px; right: 40px; }
 }
 
+/* 手机端：底部有标签栏(~52px) + 常驻安装横幅(~60px)，FAB 需整体上移避免被遮挡 */
+@media (max-width: 767px) {
+  .i-fab { bottom: calc(122px + env(safe-area-inset-bottom)); }
+}
+
 /* 日期行内的原生输入框不可直接点击，统一走自定义日期弹层 */
 .i-date-row input {
   pointer-events: none;
