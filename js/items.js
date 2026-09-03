@@ -641,7 +641,8 @@
     const galleryBtn=$('#iGalleryBtn');
     if(galleryBtn){
       const isGrid=state.settings.viewMode==='grid';
-      galleryBtn.innerHTML=`${isGrid?listSvg():gridSvg()} <span>${isGrid?'画廊':'网格'}</span>`;
+      // 按钮文字表示「当前视图」：当前是网格则显示「画廊」，当前是清单则显示「清单」
+      galleryBtn.innerHTML=`${isGrid?gridSvg():listSvg()} <span>${isGrid?'画廊':'清单'}</span>`;
     }
 
     renderExpiringModule();
@@ -795,6 +796,14 @@
     if(name==='overview') renderOverview();
     if(name==='categories') renderCategoriesPage();
     if(name==='expiring') renderExpiringPage();
+    if(name==='detail'){
+      // 进入详情页时隐藏物品模块的悬浮添加按钮，避免与底部操作栏冲突
+      const fab=$('.i-fab');
+      if(fab) fab.style.display='none';
+    } else {
+      const fab=$('.i-fab');
+      if(fab) fab.style.display='';
+    }
     updateExpiringBadge();
   }
 
@@ -943,38 +952,118 @@
     showSubpage('overview');
   }
 
-  /* ===== 详情弹层 ===== */
+  /* ===== 详情页 ===== */
+  let currentDetailGroup=null;
+  function formatDateDot(s){
+    if(!s) return '-';
+    const d=parseDate(s);
+    if(!d) return s.slice(0,10).replace(/-/g,'.');
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function formatIsoDot(iso){
+    if(!iso) return '-';
+    const d=new Date(iso);
+    if(isNaN(d)) return '-';
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function statusText(g){
+    if(g.stockQty>0) return '现役中';
+    if(g.inUseQty>0) return '使用中';
+    if(g.scrappedQty>0) return '已报废';
+    if(g.retiredQty>0) return '已退役';
+    return '未入库';
+  }
+  function renderDetailHeroIcon(g){
+    const el=$('#iDetailHeroIcon');
+    if(!el) return;
+    el.innerHTML='';
+    if(g.icon && (g.icon.includes('/')||g.icon.startsWith('data:'))){
+      el.innerHTML=`<img src="${g.icon}" alt="${escapeHtml(g.name)}" loading="lazy" onerror="this.style.display='none';this.parentElement.textContent='📦'">`;
+    } else {
+      el.textContent=g.icon||'📦';
+    }
+  }
   function showDetail(g){
+    currentDetailGroup=g;
     const item=g.items[0];
     const path=getCategoryPath(item.categoryId);
-    const modal=$('#iDetailModal');
-    $('#iDetailIcon').textContent=g.icon;
-    $('#iDetailName').textContent=g.name;
-    $('#iDetailCat').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
-    $('#iDetailTotal').textContent=formatMoney(g.totalPrice);
-    $('#iDetailDaily').textContent=formatMoney(g.dailyCost)+'/日';
-    $('#iDetailQty').textContent=g.qty;
-    $('#iDetailExpiry').textContent=item.expiryDate||'-';
+    const used=Math.max(0, g.qty - g.stockQty);
+    const usagePct=g.qty>0?((used/g.qty)*100).toFixed(1):'0.0';
 
-    modal.classList.add('show');
+    renderDetailHeroIcon(g);
+    $('#iDetailBatch').textContent=g.qty>1?'批量':'';
+    $('#iDetailBatch').classList.toggle('i-hide', g.qty<=1);
+    const starBtn=$('#iDetailStar');
+    starBtn.classList.toggle('active', !!g.starred);
+    starBtn.onclick=()=>{
+      const newStar=!g.starred;
+      g.items.forEach(it=>it.starred=newStar);
+      save(); renderOverview();
+      showDetail(g); // 重新渲染保持状态
+    };
+    $('#iDetailHeroName').textContent=g.name;
+    $('#iDetailHeroDaily').textContent=g.dailyCost.toFixed(2);
 
-    $('#iDetailUse').onclick=()=>{ changeStatus(g,'use'); };
-    $('#iDetailScrap').onclick=()=>{ changeStatus(g,'scrap'); };
-    $('#iDetailRetire').onclick=()=>{ changeStatus(g,'retire'); };
-    $('#iDetailEdit').onclick=()=>{ modal.classList.remove('show'); openAddItem(item.qty>1?'batch':'single', item); };
-    $('#iDetailDelete').onclick=()=>{ if(confirm('确定删除该物品记录？')){ deleteItems(g); modal.classList.remove('show'); renderOverview(); } };
+    $('#iDetailStock').textContent=g.stockQty;
+    $('#iDetailTotalIn').textContent=g.qty;
+    $('#iDetailUsed').textContent=used;
+
+    $('#iDetailDays').textContent=g.holdingDays;
+    $('#iDetailUsageText').textContent=`已使用 ${usagePct}%`;
+    $('#iDetailUsageEnd').textContent=`${100-Number(usagePct)}%`;
+    $('#iDetailProgressFill').style.width=usagePct+'%';
+
+    $('#iDetailAvgPrice').textContent=formatMoney(g.avgPrice);
+    $('#iDetailTotalPrice').textContent=formatMoney(g.totalPrice);
+    $('#iDetailTotalQty').textContent=g.qty+' 件';
+    $('#iDetailInUse').textContent=g.inUseQty+' 件';
+    $('#iDetailStatus').textContent=statusText(g);
+    $('#iDetailFirstDate').textContent=formatDateDot(g.purchaseDate);
+    $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
+    $('#iDetailLocation').textContent=item.location||'-';
+    $('#iDetailCreated').textContent=formatIsoDot(item.createdAt);
+    $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
+
+    $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
+      btn.onclick=()=>{
+        const action=btn.dataset.action;
+        if(action==='stock'){ changeStatus(g,'stock'); }
+        else if(action==='use'){ changeStatus(g,'use'); }
+        else if(action==='edit'){ openAddItem(item.qty>1?'batch':'single', item); }
+        else if(action==='share'){ showToast('分享链接已复制（演示）'); }
+        else if(action==='delete'){ if(confirm('确定删除该物品记录？')){ deleteItems(g); showSubpage('overview'); renderOverview(); } }
+      };
+    });
+
+    showSubpage('detail');
+    $('.main').scrollTop=0;
   }
   function changeStatus(g, type){
-    // take 1 from stock and move to target status for first item with stock
-    const target=g.items.find(it=>(it.stockQty||0)>0);
-    if(!target){ showToast('库存不足'); return; }
-    target.stockQty-=1;
-    if(type==='use') target.inUseQty=(target.inUseQty||0)+1;
-    if(type==='scrap') target.scrappedQty=(target.scrappedQty||0)+1;
-    if(type==='retire') target.retiredQty=(target.retiredQty||0)+1;
+    if(type==='stock'){
+      // 入库：从第一个有退役/报废/在用的记录里回退 1 件到库存，或新增一件虚拟库存
+      const target=g.items.find(it=((it.retiredQty||0)+(it.scrappedQty||0)+(it.inUseQty||0))>0);
+      if(target){
+        if(target.inUseQty>0){ target.inUseQty-=1; target.stockQty=(target.stockQty||0)+1; }
+        else if(target.scrappedQty>0){ target.scrappedQty-=1; target.stockQty=(target.stockQty||0)+1; }
+        else if(target.retiredQty>0){ target.retiredQty-=1; target.stockQty=(target.stockQty||0)+1; }
+      } else {
+        // 没有可回退状态时，给首个物品加 1 库存
+        const first=g.items[0];
+        first.qty=(first.qty||0)+1;
+        first.stockQty=(first.stockQty||0)+1;
+      }
+    } else {
+      // 取用/报废/退役：从库存中消耗 1 件
+      const target=g.items.find(it=((it.stockQty||0))>0);
+      if(!target){ showToast('库存不足'); return; }
+      target.stockQty-=1;
+      if(type==='use') target.inUseQty=(target.inUseQty||0)+1;
+      if(type==='scrap') target.scrappedQty=(target.scrappedQty||0)+1;
+      if(type==='retire') target.retiredQty=(target.retiredQty||0)+1;
+    }
     save();
     showToast('状态已更新');
-    $('#iDetailModal').classList.remove('show');
+    showDetail(g);
     renderOverview();
   }
   function deleteItems(g){
@@ -1543,6 +1632,7 @@
     $('#iExpiringMore')?.addEventListener('click',()=>showSubpage('expiring'));
     $('#iCatBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     $('#iExpiringBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
+    $('#iDetailBack')?.addEventListener('click',()=>showSubpage('overview'));
 
     // add form tabs
     $('#iFormTabSingle')?.addEventListener('click',()=>{ temp.formTab='single'; toggleFormTab(); });
@@ -1608,7 +1698,6 @@
     $('#iTextModalCancel')?.addEventListener('click',()=>closeModal('iTextModal'));
     $('#iIconTextModalCancel')?.addEventListener('click',()=>closeModal('iIconTextModal'));
     $('#iChildIconRow')?.addEventListener('click', openCatIconPicker);
-    $('#iDetailClose')?.addEventListener('click',()=>closeModal('iDetailModal'));
   }
 
   /* ===== 初始化 ===== */

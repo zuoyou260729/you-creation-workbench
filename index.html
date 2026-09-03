@@ -780,32 +780,74 @@
           </div>
         </div>
 
-        <!-- 物品详情 -->
-        <div class="i-modal" id="iDetailModal">
-          <div class="i-modal-card">
-            <div class="i-modal-head"><h3>物品详情</h3><button class="i-modal-close" id="iDetailClose">×</button></div>
-            <div class="i-detail-head">
-              <div class="i-detail-icon" id="iDetailIcon">📦</div>
-              <div class="i-detail-title">
-                <h3 id="iDetailName">--</h3>
-                <p id="iDetailCat">--</p>
+        <!-- 物品详情（参考截图：全屏档案页） -->
+        <div class="i-subpage" id="i-subpage-detail">
+          <div class="i-page-header">
+            <button class="i-back" id="iDetailBack">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              返回
+            </button>
+            <h1>物品档案</h1>
+            <span></span>
+          </div>
+
+          <div class="i-detail-body">
+            <!-- 顶部大卡片 -->
+            <div class="i-detail-hero">
+              <span class="i-detail-batch" id="iDetailBatch">批量</span>
+              <button class="i-detail-star" id="iDetailStar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
+              <div class="i-detail-hero-icon" id="iDetailHeroIcon">📦</div>
+              <div class="i-detail-hero-name" id="iDetailHeroName">--</div>
+              <div class="i-detail-hero-daily">
+                <span>日均成本</span>
+                <span class="i-detail-hero-currency">¥</span>
+                <span class="i-detail-hero-amount" id="iDetailHeroDaily">0.00</span>
+                <span>/日</span>
               </div>
             </div>
-            <div class="i-detail-grid">
-              <div class="i-detail-cell"><div class="i-detail-cell-label">总价值</div><div class="i-detail-cell-value" id="iDetailTotal">--</div></div>
-              <div class="i-detail-cell"><div class="i-detail-cell-label">日均成本</div><div class="i-detail-cell-value" id="iDetailDaily">--</div></div>
-              <div class="i-detail-cell"><div class="i-detail-cell-label">数量</div><div class="i-detail-cell-value" id="iDetailQty">--</div></div>
-              <div class="i-detail-cell"><div class="i-detail-cell-label">有效期</div><div class="i-detail-cell-value" id="iDetailExpiry">--</div></div>
+
+            <!-- 三列统计 -->
+            <div class="i-detail-stats-row">
+              <div class="i-detail-stat"><div class="i-detail-stat-label">当前库存</div><div class="i-detail-stat-value"><strong id="iDetailStock">0</strong><span>件</span></div></div>
+              <div class="i-detail-stat"><div class="i-detail-stat-label">总入库量</div><div class="i-detail-stat-value"><strong id="iDetailTotalIn">0</strong><span>件</span></div></div>
+              <div class="i-detail-stat"><div class="i-detail-stat-label">已取用</div><div class="i-detail-stat-value"><strong id="iDetailUsed">0</strong><span>件</span></div></div>
             </div>
-            <div class="i-detail-actions">
-              <button class="i-use" id="iDetailUse">使用 1 件</button>
-              <button class="i-scrap" id="iDetailScrap">报废</button>
-              <button class="i-retire" id="iDetailRetire">退役</button>
+
+            <!-- 已入库天数 + 进度条 -->
+            <div class="i-detail-days">
+              <div class="i-detail-days-top">
+                <span>已入库 <strong id="iDetailDays">0</strong> 天</span>
+                <span id="iDetailUsageText">已使用 0.0%</span>
+              </div>
+              <div class="i-detail-progress"><div class="i-detail-progress-fill" id="iDetailProgressFill"></div></div>
+              <div class="i-detail-days-bottom"><span>0%</span><span id="iDetailUsageEnd">100%</span></div>
             </div>
-            <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <button class="i-btn" id="iDetailEdit">编辑</button>
-              <button class="i-btn" style="color:var(--i-danger)" id="iDetailDelete">删除</button>
+
+            <!-- 库存档案 -->
+            <div class="i-detail-section">
+              <h2 class="i-detail-section-title">库存档案</h2>
+              <div class="i-detail-rows">
+                <div class="i-detail-row"><span class="i-detail-row-label">购买均价</span><span class="i-detail-row-value" id="iDetailAvgPrice">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">购买总价</span><span class="i-detail-row-value" id="iDetailTotalPrice">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">库存总量</span><span class="i-detail-row-value" id="iDetailTotalQty">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">正在使用</span><span class="i-detail-row-value" id="iDetailInUse">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">当前状态</span><span class="i-detail-row-value" id="iDetailStatus">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">首次入库</span><span class="i-detail-row-value" id="iDetailFirstDate">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">所属分类</span><span class="i-detail-row-value i-detail-tag" id="iDetailCategory">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">存放位置</span><span class="i-detail-row-value" id="iDetailLocation">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">添加时间</span><span class="i-detail-row-value" id="iDetailCreated">--</span></div>
+                <div class="i-detail-row"><span class="i-detail-row-label">最后更新</span><span class="i-detail-row-value" id="iDetailUpdated">--</span></div>
+              </div>
             </div>
+          </div>
+
+          <!-- 底部固定操作栏 -->
+          <div class="i-detail-bottom-actions" id="iDetailBottomActions">
+            <button class="i-detail-btns" data-action="stock"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>入库</span></button>
+            <button class="i-detail-btns" data-action="use"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg><span>取用</span></button>
+            <button class="i-detail-btns" data-action="edit"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>编辑</span></button>
+            <button class="i-detail-btns" data-action="share"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>分享</span></button>
+            <button class="i-detail-btns i-detail-btns-danger" data-action="delete"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>删除</span></button>
           </div>
         </div>
 
