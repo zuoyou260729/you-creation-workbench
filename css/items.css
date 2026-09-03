@@ -770,12 +770,15 @@
 /* 系统分类 */
 .i-chip-row {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 8px;
   margin-bottom: 12px;
   scrollbar-width: none;
+  cursor: grab;
 }
+.i-chip-row.dragging { cursor: grabbing; }
 .i-chip-row::-webkit-scrollbar { display: none; }
 
 /* 通用图标渲染（兼容 emoji 与图片） */
@@ -1235,8 +1238,82 @@
   flex-shrink: 0;
 }
 
-/* ===== 分类图标选择器（截图2） ===== */
+/* ===== 图标选择器/分类图标选择器（截图样式） ===== */
 .i-picker-modal { padding: 18px; }
+.i-picker-search {
+  position: relative;
+  margin-bottom: 14px;
+}
+.i-picker-search svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--i-text-ter);
+  pointer-events: none;
+}
+.i-picker-search input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border: none;
+  border-radius: var(--i-radius-sm);
+  background: var(--i-bg);
+  color: var(--i-text);
+  font-size: 14px;
+  outline: none;
+}
+.i-picker-search input::placeholder { color: var(--i-text-ter); }
+
+.i-picker-custom-row {
+  display: none;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+  cursor: grab;
+}
+.i-picker-custom-row::-webkit-scrollbar { display: none; }
+.i-picker-custom-row.dragging { cursor: grabbing; }
+.i-picker-custom-card {
+  flex: 0 0 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 10px;
+  border: 1px solid var(--i-border);
+  border-radius: var(--i-radius);
+  background: var(--i-surface);
+  box-shadow: var(--i-shadow);
+  cursor: pointer;
+  transition: all .18s;
+}
+.i-picker-custom-card.selected {
+  border-color: var(--i-primary);
+  background: var(--i-primary-light);
+}
+.i-picker-custom-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--i-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.i-picker-custom-icon img { width: 70%; height: 70%; object-fit: contain; }
+.i-picker-custom-icon .i-icon-emoji { font-size: 24px; }
+.i-picker-custom-label {
+  font-size: 12px;
+  color: var(--i-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
 .i-picker-head {
   display: flex;
   align-items: flex-start;
@@ -1255,13 +1332,16 @@
 }
 .i-picker-chips {
   display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
   overflow-x: auto;
   padding-bottom: 8px;
   margin-bottom: 16px;
   scrollbar-width: none;
+  cursor: grab;
 }
 .i-picker-chips::-webkit-scrollbar { display: none; }
+.i-picker-chips.dragging { cursor: grabbing; }
 .i-picker-chip {
   flex-shrink: 0;
   padding: 9px 18px;
@@ -1282,35 +1362,55 @@
 }
 .i-picker-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   padding-bottom: 20px;
 }
-.i-picker-grid button {
-  aspect-ratio: 1;
+.i-picker-grid .i-picker-icon-btn {
   border-radius: 16px;
   background: var(--i-bg);
   border: 2px solid transparent;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 10px;
+  justify-content: flex-start;
+  padding: 12px 6px 8px;
   cursor: pointer;
   transition: all .18s;
 }
-.i-picker-grid button.selected {
+.i-picker-grid .i-picker-icon-btn.selected {
   background: var(--i-primary-light);
   border-color: var(--i-primary);
 }
-.i-picker-grid button img {
-  width: 80%;
-  height: 80%;
+.i-picker-grid .i-picker-icon-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--i-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+.i-picker-grid .i-picker-icon-img img {
+  width: 70%;
+  height: 70%;
   object-fit: contain;
   pointer-events: none;
 }
-.i-picker-grid button .i-icon-emoji {
-  font-size: 28px;
+.i-picker-grid .i-picker-icon-img .i-icon-emoji {
+  font-size: 26px;
   line-height: 1;
+}
+.i-picker-grid .i-picker-icon-label {
+  font-size: 12px;
+  color: var(--i-text);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* ===== 内容复盘占位页 ===== */

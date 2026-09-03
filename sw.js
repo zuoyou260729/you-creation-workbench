@@ -2,7 +2,7 @@
    服务 worker - 应用壳缓存 + 离线缓存 + 重连合并
    版本升级后旧缓存自动清理；data/ 走 network-first 保证重连后拿到云端最新数据
    ========================================== */
-const CACHE = 'you-workbench-v12';
+const CACHE = 'you-workbench-v13';
 const ASSETS = [
   './',
   './index.html',
@@ -203,9 +203,11 @@ const ASSETS = [
   './assets/items/icons/sys_office_胶粘用品.png',
   './assets/items/icons/sys_office_裁剪用品.png',
   './assets/items/icons/sys_office_计算器.png',
+  './assets/items/icons/sys_other_其他物品.png',
   './assets/items/icons/sys_other_礼品.png',
   './assets/items/icons/sys_other_票券.png',
   './assets/items/icons/sys_outdoor_健身器材.png',
+  './assets/items/icons/sys_outdoor_其他.png',
   './assets/items/icons/sys_outdoor_天幕.png',
   './assets/items/icons/sys_outdoor_帐篷.png',
   './assets/items/icons/sys_outdoor_徒步登山.png',

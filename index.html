@@ -692,12 +692,23 @@
           </div>
         </div>
 
-        <!-- 图标选择器 -->
+        <!-- 图标选择器（截图样式：标题+搜索+分类 chip+图标网格+标签） -->
         <div class="i-modal" id="iIconModal">
-          <div class="i-modal-card">
-            <div class="i-modal-head"><h3>选择图标</h3><button class="i-modal-close" data-close-modal="iIconModal">×</button></div>
-            <div class="i-icon-grid" id="iIconGrid" style="margin-bottom:16px"></div>
-            <button class="i-btn-primary" id="iIconModalConfirm" style="width:100%">确定</button>
+          <div class="i-modal-card i-picker-modal">
+            <div class="i-picker-head">
+              <div>
+                <h3>选择图标</h3>
+                <p>按分类快速找到物品图标</p>
+              </div>
+              <button class="i-modal-close" data-close-modal="iIconModal">×</button>
+            </div>
+            <div class="i-picker-search">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="iIconSearch" placeholder="搜索图标名称">
+            </div>
+            <div class="i-picker-chips" id="iIconChips"></div>
+            <div class="i-picker-custom-row" id="iIconCustomRow"></div>
+            <div class="i-picker-grid" id="iIconGrid"></div>
           </div>
         </div>
 

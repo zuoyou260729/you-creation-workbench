@@ -383,6 +383,45 @@
     // 避免容器类(width:34px)与 .i-icon-img(width:70%) 同加在 <img> 上互相覆盖成椭圆。
     return cls ? `<span class="${cls}">${inner}</span>` : inner;
   }
+
+  /* ===== 横向滚动容器支持鼠标拖拽（手机端 touch 原生滚动，桌面端加 drag） ===== */
+  function enableDragScroll(container){
+    if(!container) return;
+    let isDown=false, startX, scrollLeft;
+    container.style.cursor='grab';
+    container.style.userSelect='none';
+    container.addEventListener('mousedown', e=>{
+      isDown=true;
+      container.classList.add('dragging');
+      container.style.cursor='grabbing';
+      startX=e.pageX-container.offsetLeft;
+      scrollLeft=container.scrollLeft;
+    });
+    container.addEventListener('mouseleave', ()=>{
+      isDown=false;
+      container.classList.remove('dragging');
+      container.style.cursor='grab';
+    });
+    container.addEventListener('mouseup', ()=>{
+      isDown=false;
+      container.classList.remove('dragging');
+      container.style.cursor='grab';
+    });
+    container.addEventListener('mousemove', e=>{
+      if(!isDown) return;
+      e.preventDefault();
+      const x=e.pageX-container.offsetLeft;
+      const walk=(x-startX)*1.2;
+      container.scrollLeft=scrollLeft-walk;
+    });
+    // 滚轮横向滚动
+    container.addEventListener('wheel', e=>{
+      if(e.deltaY!==0 && container.scrollWidth>container.clientWidth){
+        e.preventDefault();
+        container.scrollLeft+=e.deltaY;
+      }
+    }, {passive:false});
+  }
   function showToast(msg){
     let toast=document.getElementById('toast');
     if(!toast){ toast=document.createElement('div'); toast.id='toast'; toast.className='toast'; document.body.appendChild(toast); }
@@ -1031,9 +1070,11 @@
 
   function renderSystemCategories(){
     const selected=state.settings.sysCatChip||'all';
-    $('#iSysChipRow').innerHTML=[{id:'all',name:'全部',icon:''},...SYSTEM_PRIMARY].map(p=>
+    const chipRow=$('#iSysChipRow');
+    chipRow.innerHTML=[{id:'all',name:'全部',icon:''},...SYSTEM_PRIMARY].map(p=>
       `<button class="i-chip ${selected===p.id?'active':''}" data-id="${p.id}">${p.name}</button>`
     ).join('');
+    enableDragScroll(chipRow);
     $$('#iSysChipRow .i-chip').forEach(btn=>{
       btn.addEventListener('click',()=>{ state.settings.sysCatChip=btn.dataset.id; save(); renderSystemCategories(); });
     });
@@ -1168,9 +1209,11 @@
 
   function renderCatIconPicker(){
     const selected=temp.pickerPrimary;
-    $('#iPickerChips').innerHTML=SYSTEM_PRIMARY.map(p=>`
+    const chipRow=$('#iPickerChips');
+    chipRow.innerHTML=SYSTEM_PRIMARY.map(p=>`
       <button type="button" class="i-picker-chip ${selected===p.id?'active':''}" data-id="${p.id}">${escapeHtml(p.name)}</button>
     `).join('');
+    enableDragScroll(chipRow);
     $$('#iPickerChips .i-picker-chip').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         temp.pickerPrimary=btn.dataset.id;
@@ -1180,11 +1223,12 @@
 
     const list=getSystemSecondary(selected);
     $('#iPickerGrid').innerHTML=list.map(c=>`
-      <button type="button" class="${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
-        ${renderIcon(c.icon, c.name)}
+      <button type="button" class="i-picker-icon-btn ${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
+        <span class="i-picker-icon-img">${renderIcon(c.icon, c.name)}</span>
+        <span class="i-picker-icon-label">${escapeHtml(c.name)}</span>
       </button>
     `).join('');
-    $$('#iPickerGrid button').forEach(btn=>{
+    $$('#iPickerGrid .i-picker-icon-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         temp.selectedIcon=btn.dataset.icon;
         updateChildIconPreview();
@@ -1232,25 +1276,109 @@
   }
 
   function openIconPicker(target){
-    // 点击图标仅高亮选中，点「确定」才关闭
-    renderIconGrid($('#iIconGrid'), temp.selectedIcon, v=>{
-      temp.selectedIcon=v;
-      updateIconBtn();
-    });
+    // 物品图标选择器：按参考图重绘为分类 chip + 图标网格 + 标签
+    temp.iconPickerTab=temp.iconPickerTab||'all';
+    temp.iconPickerQuery='';
+    const search=$('#iIconSearch');
+    if(search){ search.value=''; }
+    renderIconPicker();
     openModal('iIconModal');
   }
-  function renderIconGrid(container, selected, onPick){
-    container.innerHTML=DEFAULT_ICONS.map(ic=>`
-      <button type="button" class="${ic===selected?'selected':''}" data-icon="${ic}">${ic}</button>
+
+  function getIconPickerList(){
+    const q=(temp.iconPickerQuery||'').trim();
+    const tab=temp.iconPickerTab||'all';
+    // 我的分类：返回自定义一级分类
+    if(tab==='custom'){
+      return customPrimaryCategories()
+        .filter(c=>c.id!==UNCATEGORIZED_ID)
+        .filter(c=>!q || c.name.toLowerCase().includes(q.toLowerCase()))
+        .map(c=>({name:c.name, icon:c.icon||'📁', type:'custom', id:c.id}));
+    }
+    // 全部 / 某个系统一级
+    let list=[];
+    if(tab==='all'){
+      SYSTEM_PRIMARY.forEach(p=>{
+        getSystemSecondary(p.id).forEach(c=>list.push({...c, type:'sys'}));
+      });
+    }else{
+      list=getSystemSecondary(tab).map(c=>({...c, type:'sys'}));
+    }
+    if(q){
+      list=list.filter(c=>c.name.toLowerCase().includes(q.toLowerCase()));
+    }
+    return list;
+  }
+
+  function renderIconPicker(){
+    const tab=temp.iconPickerTab||'all';
+    const chipRow=$('#iIconChips');
+    const chips=[{id:'all',name:'全部'},{id:'custom',name:'我的分类'},...SYSTEM_PRIMARY];
+    chipRow.innerHTML=chips.map(p=>`
+      <button type="button" class="i-picker-chip ${tab===p.id?'active':''}" data-id="${p.id}">${escapeHtml(p.name)}</button>
     `).join('');
-    $$('button', container).forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        // 先高亮当前点击的图标，再回调
-        $$('button', container).forEach(b=>b.classList.remove('selected'));
-        btn.classList.add('selected');
-        onPick(btn.dataset.icon);
+    enableDragScroll(chipRow);
+    $$('#iIconChips .i-picker-chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        temp.iconPickerTab=btn.dataset.id;
+        renderIconPicker();
       });
     });
+
+    // 搜索框监听
+    const search=$('#iIconSearch');
+    if(search && !search._bound){
+      search.addEventListener('input', ()=>{
+        temp.iconPickerQuery=search.value;
+        renderIconPickerResults();
+      });
+      search._bound=true;
+    }
+
+    renderIconPickerResults();
+  }
+
+  function renderIconPickerResults(){
+    const tab=temp.iconPickerTab||'all';
+    const list=getIconPickerList();
+    const customRow=$('#iIconCustomRow');
+    const grid=$('#iIconGrid');
+
+    if(tab==='custom'){
+      // 我的分类：横向滚动的分类卡片
+      customRow.style.display='flex';
+      grid.style.display='none';
+      customRow.innerHTML=list.map(c=>`
+        <button type="button" class="i-picker-custom-card ${(c.icon||'📁')===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon||'📁')}">
+          <span class="i-picker-custom-icon">${renderIcon(c.icon||'📁', c.name)}</span>
+          <span class="i-picker-custom-label">${escapeHtml(c.name)}</span>
+        </button>
+      `).join('');
+      enableDragScroll(customRow);
+      $$('.i-picker-custom-card', customRow).forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          temp.selectedIcon=btn.dataset.icon;
+          updateIconBtn();
+          closeModal('iIconModal');
+        });
+      });
+    }else{
+      customRow.style.display='none';
+      grid.style.display='grid';
+      grid.innerHTML=list.map(c=>`
+        <button type="button" class="i-picker-icon-btn ${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
+          <span class="i-picker-icon-img">${renderIcon(c.icon, c.name)}</span>
+          <span class="i-picker-icon-label">${escapeHtml(c.name)}</span>
+        </button>
+      `).join('');
+      $$('.i-picker-icon-btn', grid).forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          temp.selectedIcon=btn.dataset.icon;
+          updateIconBtn();
+          closeModal('iIconModal');
+        });
+      });
+    }
   }
 
   function openDatePicker(targetId, currentValue){
@@ -1477,7 +1605,6 @@
     $('#iDateConfirm')?.addEventListener('click', confirmDatePicker);
     $('#iExpiryConfirm')?.addEventListener('click', confirmExpiryPicker);
     $$('#iExpiryUnits button').forEach(b=>b.addEventListener('click',()=>setExpiryUnit(b.dataset.unit)));
-    $('#iIconModalConfirm')?.addEventListener('click',()=>closeModal('iIconModal'));
     $('#iTextModalCancel')?.addEventListener('click',()=>closeModal('iTextModal'));
     $('#iIconTextModalCancel')?.addEventListener('click',()=>closeModal('iIconTextModal'));
     $('#iChildIconRow')?.addEventListener('click', openCatIconPicker);
