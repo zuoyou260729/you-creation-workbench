@@ -437,6 +437,23 @@
       state.items=JSON.parse(localStorage.getItem(ITEMS_KEY))||[];
       state.customCategories=JSON.parse(localStorage.getItem(CATS_KEY))||[];
       state.settings=Object.assign(state.settings, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{});
+
+      // 自动恢复：如果主键为空但备份有数据，说明 localStorage 被清空过
+      //（PWA 重装、浏览器清理存储等），从备份恢复。
+      if(state.items.length===0){
+        const bk=JSON.parse(localStorage.getItem(ITEMS_KEY+'_backup'))||[];
+        if(bk.length>0){
+          state.items=bk;
+          console.log('[items] 从备份恢复物品数据:', bk.length, '条');
+        }
+      }
+      if(state.customCategories.length<=1){
+        const bk=JSON.parse(localStorage.getItem(CATS_KEY+'_backup'))||[];
+        if(bk.length>1){
+          state.customCategories=bk;
+          console.log('[items] 从备份恢复分类数据:', bk.length, '条');
+        }
+      }
     }catch(e){ console.warn('items load failed',e); }
     ensureUncategorized();
   }
@@ -444,6 +461,13 @@
     localStorage.setItem(ITEMS_KEY, JSON.stringify(state.items));
     localStorage.setItem(CATS_KEY, JSON.stringify(state.customCategories));
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    // 同时写入备份键：PWA 重装/浏览器清理存储后主键可能被清，
+    // 备份键名不同，被一起清除的概率较低，可作为恢复源。
+    try{
+      localStorage.setItem(ITEMS_KEY+'_backup', JSON.stringify(state.items));
+      localStorage.setItem(CATS_KEY+'_backup', JSON.stringify(state.customCategories));
+      localStorage.setItem(SETTINGS_KEY+'_backup', JSON.stringify(state.settings));
+    }catch(e){ /* quota 超限时忽略备份失败 */ }
   }
   function ensureUncategorized(){
     if(!state.customCategories.find(c=>c.id===UNCATEGORIZED_ID)){
