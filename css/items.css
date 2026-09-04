@@ -846,6 +846,9 @@
   background: rgba(0,0,0,0.35);
 }
 .i-modal.show { display: flex; }
+/* 子选择器（有效期/日期）需覆盖在底部弹窗（补货入库/取用库存等）之上，
+   否则同 z-index 时后渲染的弹窗会把先渲染的 picker 盖住，导致 picker 看不到 */
+#iExpiryModal, #iDateModal { z-index: 1200; }
 .i-modal-card {
   width: 100%;
   max-height: 85vh;
