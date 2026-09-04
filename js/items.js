@@ -782,7 +782,8 @@
     });
     const groups=Object.values(map);
     groups.forEach(g=>{
-      g.avgPrice=g.qty?g.totalPrice/g.qty:0;
+      // 购买均价：优先显示维护时填写的单价（item.avgPrice），不再用 totalPrice/qty 重算
+      g.avgPrice=(g.items[0]&&g.items[0].avgPrice!=null&&g.items[0].avgPrice!=='')?Number(g.items[0].avgPrice):(g.qty?g.totalPrice/g.qty:0);
       g.purchaseDates.sort();
       g.purchaseDate=g.purchaseDates[0];
       // 入库天数：从最早批次到今天，维护当天为第1天
@@ -1171,6 +1172,7 @@
     // 兼容字段（保留以防其他代码依赖）
     item.qty=qty;
     item.price=price;
+    item.avgPrice=price; // 购买均价 = 维护时填写的单价，之后不再重算
     item.totalPrice=totalPrice;
     item.expiryDate=expiryDate;
     item.stockQty=qty;
@@ -1869,6 +1871,9 @@
       latest.unitPrice=Number($('#iEditUnitPrice').value)||0;
       latest.totalPrice=Number($('#iEditTotalPrice').value)||(latest.unitPrice*(latest.quantity||0));
     }
+    // 购买均价：维护（编辑）时填写的单价，直接记录，不再重算
+    const allBatches=getItemBatches(item);
+    item.avgPrice=allBatches.length?allBatches[allBatches.length-1].unitPrice:0;
     item.location=$('#iEditLocation').value.trim().slice(0,100);
     item.updatedAt=new Date().toISOString();
     save();
@@ -2060,13 +2065,15 @@
         throw new Error('读取云端失败 HTTP '+api.status);
       }
       ensureSyncMeta();
-      TOMB=unionTombstones(TOMB, cloudData.deletedIds);
-      state.items=mergeByUpdatedAt(state.items, cloudData.items);
-      state.customCategories=mergeByUpdatedAt(state.customCategories, cloudData.customCategories);
-      applyTombstones();
-      save();
-      // 2) 上传合并后的完整数据（含删除标记）
-      const payload={ version:3, syncedAt:new Date().toISOString(), items:state.items, customCategories:state.customCategories, deletedIds:TOMB };
+      // ⚠️ 关键修复：同步到云端【绝不】改动本地数据。
+      // 仅在计算【上传内容】时把云端较新的数据合并进来（避免覆盖另一端新数据），
+      // 该结果【只用于上传】；本地 state.items / TOMB 一律不改写，也绝不 applyTombstones，
+      // 因此即使云端有其他设备的删除标记，也绝不会把本机已维护的数据删掉。
+      const uploadItems=mergeByUpdatedAt(state.items, (cloudData.items||[]).filter(c=>c&&c.id&&!TOMB.includes(c.id)));
+      const uploadCats=mergeByUpdatedAt(state.customCategories, (cloudData.customCategories||[]).filter(c=>c&&c.id&&!TOMB.includes(c.id)));
+      const uploadTomb=unionTombstones(TOMB, cloudData.deletedIds);
+      // 2) 上传合并后的完整数据（含删除标记）。本地数据原封不动，不 save、不改写。
+      const payload={ version:3, syncedAt:new Date().toISOString(), items:uploadItems, customCategories:uploadCats, deletedIds:uploadTomb };
       const body={ message:'物品数据同步 '+payload.syncedAt, content:b64utf8(JSON.stringify(payload,null,2)) };
       if(cloudSha) body.sha=cloudSha;
       const pu=await fetch(syncApiUrl(), {

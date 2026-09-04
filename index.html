@@ -792,35 +792,36 @@
 
         <!-- 物品详情（参考截图：全屏档案页） -->
         <div class="i-subpage" id="i-subpage-detail">
-          <div class="i-page-header">
+          <div class="i-page-header i-header-stacked">
             <button class="i-back" id="iDetailBack">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               返回
             </button>
             <h1>物品档案</h1>
-            <span></span>
           </div>
 
           <div class="i-detail-body">
-            <!-- 顶部大卡片 -->
+            <!-- 顶部大卡片（缩短：上=图标+名称+日均，下=三列统计合一） -->
             <div class="i-detail-hero">
               <span class="i-detail-batch" id="iDetailBatch">批量</span>
               <button class="i-detail-star" id="iDetailStar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
-              <div class="i-detail-hero-icon" id="iDetailHeroIcon">📦</div>
-              <div class="i-detail-hero-name" id="iDetailHeroName">--</div>
-              <div class="i-detail-hero-daily">
-                <span>日均成本</span>
-                <span class="i-detail-hero-currency">¥</span>
-                <span class="i-detail-hero-amount" id="iDetailHeroDaily">0.00</span>
-                <span>/日</span>
+              <div class="i-detail-hero-top">
+                <div class="i-detail-hero-icon" id="iDetailHeroIcon">📦</div>
+                <div class="i-detail-hero-info">
+                  <div class="i-detail-hero-name" id="iDetailHeroName">--</div>
+                  <div class="i-detail-hero-daily">
+                    <span>日均成本</span>
+                    <span class="i-detail-hero-currency">¥</span>
+                    <span class="i-detail-hero-amount" id="iDetailHeroDaily">0.00</span>
+                    <span>/日</span>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <!-- 三列统计 -->
-            <div class="i-detail-stats-row">
-              <div class="i-detail-stat"><div class="i-detail-stat-label">当前库存</div><div class="i-detail-stat-value"><strong id="iDetailStock">0</strong><span>件</span></div></div>
-              <div class="i-detail-stat"><div class="i-detail-stat-label">总入库量</div><div class="i-detail-stat-value"><strong id="iDetailTotalIn">0</strong><span>件</span></div></div>
-              <div class="i-detail-stat"><div class="i-detail-stat-label">已取用</div><div class="i-detail-stat-value"><strong id="iDetailUsed">0</strong><span>件</span></div></div>
+              <div class="i-detail-hero-stats">
+                <div class="i-detail-stat"><div class="i-detail-stat-label">当前库存</div><div class="i-detail-stat-value"><strong id="iDetailStock">0</strong><span>件</span></div></div>
+                <div class="i-detail-stat"><div class="i-detail-stat-label">总入库量</div><div class="i-detail-stat-value"><strong id="iDetailTotalIn">0</strong><span>件</span></div></div>
+                <div class="i-detail-stat"><div class="i-detail-stat-label">已取用</div><div class="i-detail-stat-value"><strong id="iDetailUsed">0</strong><span>件</span></div></div>
+              </div>
             </div>
 
             <!-- 已入库天数 + 进度条 -->

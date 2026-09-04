@@ -1230,27 +1230,40 @@ button.i-action-pin.active {
   gap: 16px;
 }
 
-/* 顶部大卡片 */
+/* 顶部大卡片（缩短：上=图标+名称+日均，下=三列统计合一） */
 .i-detail-hero {
   position: relative;
   background: var(--i-surface);
   border: 1px solid var(--i-border-light);
   border-radius: var(--i-radius);
-  padding: 28px 20px 22px;
-  text-align: center;
+  padding: 16px 16px 8px;
   box-shadow: var(--i-shadow);
 }
+.i-detail-hero-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 .i-detail-hero-icon {
-  width: 80px; height: 80px;
-  border-radius: 22px;
+  flex: 0 0 33.333%;
+  max-width: 33.333%;
+  width: 64px; height: 64px;
+  border-radius: 18px;
   background: var(--i-bg);
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 14px;
-  font-size: 38px;
+  font-size: 32px;
   overflow: hidden;
 }
 .i-detail-hero-icon img {
   width: 60%; height: 60%; object-fit: contain;
+}
+.i-detail-hero-info {
+  flex: 1 1 66.666%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
 }
 .i-detail-batch {
   position: absolute;
@@ -1279,10 +1292,12 @@ button.i-action-pin.active {
 .i-detail-star.active { color: #FFB800; background: #FFF8E1; }
 .i-detail-star svg { width: 18px; height: 18px; }
 .i-detail-hero-name {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--i-text);
-  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .i-detail-hero-daily {
   display: inline-flex;
@@ -1297,29 +1312,31 @@ button.i-action-pin.active {
   margin-left: 4px;
 }
 .i-detail-hero-daily .i-detail-hero-amount {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--i-primary);
   line-height: 1;
 }
 
-/* 三列统计 */
-.i-detail-stats-row {
+/* 三列统计（嵌入大卡片底部） */
+.i-detail-hero-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--i-border-light);
 }
 .i-detail-stat {
-  background: var(--i-surface);
-  border: 1px solid var(--i-border-light);
+  background: var(--i-bg);
   border-radius: var(--i-radius-sm);
-  padding: 16px 10px;
+  padding: 12px 8px;
   text-align: center;
 }
 .i-detail-stat-label {
   font-size: 12px;
   color: var(--i-text-sec);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .i-detail-stat-value {
   display: flex;
@@ -1329,7 +1346,7 @@ button.i-action-pin.active {
   color: var(--i-text);
 }
 .i-detail-stat-value strong {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
 }
 .i-detail-stat-value span {
