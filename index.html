@@ -707,16 +707,19 @@
               <input type="text" id="iIconSearch" placeholder="搜索图标名称">
             </div>
             <div class="i-picker-chips" id="iIconChips"></div>
-            <div class="i-picker-custom-row" id="iIconCustomRow"></div>
+            <div class="i-picker-chips i-picker-subchips" id="iIconSubChips" style="display:none"></div>
             <div class="i-picker-grid" id="iIconGrid"></div>
           </div>
         </div>
 
-        <!-- 分类选择器 -->
+        <!-- 分类选择器（滚轮式，仅一级分类） -->
         <div class="i-modal" id="iCategoryModal">
-          <div class="i-modal-card">
-            <div class="i-modal-head"><h3>选择分类</h3><button class="i-modal-close" data-close-modal="iCategoryModal">×</button></div>
-            <div id="iCategoryList"></div>
+          <div class="i-modal-card i-wheel-modal">
+            <div class="i-wheel" id="iCatWheel"></div>
+            <div class="i-wheel-actions">
+              <button class="i-wheel-btn i-wheel-cancel" id="iCatWheelCancel">取消</button>
+              <button class="i-wheel-btn i-wheel-confirm" id="iCatWheelConfirm">确定</button>
+            </div>
           </div>
         </div>
 

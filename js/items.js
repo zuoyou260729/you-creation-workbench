@@ -903,12 +903,17 @@
     if(!cat) display.innerHTML='<span class="i-placeholder">请选择分类</span>';
     else{
       const path=getCategoryPath(cat.id);
-      display.textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
+      display.textContent=path.primaryName;
     }
   }
   function updateIconBtn(){
-    $('#iIconBtn').textContent=temp.selectedIcon;
-    $('#iBatchIconBtn').textContent=temp.selectedIcon;
+    const ic=temp.selectedIcon||'📦';
+    // 图标可能是 PNG 路径（系统分类图标）或 emoji，路径时渲染 <img>
+    const html=(ic.includes('/')||ic.startsWith('data:'))
+      ? `<img src="${escapeHtml(ic)}" style="width:68%;height:68%;object-fit:contain" alt="">`
+      : escapeHtml(ic);
+    $('#iIconBtn').innerHTML=html;
+    $('#iBatchIconBtn').innerHTML=html;
   }
 
   function saveItemForm(){
@@ -1351,41 +1356,60 @@
   }
 
   function openCategoryPicker(){
-    renderCategoryPicker();
+    // 滚轮式分类选择器（截图1）：仅一级分类 = 自定义一级 + 系统一级
+    const customs=customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID);
+    temp.wheelList=[
+      ...customs.map(c=>({id:c.id,name:c.name})),
+      ...SYSTEM_PRIMARY.map(p=>({id:p.id,name:p.name}))
+    ];
+    // 当前选中可能是二级分类，映射回其一级
+    let curId=temp.selectedCategory;
+    if(curId){
+      const path=getCategoryPath(curId);
+      curId=path.primaryId;
+    }
+    const idx=temp.wheelList.findIndex(c=>c.id===curId);
+    temp.wheelIndex=idx>=0?idx:0;
+    renderCatWheel(true);
     openModal('iCategoryModal');
   }
-  function renderCategoryPicker(){
-    const container=$('#iCategoryList');
-    let html='';
-    // system
-    SYSTEM_PRIMARY.forEach(p=>{
-      html+=`<div class="i-cat-picker-group">
-        <div class="i-cat-picker-title">${renderIcon(p.icon, p.name)} ${escapeHtml(p.name)}</div>
-        <div class="i-cat-picker-children">
-          ${getSystemSecondary(p.id).map(c=>`<button class="i-cat-picker-item ${temp.selectedCategory===c.id?'active':''}" data-id="${c.id}">${escapeHtml(c.name)}</button>`).join('')}
-        </div>
-      </div>`;
-    });
-    // custom
-    const customs=customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID);
-    if(customs.length){
-      customs.forEach(p=>{
-        html+=`<div class="i-cat-picker-group">
-          <div class="i-cat-picker-title">${renderIcon(p.icon||'📁', p.name)} ${escapeHtml(p.name)}</div>
-          <div class="i-cat-picker-children">
-            ${customChildren(p.id).map(c=>`<button class="i-cat-picker-item ${temp.selectedCategory===c.id?'active':''}" data-id="${c.id}">${escapeHtml(c.name)}</button>`).join('')}
-          </div>
-        </div>`;
+
+  const WHEEL_ITEM_H=48;
+  function renderCatWheel(scrollToSelected){
+    const wheel=$('#iCatWheel');
+    const list=temp.wheelList||[];
+    const pad=h=>`<div style="height:${h}px;flex:none"></div>`;
+    wheel.innerHTML=pad(WHEEL_ITEM_H*2)+list.map((c,i)=>
+      `<div class="i-wheel-item ${i===temp.wheelIndex?'active':''}" data-idx="${i}">${escapeHtml(c.name)}</div>`
+    ).join('')+pad(WHEEL_ITEM_H*2);
+    $$('.i-wheel-item', wheel).forEach(el=>{
+      el.addEventListener('click', ()=>{
+        temp.wheelIndex=Number(el.dataset.idx);
+        $$('.i-wheel-item', wheel).forEach(x=>x.classList.toggle('active', Number(x.dataset.idx)===temp.wheelIndex));
+        centerWheel(wheel, temp.wheelIndex);
       });
+    });
+    if(scrollToSelected){
+      wheel.scrollTop=temp.wheelIndex*WHEEL_ITEM_H;
     }
-    container.innerHTML=html;
-    $$('.i-cat-picker-item', container).forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        temp.selectedCategory=btn.dataset.id;
-        updateCategoryTrigger();
-        closeModal('iCategoryModal');
+    if(!wheel._bound){
+      let t;
+      wheel.addEventListener('scroll', ()=>{
+        clearTimeout(t);
+        t=setTimeout(()=>{
+          const max=temp.wheelList.length-1;
+          const idx=Math.max(0, Math.min(max, Math.round(wheel.scrollTop/WHEEL_ITEM_H)));
+          if(idx!==temp.wheelIndex){
+            temp.wheelIndex=idx;
+            $$('.i-wheel-item', wheel).forEach(x=>x.classList.toggle('active', Number(x.dataset.idx)===idx));
+          }
+        }, 80);
       });
-    });
+      wheel._bound=true;
+    }
+  }
+  function centerWheel(wheel, idx){
+    wheel.scrollTo({top: idx*WHEEL_ITEM_H, behavior:'smooth'});
   }
 
   function openIconPicker(target){
@@ -1401,12 +1425,26 @@
   function getIconPickerList(){
     const q=(temp.iconPickerQuery||'').trim();
     const tab=temp.iconPickerTab||'all';
-    // 我的分类：返回自定义一级分类
+    // 自定义：第二行 chip 选择自定义一级分类，展示其子分类图标
     if(tab==='custom'){
-      return customPrimaryCategories()
-        .filter(c=>c.id!==UNCATEGORIZED_ID)
-        .filter(c=>!q || c.name.toLowerCase().includes(q.toLowerCase()))
-        .map(c=>({name:c.name, icon:c.icon||'📁', type:'custom', id:c.id}));
+      const sub=temp.iconPickerSub||'all';
+      let list=[];
+      const pushWithChildren=p=>{
+        const children=customChildren(p.id);
+        if(children.length){
+          children.forEach(c=>list.push({name:c.name, icon:c.icon||'📁', type:'custom', id:c.id}));
+        }else{
+          list.push({name:p.name, icon:p.icon||'📁', type:'custom', id:p.id});
+        }
+      };
+      if(sub==='all'){
+        customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID).forEach(pushWithChildren);
+      }else{
+        const p=getCategory(sub);
+        if(p) pushWithChildren(p);
+      }
+      if(q) list=list.filter(c=>c.name.toLowerCase().includes(q.toLowerCase()));
+      return list;
     }
     // 全部 / 某个系统一级
     let list=[];
@@ -1426,7 +1464,7 @@
   function renderIconPicker(){
     const tab=temp.iconPickerTab||'all';
     const chipRow=$('#iIconChips');
-    const chips=[{id:'all',name:'全部'},{id:'custom',name:'我的分类'},...SYSTEM_PRIMARY];
+    const chips=[{id:'all',name:'全部'},{id:'custom',name:'自定义'},...SYSTEM_PRIMARY];
     chipRow.innerHTML=chips.map(p=>`
       <button type="button" class="i-picker-chip ${tab===p.id?'active':''}" data-id="${p.id}">${escapeHtml(p.name)}</button>
     `).join('');
@@ -1437,6 +1475,28 @@
         renderIconPicker();
       });
     });
+
+    // 自定义选中时显示第二行 chip：全部 + 自定义一级分类
+    const subRow=$('#iIconSubChips');
+    if(tab==='custom'){
+      if(!temp.iconPickerSub) temp.iconPickerSub='all';
+      const customs=customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID);
+      const subChips=[{id:'all',name:'全部'},...customs.map(c=>({id:c.id,name:c.name}))];
+      subRow.style.display='flex';
+      subRow.innerHTML=subChips.map(p=>`
+        <button type="button" class="i-picker-chip ${temp.iconPickerSub===p.id?'active':''}" data-id="${p.id}">${escapeHtml(p.name)}</button>
+      `).join('');
+      enableDragScroll(subRow);
+      $$('#iIconSubChips .i-picker-chip').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          temp.iconPickerSub=btn.dataset.id;
+          renderIconPicker();
+        });
+      });
+    }else{
+      subRow.style.display='none';
+      subRow.innerHTML='';
+    }
 
     // 搜索框监听
     const search=$('#iIconSearch');
@@ -1452,46 +1512,21 @@
   }
 
   function renderIconPickerResults(){
-    const tab=temp.iconPickerTab||'all';
     const list=getIconPickerList();
-    const customRow=$('#iIconCustomRow');
     const grid=$('#iIconGrid');
-
-    if(tab==='custom'){
-      // 我的分类：横向滚动的分类卡片
-      customRow.style.display='flex';
-      grid.style.display='none';
-      customRow.innerHTML=list.map(c=>`
-        <button type="button" class="i-picker-custom-card ${(c.icon||'📁')===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon||'📁')}">
-          <span class="i-picker-custom-icon">${renderIcon(c.icon||'📁', c.name)}</span>
-          <span class="i-picker-custom-label">${escapeHtml(c.name)}</span>
-        </button>
-      `).join('');
-      enableDragScroll(customRow);
-      $$('.i-picker-custom-card', customRow).forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          temp.selectedIcon=btn.dataset.icon;
-          updateIconBtn();
-          closeModal('iIconModal');
-        });
+    grid.innerHTML=list.map(c=>`
+      <button type="button" class="i-picker-icon-btn ${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
+        <span class="i-picker-icon-img">${renderIcon(c.icon, c.name)}</span>
+        <span class="i-picker-icon-label">${escapeHtml(c.name)}</span>
+      </button>
+    `).join('');
+    $$('.i-picker-icon-btn', grid).forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        temp.selectedIcon=btn.dataset.icon;
+        updateIconBtn();
+        closeModal('iIconModal');
       });
-    }else{
-      customRow.style.display='none';
-      grid.style.display='grid';
-      grid.innerHTML=list.map(c=>`
-        <button type="button" class="i-picker-icon-btn ${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
-          <span class="i-picker-icon-img">${renderIcon(c.icon, c.name)}</span>
-          <span class="i-picker-icon-label">${escapeHtml(c.name)}</span>
-        </button>
-      `).join('');
-      $$('.i-picker-icon-btn', grid).forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          temp.selectedIcon=btn.dataset.icon;
-          updateIconBtn();
-          closeModal('iIconModal');
-        });
-      });
-    }
+    });
   }
 
   function openDatePicker(targetId, currentValue){
@@ -1670,6 +1705,12 @@
 
     // form actions
     $('#iCategoryTrigger')?.addEventListener('click', openCategoryPicker);
+    $('#iCatWheelCancel')?.addEventListener('click',()=>closeModal('iCategoryModal'));
+    $('#iCatWheelConfirm')?.addEventListener('click',()=>{
+      const c=(temp.wheelList||[])[temp.wheelIndex];
+      if(c){ temp.selectedCategory=c.id; updateCategoryTrigger(); }
+      closeModal('iCategoryModal');
+    });
     $('#iIconBtn')?.addEventListener('click', openIconPicker);
     $('#iBatchIconBtn')?.addEventListener('click', openIconPicker);
     $('#iExpiryDateTrigger')?.addEventListener('click',()=>openExpiryPicker('#iExpiryDate'));

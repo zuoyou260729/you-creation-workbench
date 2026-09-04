@@ -1538,6 +1538,98 @@
   color: #fff;
   border-color: var(--i-primary);
 }
+/* 物品图标选择器（截图2）：选中 chip 用深绿色 */
+#iIconModal .i-picker-chip.active {
+  background: #4A664F;
+  border-color: #4A664F;
+}
+/* 第二行子分类 chip：稍小、更紧凑 */
+.i-picker-subchips {
+  margin-top: -8px;
+  margin-bottom: 14px;
+}
+.i-picker-subchips .i-picker-chip {
+  padding: 7px 14px;
+  font-size: 13px;
+  background: #F1F4F2;
+  border-color: #F1F4F2;
+  color: #444;
+}
+.i-picker-subchips .i-picker-chip.active {
+  background: #4A664F;
+  border-color: #4A664F;
+  color: #fff;
+}
+/* 圆形关闭按钮（截图2右上角） */
+.i-picker-modal .i-modal-close {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: #F2F4F3;
+  font-size: 20px;
+  flex: 0 0 38px;
+}
+
+/* ===== 分类滚轮选择器（截图1） ===== */
+.i-wheel-modal { padding: 10px 0 20px; }
+.i-wheel {
+  position: relative;
+  height: 240px;               /* 5 行 × 48px */
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+.i-wheel::-webkit-scrollbar { display: none; }
+/* 中心选中区上下分隔线 */
+.i-wheel::before,
+.i-wheel::after {
+  content: '';
+  position: absolute;
+  left: 24px; right: 24px;
+  height: 1px;
+  background: #E8E8E8;
+  pointer-events: none;
+  z-index: 1;
+}
+.i-wheel::before { top: calc(50% - 24px); }
+.i-wheel::after { top: calc(50% + 24px); }
+.i-wheel-item {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: #B9B9B9;
+  scroll-snap-align: center;
+  cursor: pointer;
+  transition: color .15s, font-size .15s;
+}
+.i-wheel-item.active {
+  color: #111;
+  font-size: 20px;
+  font-weight: 600;
+}
+.i-wheel-actions {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px 0;
+}
+.i-wheel-btn {
+  flex: 1;
+  padding: 13px 0;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.i-wheel-cancel {
+  background: #F0F0F0;
+  color: #333;
+}
+.i-wheel-confirm {
+  background: #05C160;
+  color: #fff;
+}
 .i-picker-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
