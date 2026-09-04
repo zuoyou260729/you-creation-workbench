@@ -7,8 +7,18 @@
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
   const SETTINGS_KEY = 'wb_items_settings_v2';
+  const TOMB_KEY = 'wb_items_tombstones_v2';   // 删除同步：记录已删除物品/分类 id
 
   const UNCATEGORIZED_ID = 'cat_uncategorized';
+
+  // 云端同步配置（由 js/sync-config.js 注入，含 GitHub Token）
+  const SYNC_CONFIG = (typeof window !== 'undefined' && window.SYNC_CONFIG) ? window.SYNC_CONFIG : null;
+  const SYNC_REPO = SYNC_CONFIG ? SYNC_CONFIG.repo : 'zuoyou260729/you-creation-workbench';
+  const SYNC_BRANCH = SYNC_CONFIG ? SYNC_CONFIG.branch : 'main';
+  const SYNC_PATH = SYNC_CONFIG ? SYNC_CONFIG.path : 'data/items-sync.json';
+  function syncToken(){ return SYNC_CONFIG ? SYNC_CONFIG.token : null; }
+
+  let TOMB = [];   // 已删除 id 列表（内存态，load 时从 localStorage 恢复）
 
   const DEFAULT_ICONS = [
     '📦','🧻','🧴','🧹','🧽','🪣','🧺','🛏','🪑','🛋','🚪','🪟','💡','🔌','🧯','🪜','🔧','🔨','🪛','🧰',
@@ -437,6 +447,7 @@
       state.items=JSON.parse(localStorage.getItem(ITEMS_KEY))||[];
       state.customCategories=JSON.parse(localStorage.getItem(CATS_KEY))||[];
       state.settings=Object.assign(state.settings, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{});
+      TOMB=JSON.parse(localStorage.getItem(TOMB_KEY))||[];
 
       // 自动恢复：如果主键为空但备份有数据，说明 localStorage 被清空过
       //（PWA 重装、浏览器清理存储等），从备份恢复。
@@ -465,12 +476,14 @@
     localStorage.setItem(ITEMS_KEY, JSON.stringify(state.items));
     localStorage.setItem(CATS_KEY, JSON.stringify(state.customCategories));
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+    localStorage.setItem(TOMB_KEY, JSON.stringify(TOMB));
     // 同时写入备份键：PWA 重装/浏览器清理存储后主键可能被清，
     // 备份键名不同，被一起清除的概率较低，可作为恢复源。
     try{
       localStorage.setItem(ITEMS_KEY+'_backup', JSON.stringify(state.items));
       localStorage.setItem(CATS_KEY+'_backup', JSON.stringify(state.customCategories));
       localStorage.setItem(SETTINGS_KEY+'_backup', JSON.stringify(state.settings));
+      localStorage.setItem(TOMB_KEY+'_backup', JSON.stringify(TOMB));
     }catch(e){ /* quota 超限时忽略备份失败 */ }
   }
   function ensureUncategorized(){
@@ -1133,6 +1146,7 @@
     }else{
       state.items.push(item);
     }
+    item.updatedAt=new Date().toISOString();
     save();
     showToast(temp.editId?'已保存':'已添加');
     showSubpage('overview');
@@ -1283,6 +1297,7 @@
     renderOverview();
   }
   function deleteItems(g){
+    g.items.forEach(it=>{ if(it && it.id && !TOMB.includes(it.id)) TOMB.push(it.id); });
     state.items=state.items.filter(it=>!g.items.includes(it));
     save();
   }
@@ -1768,6 +1783,12 @@
     $('#iSyncBatchCount').textContent=batchCount;
     $('#iSyncUsingCount').textContent=usingCount;
     openModal('iSyncModal');
+    // 后台拉取云端更新时间（只读，无需 Token）
+    setSyncStatus('正在检查云端…');
+    fetch(syncRawUrl()+'?t='+Date.now(), {cache:'no-store'})
+      .then(r=>{ if(r.status===404) throw new Error('empty'); return r.json(); })
+      .then(d=> setSyncStatus(d.syncedAt?('云端更新于 '+fmtSyncTime(d.syncedAt)):'云端暂无数据'))
+      .catch(()=> setSyncStatus('云端暂无数据'));
   }
   function exportItems(){
     const data={
@@ -1801,15 +1822,29 @@
         if(!confirm(`检测到 ${data.items.length} 件物品。\n\n将合并到当前数据（${state.items.length} 件）。\n\n继续？`)) return;
         // 合并：同 ID 以导入为准，新增直接添加
         const existingMap=new Map(state.items.map(it=>[it.id, it]));
+        const stamp=new Date().toISOString();
         data.items.forEach(it=>{
+          if(it && !it.updatedAt) it.updatedAt=stamp;
           existingMap.set(it.id, it);
         });
         state.items=[...existingMap.values()];
         // 合并分类
         if(Array.isArray(data.customCategories)){
           const catMap=new Map(state.customCategories.map(c=>[c.id, c]));
-          data.customCategories.forEach(c=>catMap.set(c.id, c));
+          data.customCategories.forEach(c=>{
+            if(c && !c.updatedAt) c.updatedAt=stamp;
+            catMap.set(c.id, c);
+          });
           state.customCategories=[...catMap.values()];
+        }
+        // 合并删除标记
+        if(Array.isArray(data.deletedIds)){
+          data.deletedIds.forEach(id=>{ if(id && !TOMB.includes(id)) TOMB.push(id); });
+        }
+        if(TOMB.length){
+          const ts=new Set(TOMB);
+          state.items=state.items.filter(it=>!ts.has(it.id));
+          state.customCategories=state.customCategories.filter(c=>!ts.has(c.id));
         }
         save();
         showToast(`已导入，当前共 ${state.items.length} 件物品`);
@@ -1823,8 +1858,129 @@
     };
     reader.readAsText(file);
   }
+  /* ===== 云端双向同步（GitHub Contents API：raw 下载 + API 上传） ===== */
+  function syncRawUrl(){ return `https://raw.githubusercontent.com/${SYNC_REPO}/${SYNC_BRANCH}/${SYNC_PATH}`; }
+  function syncApiUrl(){ return `https://api.github.com/repos/${SYNC_REPO}/contents/${SYNC_PATH}`; }
+  function b64utf8(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function unb64utf8(b64){ return decodeURIComponent(escape(atob(String(b64).replace(/\s/g,'')))); }
+  function fmtSyncTime(iso){ try{ return new Date(iso).toLocaleString('zh-CN',{hour12:false}); }catch(e){ return iso||'未知'; } }
+  function setSyncStatus(text){ const el=document.getElementById('iSyncCloudStatus'); if(el) el.textContent=text||''; }
+
+  // 回填缺失的 updatedAt（legacy 数据），避免合并时被误判为"更旧"而丢失
+  function ensureSyncMeta(){
+    const t=new Date().toISOString();
+    state.items.forEach(it=>{ if(it && !it.updatedAt) it.updatedAt=t; });
+    state.customCategories.forEach(c=>{ if(c && !c.updatedAt) c.updatedAt=t; });
+  }
+  // 按 updatedAt 做 last-write-wins 合并（同 id 取较新的一方）
+  function mergeByUpdatedAt(localArr, cloudArr){
+    const map=new Map();
+    (localArr||[]).forEach(x=>{ if(x && x.id) map.set(x.id, x); });
+    (cloudArr||[]).forEach(c=>{
+      if(!c || !c.id) return;
+      const l=map.get(c.id);
+      if(!l){ map.set(c.id, c); return; }
+      const lt=l.updatedAt?new Date(l.updatedAt).getTime():0;
+      const ct=c.updatedAt?new Date(c.updatedAt).getTime():0;
+      if(ct>=lt) map.set(c.id, c);   // 云端较新或相等 → 云端胜
+    });
+    return [...map.values()];
+  }
+  function unionTombstones(a, b){
+    const s=new Set(a||[]);
+    (b||[]).forEach(x=>{ if(x) s.add(x); });
+    return [...s];
+  }
+  function applyTombstones(){
+    if(!TOMB.length) return;
+    const set=new Set(TOMB);
+    state.items=state.items.filter(it=>!set.has(it.id));
+    state.customCategories=state.customCategories.filter(c=>!set.has(c.id));
+  }
+
+  function pullCloudData(){
+    return new Promise((resolve, reject)=>{
+      fetch(syncRawUrl()+'?t='+Date.now(), {cache:'no-store'})
+        .then(r=>{
+          if(r.status===404) return {items:[], customCategories:[], deletedIds:[], empty:true};
+          if(!r.ok) throw new Error('HTTP '+r.status);
+          return r.json();
+        })
+        .then(data=> resolve((data && Array.isArray(data.items))?data:{items:[],customCategories:[],deletedIds:[]}))
+        .catch(err=> reject(err));
+    });
+  }
+
+  async function doPull(){
+    const btn=document.getElementById('iSyncPullBtn');
+    if(btn){ btn.disabled=true; btn.textContent='下载中…'; }
+    try{
+      const data=await pullCloudData();
+      if(data.empty){ showToast('云端暂无数据'); setSyncStatus('云端暂无数据'); return; }
+      ensureSyncMeta();
+      TOMB=unionTombstones(TOMB, data.deletedIds);
+      state.items=mergeByUpdatedAt(state.items, data.items);
+      state.customCategories=mergeByUpdatedAt(state.customCategories, data.customCategories);
+      applyTombstones();
+      save();
+      renderOverview(); renderCategoriesPage();
+      showToast('已从云端同步（'+state.items.length+' 件）');
+      setSyncStatus('云端更新于 '+fmtSyncTime(data.syncedAt));
+    }catch(err){
+      console.error(err);
+      showToast('下载失败：'+(err&&err.message?err.message:err));
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='从云端下载'; }
+    }
+  }
+
+  async function doPush(){
+    const btn=document.getElementById('iSyncPushBtn');
+    if(btn){ btn.disabled=true; btn.textContent='同步中…'; }
+    const token=syncToken();
+    if(!token){ showToast('未配置云端同步 Token'); if(btn){ btn.disabled=false; btn.textContent='同步到云端'; } return; }
+    try{
+      // 1) 先拉取云端，做 last-write-wins 合并，避免覆盖另一端的新数据
+      const api=await fetch(syncApiUrl(), {headers:{Authorization:'Bearer '+token, Accept:'application/vnd.github+json'}});
+      let cloudSha=null, cloudData={items:[], customCategories:[], deletedIds:[]};
+      if(api.ok){
+        const j=await api.json();
+        cloudSha=j.sha||null;
+        if(j.content){ try{ cloudData=JSON.parse(unb64utf8(j.content)); }catch(e){} }
+      } else if(api.status!==404){
+        throw new Error('读取云端失败 HTTP '+api.status);
+      }
+      ensureSyncMeta();
+      TOMB=unionTombstones(TOMB, cloudData.deletedIds);
+      state.items=mergeByUpdatedAt(state.items, cloudData.items);
+      state.customCategories=mergeByUpdatedAt(state.customCategories, cloudData.customCategories);
+      applyTombstones();
+      save();
+      // 2) 上传合并后的完整数据（含删除标记）
+      const payload={ version:3, syncedAt:new Date().toISOString(), items:state.items, customCategories:state.customCategories, deletedIds:TOMB };
+      const body={ message:'物品数据同步 '+payload.syncedAt, content:b64utf8(JSON.stringify(payload,null,2)) };
+      if(cloudSha) body.sha=cloudSha;
+      const pu=await fetch(syncApiUrl(), {
+        method:'PUT',
+        headers:{Authorization:'Bearer '+token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      if(!pu.ok){ const er=await pu.json().catch(()=>({})); throw new Error('上传失败 HTTP '+pu.status+(er&&er.message?(' '+er.message):'')); }
+      showToast('已同步到云端');
+      setSyncStatus('云端更新于 '+fmtSyncTime(payload.syncedAt));
+      renderOverview(); renderCategoriesPage();
+    }catch(err){
+      console.error(err);
+      showToast('同步失败：'+(err&&err.message?err.message:err));
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='同步到云端'; }
+    }
+  }
+
   function bindSyncEvents(){
     $('#iSyncBtn')?.addEventListener('click', openSyncModal);
+    $('#iSyncPullBtn')?.addEventListener('click', doPull);
+    $('#iSyncPushBtn')?.addEventListener('click', doPush);
     $('#iSyncExportBtn')?.addEventListener('click', exportItems);
     $('#iSyncImportBtn')?.addEventListener('click',()=>$('#iSyncFileInput').click());
     $('#iSyncFileInput')?.addEventListener('change',(e)=>{

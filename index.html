@@ -1068,17 +1068,19 @@
             <div class="i-sync-body">
               <div class="i-sync-tip">
                 <strong>工作原理</strong>
-                <p>本工具是本地存储，数据保存在浏览器中。在<strong>手机端添加/修改物品</strong>后，导出 JSON 文件，传到电脑端导入即可完成同步，反之亦然。</p>
-              </div>
-              <div class="i-sync-tip">
-                <strong>软件更新数据不会丢</strong>
-                <p>即使工作台升级到新版本，本地数据和备份数据都会保留，刷新页面或重装 PWA 后自动恢复。</p>
+                <p>数据保存在本机浏览器，手机和电脑<strong>各自一份本地库</strong>。点「同步到云端」把本机数据上传到 GitHub 共享仓库；在另一台设备点「从云端下载」即可拉取，实现两端互通。</p>
               </div>
               <div class="i-sync-stats">
                 <div><span id="iSyncItemCount">0</span><span>件物品</span></div>
                 <div><span id="iSyncBatchCount">0</span><span>个批次</span></div>
                 <div><span id="iSyncUsingCount">0</span><span>条取用记录</span></div>
               </div>
+              <div class="i-sync-cloud-status" id="iSyncCloudStatus"></div>
+              <div class="i-sync-actions">
+                <button class="i-sync-btn i-sync-pull" id="iSyncPullBtn">从云端下载</button>
+                <button class="i-sync-btn i-sync-push" id="iSyncPushBtn">同步到云端</button>
+              </div>
+              <div class="i-sync-divider"><span>本地备份（手动文件，离线可用）</span></div>
               <div class="i-sync-actions">
                 <button class="i-sync-btn i-sync-export" id="iSyncExportBtn">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1091,8 +1093,8 @@
                 <input type="file" id="iSyncFileInput" accept="application/json,.json" style="display:none">
               </div>
               <div class="i-sync-tip i-sync-tip-warn">
-                <strong>导入提示</strong>
-                <p>导入会<strong>合并</strong>新增数据；同 ID 的物品以<strong>导入文件</strong>为准。导入前请先导出当前数据做备份。</p>
+                <strong>使用建议</strong>
+                <p>多设备协作：先在「改动较多」的一端点「同步到云端」，再在另一端点「从云端下载」。云端以"物品最后修改时间"为准合并，不会互相覆盖新数据；删除也会同步。</p>
               </div>
             </div>
             <div class="i-bs-actions">
@@ -1242,6 +1244,7 @@
   <script src="js/words-db.js"></script>
   <script src="js/words-ui.js"></script>
   <script src="js/app.js"></script>
+  <script src="js/sync-config.js"></script>
   <script src="js/items.js"></script>
 </body>
 </html>
