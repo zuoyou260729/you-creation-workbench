@@ -456,8 +456,10 @@
       }
     }catch(e){ console.warn('items load failed',e); }
     ensureUncategorized();
-    // 旧数据模型 → 批次模型迁移（幂幂等）
+    // 旧数据模型 → 批次模型迁移（幂等）
     migrateItemsToBatches();
+    // 同一天多次入库合并为一条批次（修复旧数据里每条入库都独立成行的问题）
+    consolidateAllBatches();
   }
   function save(){
     localStorage.setItem(ITEMS_KEY, JSON.stringify(state.items));
@@ -521,7 +523,7 @@
     item.batches.forEach(b=>{
       const key=b.date;
       if(map.has(key)){
-        const cur=map[key];
+        const cur=map.get(key);
         cur.quantity=(cur.quantity||0)+(b.quantity||0);
         // 加权平均价 = (cur.total + b.total) / (cur.qty + b.qty)
         const total=(cur.totalPrice||0)+(b.totalPrice||0);
@@ -533,6 +535,17 @@
     });
     item.batches=[...map.values()];
     item.batches.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  }
+  // 全量合并：遍历所有物品，把同一天的多个批次合并为一条（幂等，可在每次加载时调用）
+  function consolidateAllBatches(){
+    let changed=false;
+    state.items.forEach(item=>{
+      if(!Array.isArray(item.batches) || item.batches.length<2) return;
+      const before=item.batches.length;
+      mergeSameDayBatches(item);
+      if(item.batches.length<before) changed=true;
+    });
+    if(changed){ try{ save(); console.log('[items] 已合并同一天的重复入库批次'); }catch(e){} }
   }
 
   /* ===== 批次相关计算 ===== */
@@ -1501,9 +1514,9 @@
     mergeSameDayBatches(item);
     item.updatedAt=new Date().toISOString();
     save();
-    showToast('已入库');
     closeModal('iRestockModal');
     hideTabbar(false);
+    showToast('已入库');
     const { groups }=groupItems(state.items);
     const g=groups.find(gg=>gg.items.includes(item));
     if(g) showDetail(g);
@@ -1662,6 +1675,7 @@
     $('#iEditBatchCount').textContent=batches.length;
     $('#iEditLocation').value=item.location||'';
     bindEditPriceLinks();
+    hideTabbar(true);
     showSubpage('edit');
   }
   function bindEditPriceLinks(){
@@ -1691,8 +1705,8 @@
     $('#iEditIconPreview').innerHTML=html;
   }
   function bindEditEvents(){
-    $('#iEditBack')?.addEventListener('click',()=>{ editTargetItem=null; showSubpage('detail'); });
-    $('#iEditCancel')?.addEventListener('click',()=>{ editTargetItem=null; showSubpage('detail'); });
+    $('#iEditBack')?.addEventListener('click',()=>{ editTargetItem=null; hideTabbar(false); showSubpage('detail'); });
+    $('#iEditCancel')?.addEventListener('click',()=>{ editTargetItem=null; hideTabbar(false); showSubpage('detail'); });
     $('#iEditIconBtn')?.addEventListener('click',()=>openIconPicker());
     $('#iEditCatTrigger')?.addEventListener('click',()=>openCategoryPicker());
     $('#iEditBatchCountRow')?.addEventListener('click',()=>{ renderEditBatchList(); openModal('iEditBatchListModal'); });
@@ -1701,14 +1715,16 @@
   }
   function renderEditBatchList(){
     if(!editTargetItem) return;
-    const batches=getItemBatches(editTargetItem).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const item=editTargetItem;
+    const usings=getItemUsings(item);
+    const batches=getItemBatches(item).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     $('#iEditBatchList').innerHTML=batches.map(b=>{
       const total=Number(b.quantity||0);
-      const avail=getBatchAvailableQty(editTargetItem, b.id);
-      const used=total-avail;
+      const used=usings.filter(u=>u.batchId===b.id).reduce((s,u)=>s+(Number(u.quantity)||0),0);
+      const avail=Math.max(0, total-used);
       return `<div class="i-bs-batch-item">
         <div class="i-bs-batch-top">
-          <span class="i-bs-batch-name">${b.id}</span>
+          <span class="i-bs-batch-name">${escapeHtml(b.id)}</span>
         </div>
         <div class="i-bs-batch-sub">总数 ${total} · 可用 ${avail} · 已取用 ${used}</div>
       </div>`;
@@ -1734,6 +1750,7 @@
     save();
     showToast('已保存修改');
     editTargetItem=null;
+    hideTabbar(false);
     const { groups }=groupItems(state.items);
     const g=groups.find(gg=>gg.items.includes(item));
     if(g) showDetail(g);
