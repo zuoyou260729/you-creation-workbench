@@ -1,7 +1,30 @@
 {
   "version": 3,
-  "syncedAt": "2026-09-04T14:24:02.978Z",
+  "syncedAt": "2026-09-04T16:58:29.931Z",
   "items": [],
-  "customCategories": [],
+  "customCategories": [
+    {
+      "id": "cat_uncategorized",
+      "name": "未分类",
+      "icon": "📁",
+      "system": false,
+      "updatedAt": "2026-09-04T16:58:29.895Z"
+    },
+    {
+      "id": "lnb8u2kc61smtlpv3gb",
+      "name": "日用品",
+      "icon": "📁",
+      "system": false,
+      "updatedAt": "2026-09-04T16:58:29.895Z"
+    },
+    {
+      "id": "ug6k99y9y8emtlq2msl",
+      "parentId": "lnb8u2kc61smtlpv3gb",
+      "name": "纸巾类",
+      "icon": "📁",
+      "system": false,
+      "updatedAt": "2026-09-04T16:58:29.895Z"
+    }
+  ],
   "deletedIds": []
 }
