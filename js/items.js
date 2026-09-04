@@ -1003,6 +1003,8 @@
   function pinSvg(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3.5 3.5V15H6.5v-2.5L10 9z"/></svg>`; }
   function folderSvg(){ return `<svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.6a2 2 0 0 1 1.4.6L11.4 7H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`; }
   function searchSvg(size){ return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.9-3.9"/></svg>`; }
+  function plusSvg(size){ return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`; }
+  function refreshSvg(size){ return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`; }
   function archiveSvg(){ return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`; }
   function shareSvg(){ return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`; }
   function listSvg(){ return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`; }
@@ -1381,8 +1383,8 @@
       <div class="i-cat-nofound-title">未找到相关分类</div>
       <div class="i-cat-nofound-sub">没有匹配「<em>${kw}</em>」的分类<br>${isMy?'换个关键词试试，或直接用该名称新建分类':'换个关键词，或切换上方的一级分类'}</div>
       ${isMy
-        ? `<button class="i-cat-nofound-btn" id="iCatNoFoundAdd" data-name="${kw}">+ 新增「${kw}」为一级分类</button>`
-        : `<div class="i-cat-nofound-tip">系统分类为只读，无法新增</div>`}
+        ? `<button class="i-cat-nofound-btn" id="iCatNoFoundAdd" data-name="${kw}">${plusSvg(16)} 新增「${kw}」为一级分类</button>`
+        : `<button class="i-cat-nofound-btn" id="iCatNoFoundClear">${refreshSvg(16)} 清空搜索，查看全部系统分类</button>`}
     </div>`;
   }
   // 点击搜索按钮 / 回车：按当前 tab 重新过滤
@@ -1498,8 +1500,18 @@
     if(term) list=list.filter(c=>fuzzyMatch(c.name, term)||fuzzyMatch(c._pname||'', term));
 
     if(list.length===0){
-      // 横向一级分类卡片保留，仅在其下方显示「未找到」卡片
+      // 横向一级分类卡片保留，仅在其下方显示「未找到」卡片（与我的分类同款版式）
       $('#iSysGrid').innerHTML=noFoundHtml(term||'当前分类', 'sys');
+      const clearBtn=$('#iCatNoFoundClear');
+      if(clearBtn){
+        clearBtn.addEventListener('click',()=>{
+          const el=$('#iCatSearch');
+          if(el){ el.value=''; }
+          state.settings.sysCatChip='all';
+          save();
+          renderSystemCategories();
+        });
+      }
       return;
     }
     $('#iSysGrid').innerHTML=list.map(c=>`
