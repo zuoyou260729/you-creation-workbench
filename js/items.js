@@ -456,6 +456,8 @@
       }
     }catch(e){ console.warn('items load failed',e); }
     ensureUncategorized();
+    // 旧数据模型 → 批次模型迁移（幂幂等）
+    migrateItemsToBatches();
   }
   function save(){
     localStorage.setItem(ITEMS_KEY, JSON.stringify(state.items));
@@ -473,6 +475,108 @@
     if(!state.customCategories.find(c=>c.id===UNCATEGORIZED_ID)){
       state.customCategories.unshift({ id:UNCATEGORIZED_ID, name:'未分类', icon:'📁', system:false });
     }
+  }
+
+  /* ===== 数据模型迁移 (v2 → v3 批次模型) =====
+     旧模型：item.quantity / item.price / item.stockQty / item.inUseQty ...
+     新模型：item.batches[] (入库批次) + item.usings[] (取用记录)
+     迁移策略：旧物品视为 1 个批次（取 purchaseDate 生成 batchId=YYYYMMDD入库），
+     usings[] 留空。运行后保存一次即固化。 */
+  function migrateItemsToBatches(){
+    let changed=false;
+    state.items.forEach(item=>{
+      if(Array.isArray(item.batches)) return;  // 已是新模型
+      const pd=item.purchaseDate || item.productionDate || todayStr();
+      const qty=Number(item.qty||item.stockQty||0);
+      const batchId=dateToBatchId(pd);
+      const batch={
+        id: batchId,
+        date: pd,
+        quantity: Math.max(0, qty),
+        unitPrice: Number(item.price||0),
+        totalPrice: Number(item.totalPrice!=null?item.totalPrice:(Number(item.price||0)*Math.max(1,qty))),
+        validity: item.validity || { value:365, unit:'day' },
+        expiryDate: item.expiryDate || addYearsSafe(pd, 1),
+        note: item.memo||''
+      };
+      item.batches=[batch];
+      item.usings=[];
+      // 保留原属性以兼容旧渲染，但实际计算走新字段
+      changed=true;
+    });
+    if(changed){ try{ save(); console.log('[items] 数据模型已迁移到批次模型'); }catch(e){} }
+  }
+  function dateToBatchId(dateStr){
+    // YYYY-MM-DD → YYYYMMDD入库
+    if(!dateStr) return `${todayStr().replace(/-/g,'')}入库`;
+    return `${dateStr.replace(/-/g,'')}入库`;
+  }
+  function isValidBatchId(id){
+    return /^\d{8}入库$/.test(id||'');
+  }
+  // 同一日多次入库合并：把同一天的所有 batches 数量相加到一个 batch 上
+  function mergeSameDayBatches(item){
+    if(!item.batches||!item.batches.length) return;
+    const map=new Map();
+    item.batches.forEach(b=>{
+      const key=b.date;
+      if(map.has(key)){
+        const cur=map[key];
+        cur.quantity=(cur.quantity||0)+(b.quantity||0);
+        // 加权平均价 = (cur.total + b.total) / (cur.qty + b.qty)
+        const total=(cur.totalPrice||0)+(b.totalPrice||0);
+        cur.totalPrice=total;
+        cur.unitPrice=(cur.quantity>0)?(total/cur.quantity):0;
+      } else {
+        map.set(key, {...b});
+      }
+    });
+    item.batches=[...map.values()];
+    item.batches.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  }
+
+  /* ===== 批次相关计算 ===== */
+  function getItemBatches(item){ return Array.isArray(item.batches)?item.batches:[]; }
+  function getItemUsings(item){ return Array.isArray(item.usings)?item.usings:[]; }
+  function getItemTotalIn(item){
+    return getItemBatches(item).reduce((s,b)=>s+(Number(b.quantity)||0),0);
+  }
+  function getItemTotalUsed(item){
+    return getItemUsings(item).reduce((s,u)=>s+(Number(u.quantity)||0),0);
+  }
+  function getItemCurrentStock(item){
+    return Math.max(0, getItemTotalIn(item)-getItemTotalUsed(item));
+  }
+  // 批次可用数量 = 该批次总数 - 该批次已取用数量
+  function getBatchAvailableQty(item, batchId){
+    const total=(getItemBatches(item).find(b=>b.id===batchId)||{}).quantity||0;
+    const used=getItemUsings(item).filter(u=>u.batchId===batchId).reduce((s,u)=>s+(Number(u.quantity)||0),0);
+    return Math.max(0, total-used);
+  }
+  // 入库天数：维护数据的当天为第 1 天。从最早批次日期到今天，含��日。
+  function getItemHoldingDays(item){
+    const bs=getItemBatches(item);
+    if(!bs.length) return 0;
+    const sorted=bs.map(b=>b.date).filter(Boolean).sort();
+    const first=sorted[0];
+    if(!first) return 0;
+    const today=todayStr();
+    const da=parseDate(first), db=parseDate(today);
+    if(!da||!db) return 0;
+    const d=Math.floor((db-da)/86400000);
+    return Math.max(1, d+1);  // 维护当天为第 1 天
+  }
+  // 取所有有效批次的并集有效期，得到日均成本（取最早批次与最近到期日的差距）
+  function getItemDailyCost(item){
+    const bs=getItemBatches(item).filter(b=>b.expiryDate);
+    if(!bs.length) return 0;
+    const minExp=bs.map(b=>b.expiryDate).sort()[0];
+    const firstDate=getItemBatches(item).map(b=>b.date).filter(Boolean).sort()[0];
+    if(!firstDate || !minExp) return 0;
+    const days=daysDiffInclusive(firstDate, minExp);
+    if(days<=0) return 0;
+    const total=getItemBatches(item).reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
+    return total/days;
   }
 
   /* ===== 分类相关 ===== */
@@ -554,9 +658,15 @@
     const map={};
     let totalAsset=0, avgDailyCost=0;
     items.forEach(item=>{
-      const tp=itemTotalPrice(item);
-      totalAsset+=tp;
-      if(item.expiryDate) avgDailyCost+=itemDailyCost(item);
+      // 使用新批次模型计算
+      const batches=getItemBatches(item);
+      const totalIn=getItemTotalIn(item);
+      const totalUsed=getItemTotalUsed(item);
+      const currentStock=getItemCurrentStock(item);
+      const totalPrice=batches.reduce((s,b)=>s+(Number(b.totalPrice)||(Number(b.unitPrice||0)*Number(b.quantity||0))),0);
+      const dailyCost=getItemDailyCost(item);
+      if(batches.length) avgDailyCost+=dailyCost;
+
       const path=getCategoryPath(item.categoryId);
       const key=`${item.name}|${path.primaryId}|${path.secondaryId||''}|${item.icon||'📦'}`;
       if(!map[key]){
@@ -568,6 +678,11 @@
           secondaryId:path.secondaryId,
           primaryName:path.primaryName,
           secondaryName:path.secondaryName,
+          // 新模型：总入库/当前库存/已取用
+          totalIn:0,
+          currentStock:0,
+          totalUsed:0,
+          // 兼容旧字段（别处不依赖，但保持以免破坏）
           qty:0,
           totalPrice:0,
           stockQty:0,
@@ -583,24 +698,48 @@
         };
       }
       const g=map[key];
-      g.qty+=Number(item.qty||1);
-      g.totalPrice+=tp;
-      g.stockQty+=Number(item.stockQty||0);
-      g.inUseQty+=Number(item.inUseQty||0);
-      g.scrappedQty+=Number(item.scrappedQty||0);
-      g.retiredQty+=Number(item.retiredQty||0);
-      g.dailyCost+=item.expiryDate?itemDailyCost(item):0;
-      g.usageCount+=Number(item.usageCount||0);
-      g.purchaseDates.push(item.purchaseDate);
+      g.totalIn+=totalIn;
+      g.currentStock+=currentStock;
+      g.totalUsed+=totalUsed;
+      // 旧字段映射（保持）
+      g.qty+=totalIn;
+      g.totalPrice+=totalPrice;
+      g.stockQty+=currentStock;
+      g.inUseQty+=totalUsed;
+      g.scrappedQty+=0;  // 新模型无 scrapped
+      g.retiredQty+=0;   // 新模型无 retired
+      g.dailyCost+=dailyCost;
+      g.usageCount+=getItemUsings(item).length;
+      if(batches.length){
+        batches.forEach(b=>g.purchaseDates.push(b.date));
+      } else if(item.purchaseDate){
+        g.purchaseDates.push(item.purchaseDate);
+      }
       g.starred=g.starred||!!item.starred;
       g.items.push(item);
+      totalAsset+=totalPrice;
     });
     const groups=Object.values(map);
     groups.forEach(g=>{
       g.avgPrice=g.qty?g.totalPrice/g.qty:0;
       g.purchaseDates.sort();
       g.purchaseDate=g.purchaseDates[0];
-      g.holdingDays=daysDiff(g.purchaseDate, todayStr());
+      // 入库天数：从最早批次到今天，维护当天为第1天
+      if(g.items.length){
+        const allBatches=[];
+        g.items.forEach(it=>getItemBatches(it).forEach(b=>allBatches.push(b)));
+        if(allBatches.length){
+          const dates=allBatches.map(b=>b.date).filter(Boolean).sort();
+          const first=dates[0];
+          if(first){
+            const da=parseDate(first), db=parseDate(todayStr());
+            if(da&&db){
+              const d=Math.floor((db-da)/86400000);
+              g.holdingDays=Math.max(1, d+1);
+            }
+          }
+        }
+      }
       if(g.holdingDays<0) g.holdingDays=0;
     });
     return { groups, totalAsset, avgDailyCost, categoryCount:groups.length };
@@ -937,40 +1076,43 @@
     item.memo=isBatch?$('#iBatchMemo').value.trim():$('#iMemo').value.trim();
     item.updatedAt=new Date().toISOString();
 
+    // 新批次模型：构造单一批次
+    let qty=1, price=0, totalPrice=0, expiryDate='', note=item.memo||'';
     if(isBatch){
-      const qty=Math.max(0, parseInt($('#iQty').value)||0);
-      const price=Number($('#iBatchUnitPrice').value)||0;
-      const total=Number($('#iBatchTotalPrice').value)||(qty*price);
-      item.qty=qty;
-      item.price=price;
-      item.totalPrice=total;
-      item.expiryDate=$('#iBatchExpiryDate').value;
-      if(!item.expiryDate){ showToast('请填写有效期'); return; }
-      const auto=$('#iAutoTakeOne').classList.contains('on');
-      item.autoTakeOne=auto;
-      item.stockQty=qty-(auto?1:0);
-      item.inUseQty=auto?1:0;
-      item.scrappedQty=0;
-      item.retiredQty=0;
-      item.calcMode='time';
-      item.usageCount=0;
+      qty=Math.max(0, parseInt($('#iQty').value)||0);
+      price=Number($('#iBatchUnitPrice').value)||0;
+      totalPrice=Number($('#iBatchTotalPrice').value)||(qty*price);
+      expiryDate=$('#iBatchExpiryDate').value;
+      if(!expiryDate){ showToast('请填写有效期'); return; }
     }else{
-      item.qty=1;
-      item.price=Number($('#iPrice').value)||0;
-      item.totalPrice=item.price;
-      item.expectedDaily=Number($('#iExpectedDaily').value)||0;
-      item.retireDate=$('#iRetireDate').value||undefined;
-      item.expiryDate=$('#iExpiryDate').value;
-      if(!item.expiryDate){ showToast('请填写有效期'); return; }
-      item.calcMode=$('#iCalcFreq').checked?'freq':($('#iCalcNone').checked?'none':'time');
-      item.usageCount=Number($('#iUsageCount').value)||0;
-      item.maintenanceTotal=Number($('#iMaintenance').value)||0;
-      item.stockQty=1;
-      item.inUseQty=0;
-      item.scrappedQty=0;
-      item.retiredQty=0;
-      item.autoTakeOne=false;
+      qty=1;
+      price=Number($('#iPrice').value)||0;
+      totalPrice=price;
+      expiryDate=$('#iExpiryDate').value;
+      if(!expiryDate){ showToast('请填写有效期'); return; }
     }
+
+    const batchId=dateToBatchId(item.purchaseDate);
+    item.batches=[{
+      id: batchId,
+      date: item.purchaseDate,
+      quantity: qty,
+      unitPrice: price,
+      totalPrice: totalPrice,
+      validity: { value:365, unit:'day' },
+      expiryDate: expiryDate,
+      note: note
+    }];
+    item.usings=[];
+    // 兼容字段（保留以防其他代码依赖）
+    item.qty=qty;
+    item.price=price;
+    item.totalPrice=totalPrice;
+    item.expiryDate=expiryDate;
+    item.stockQty=qty;
+    item.inUseQty=0;
+    item.scrappedQty=0;
+    item.retiredQty=0;
 
     if(temp.editId){
       const idx=state.items.findIndex(it=>it.id===temp.editId);
@@ -1018,12 +1160,15 @@
     currentDetailGroup=g;
     const item=g.items[0];
     const path=getCategoryPath(item.categoryId);
-    const used=Math.max(0, g.qty - g.stockQty);
-    const usagePct=g.qty>0?((used/g.qty)*100).toFixed(1):'0.0';
+    const currentStock=g.currentStock||0;
+    const totalIn=g.totalIn||0;
+    const totalUsed=g.totalUsed||0;
+    const usagePct=totalIn>0?((totalUsed/totalIn)*100).toFixed(1):'0.0';
 
     renderDetailHeroIcon(g);
-    $('#iDetailBatch').textContent=g.qty>1?'批量':'';
-    $('#iDetailBatch').classList.toggle('i-hide', g.qty<=1);
+    // "批量"角标：多个批次或总入库量 > 1 才显示
+    $('#iDetailBatch').textContent='批量';
+    $('#iDetailBatch').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
     starBtn.onclick=()=>{
@@ -1035,39 +1180,66 @@
     $('#iDetailHeroName').textContent=g.name;
     $('#iDetailHeroDaily').textContent=g.dailyCost.toFixed(2);
 
-    $('#iDetailStock').textContent=g.stockQty;
-    $('#iDetailTotalIn').textContent=g.qty;
-    $('#iDetailUsed').textContent=used;
+    $('#iDetailStock').textContent=currentStock;
+    $('#iDetailTotalIn').textContent=totalIn;
+    $('#iDetailUsed').textContent=totalUsed;
 
     $('#iDetailDays').textContent=g.holdingDays;
     $('#iDetailUsageText').textContent=`已使用 ${usagePct}%`;
-    $('#iDetailUsageEnd').textContent=`${100-Number(usagePct)}%`;
-    $('#iDetailProgressFill').style.width=usagePct+'%';
+    $('#iDetailUsageEnd').textContent=`${(100-Number(usagePct)).toFixed(1)}%`;
+    $('#iDetailProgressFill').style.width=Math.min(100, Number(usagePct))+'%';
 
+    // 库存档案明细
     $('#iDetailAvgPrice').textContent=formatMoney(g.avgPrice);
     $('#iDetailTotalPrice').textContent=formatMoney(g.totalPrice);
-    $('#iDetailTotalQty').textContent=g.qty+' 件';
-    $('#iDetailInUse').textContent=g.inUseQty+' 件';
-    $('#iDetailStatus').textContent=statusText(g);
+    $('#iDetailTotalQty').textContent=totalIn+' 件';
+    $('#iDetailInUse').textContent=totalUsed+' 件';
+    $('#iDetailStatus').textContent=currentStock>0?'现役中':(totalUsed>0?'已用尽':'未入库');
     $('#iDetailFirstDate').textContent=formatDateDot(g.purchaseDate);
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
     $('#iDetailCreated').textContent=formatIsoDot(item.createdAt);
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
 
+    // 底部操作栏 → 接入新弹窗
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
       btn.onclick=()=>{
         const action=btn.dataset.action;
-        if(action==='stock'){ changeStatus(g,'stock'); }
-        else if(action==='use'){ changeStatus(g,'use'); }
-        else if(action==='edit'){ openAddItem(item.qty>1?'batch':'single', item); }
-        else if(action==='share'){ showToast('分享链接已复制（演示）'); }
-        else if(action==='delete'){ if(confirm('确定删除该物品记录？')){ deleteItems(g); showSubpage('overview'); renderOverview(); } }
+        if(action==='stock'){ openRestockModal(item); }
+        else if(action==='use'){ openUseModal(item); }
+        else if(action==='edit'){ openEditItem(item); }
+        else if(action==='share'){ showShareUnavailable(); }
+        else if(action==='delete'){ confirmDeleteItem(item, g); }
       };
     });
 
     showSubpage('detail');
     $('.main').scrollTop=0;
+  }
+  function confirmDeleteItem(item, g){
+    if(!confirm(`确定删除「${item.name}」？该操作会从数据库中彻底删除该物品的所有批次和取用记录，手机端和电脑端的数据都会同步删除。`)) return;
+    deleteItems(g);
+    showSubpage('overview');
+    renderOverview();
+  }
+  function showShareUnavailable(){
+    // 分享按钮：提示该功能暂未启用
+    let modal=document.getElementById('iShareModal');
+    if(!modal){
+      modal=document.createElement('div');
+      modal.className='i-modal';
+      modal.id='iShareModal';
+      modal.innerHTML=`
+        <div class="i-modal-card i-share-modal-card">
+          <div class="i-modal-icon">🔗</div>
+          <h3>该功能暂未��用</h3>
+          <p>分享功能正在开发中，敬请期待</p>
+          <button class="i-btn-primary" data-close-modal="iShareModal" style="width:100%">我知道了</button>
+        </div>`;
+      document.body.appendChild(modal);
+      modal.addEventListener('click',e=>{ if(e.target===modal || e.target.closest('[data-close-modal]')) modal.classList.remove('show'); });
+    }
+    modal.classList.add('show');
   }
   function changeStatus(g, type){
     if(type==='stock'){
@@ -1275,6 +1447,374 @@
       return listCardHtml(g, x.delta<0, Math.abs(x.delta), x.delta<0);
     }).join('') || `<div class="i-empty"><p>暂无到期物品</p></div>`;
     bindItemCards($('#iExpiringList'));
+  }
+
+  /* ===== 补货入库 弹窗 ===== */
+  let restockTargetItem=null;
+  function openRestockModal(item){
+    restockTargetItem=item;
+    temp.restockDate=todayStr();
+    temp.restockExpiry='';
+    $('#iRestockDate').textContent=formatDateDot(temp.restockDate);
+    $('#iRestockSub').textContent=`为「${item.name}」新增一批独立成本的库存`;
+    $('#iRestockQty').value='';
+    $('#iRestockUnitPrice').value='';
+    $('#iRestockExpiry').innerHTML='<span class="i-placeholder">请选择</span>';
+    $('#iRestockNote').value='';
+    $('#iRestockNoteCount').textContent='0';
+    openModal('iRestockModal');
+    hideTabbar(true);
+  }
+  function pickRestockExpiry(){
+    temp.dateTarget='#iRestockExpiryHidden';
+    temp.expiryValue='';
+    temp.expiryUnit='day';
+    $('#iExpiryInput').value='';
+    $$('#iExpiryUnits button').forEach(b=>b.classList.toggle('active', b.dataset.unit==='day'));
+    openModal('iExpiryModal');
+  }
+  function bindRestockEvents(){
+    $('#iRestockExpiryRow')?.addEventListener('click', pickRestockExpiry);
+    $('#iRestockNote')?.addEventListener('input', e=>{ $('#iRestockNoteCount').textContent=e.target.value.length; });
+    $('#iRestockCancel')?.addEventListener('click',()=>{ closeModal('iRestockModal'); hideTabbar(false); });
+    $('#iRestockConfirm')?.addEventListener('click', saveRestock);
+  }
+  function saveRestock(){
+    if(!restockTargetItem) return;
+    const qty=Number($('#iRestockQty').value)||0;
+    if(qty<=0){ showToast('请输入入库数量'); return; }
+    if(!temp.restockExpiry){ showToast('请选择有效期'); return; }
+    const unitPrice=Number($('#iRestockUnitPrice').value)||0;
+    const note=$('#iRestockNote').value.trim();
+    const item=restockTargetItem;
+    if(!Array.isArray(item.batches)) item.batches=[];
+    item.batches.push({
+      id: dateToBatchId(temp.restockDate),
+      date: temp.restockDate,
+      quantity: qty,
+      unitPrice: unitPrice,
+      totalPrice: qty*unitPrice,
+      validity: { value:0, unit:'day' },
+      expiryDate: temp.restockExpiry,
+      note: note
+    });
+    mergeSameDayBatches(item);
+    item.updatedAt=new Date().toISOString();
+    save();
+    showToast('已入库');
+    closeModal('iRestockModal');
+    hideTabbar(false);
+    const { groups }=groupItems(state.items);
+    const g=groups.find(gg=>gg.items.includes(item));
+    if(g) showDetail(g);
+    renderOverview();
+  }
+
+  /* ===== 取用库存 弹窗 ===== */
+  let useTargetItem=null;
+  let useSelectedBatch=null;
+  let useSelectedDate=null;
+  function openUseModal(item){
+    useTargetItem=item;
+    const batches=getItemBatches(item);
+    if(!batches.length){ showToast('该物品暂无入库批次'); return; }
+    const sorted=batches.slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    useSelectedBatch=sorted[0].id;
+    useSelectedDate=todayStr();
+    temp.useQty='';
+    temp.useNote='';
+    $('#iUseSub').textContent=`从指定批次取用「${item.name}」`;
+    $('#iUseBatch').textContent=`${useSelectedBatch}（${getBatchAvailableQty(item, useSelectedBatch)}件可用）`;
+    $('#iUseDate').textContent=formatDateDot(useSelectedDate);
+    $('#iUseQty').value='';
+    $('#iUseNote').value='';
+    $('#iUseNoteCount').textContent='0';
+    openModal('iUseModal');
+    hideTabbar(true);
+  }
+  function bindUseEvents(){
+    $('#iUseBatchRow')?.addEventListener('click',()=>{
+      if(!useTargetItem) return;
+      renderUseBatchList();
+      openModal('iUseBatchModal');
+      hideTabbar(true);
+    });
+    $('#iUseDateRow')?.addEventListener('click',()=>{
+      renderUseDatePicker();
+      openModal('iUseDateModal');
+      hideTabbar(true);
+    });
+    $('#iUseNote')?.addEventListener('input', e=>{ $('#iUseNoteCount').textContent=e.target.value.length; });
+    $('#iUseCancel')?.addEventListener('click',()=>{ closeModal('iUseModal'); hideTabbar(false); });
+    $('#iUseConfirm')?.addEventListener('click', saveUse);
+    $('#iUseBatchCancel')?.addEventListener('click',()=>closeModal('iUseBatchModal'));
+    $('#iUseBatchConfirm')?.addEventListener('click',()=>closeModal('iUseBatchModal'));
+    $('#iUseDateCancel')?.addEventListener('click',()=>closeModal('iUseDateModal'));
+    $('#iUseDateConfirm')?.addEventListener('click',()=>closeModal('iUseDateModal'));
+  }
+  function renderUseBatchList(){
+    const item=useTargetItem;
+    if(!item) return;
+    const batches=getItemBatches(item).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const list=$('#iUseBatchList');
+    list.innerHTML=batches.map(b=>{
+      const avail=getBatchAvailableQty(item, b.id);
+      const active=useSelectedBatch===b.id;
+      return `<div class="i-bs-batch-item ${active?'active':''} ${avail<=0?'disabled':''}" data-id="${b.id}">
+        <span class="i-bs-batch-name">${b.id}</span>
+        <span class="i-bs-batch-avail">${avail}件可用</span>
+      </div>`;
+    }).join('');
+    $$('.i-bs-batch-item', list).forEach(el=>{
+      el.addEventListener('click',()=>{
+        if(el.classList.contains('disabled')) return;
+        useSelectedBatch=el.dataset.id;
+        const it=useTargetItem;
+        $('#iUseBatch').textContent=`${useSelectedBatch}（${getBatchAvailableQty(it, useSelectedBatch)}件可用）`;
+        renderUseBatchList();
+      });
+    });
+  }
+  function renderUseDatePicker(){
+    const [y,m,d]=(useSelectedDate||todayStr()).split('-').map(Number);
+    temp.useDateY=y; temp.useDateM=m; temp.useDateD=d;
+    const yearCol=$('#iUseDateYear'), monthCol=$('#iUseDateMonth'), dayCol=$('#iUseDateDay');
+    yearCol.innerHTML='';
+    for(let i=2020;i<=2060;i++){
+      const div=document.createElement('div');
+      div.className='i-bs-date-item'+(i===y?' active':'');
+      div.textContent=i+'年';
+      div.addEventListener('click',()=>{ temp.useDateY=i; useSelectedDate=`${i}-${String(temp.useDateM).padStart(2,'0')}-${String(Math.min(temp.useDateD,daysInMonth(i,temp.useDateM))).padStart(2,'0')}`; renderUseDatePicker(); });
+      yearCol.appendChild(div);
+    }
+    monthCol.innerHTML='';
+    for(let i=1;i<=12;i++){
+      const div=document.createElement('div');
+      div.className='i-bs-date-item'+(i===m?' active':'');
+      div.textContent=i+'月';
+      div.addEventListener('click',()=>{ temp.useDateM=i; useSelectedDate=`${temp.useDateY}-${String(i).padStart(2,'0')}-${String(Math.min(temp.useDateD,daysInMonth(temp.useDateY,i))).padStart(2,'0')}`; renderUseDatePicker(); });
+      monthCol.appendChild(div);
+    }
+    dayCol.innerHTML='';
+    const dim=daysInMonth(temp.useDateY,temp.useDateM);
+    for(let i=1;i<=dim;i++){
+      const div=document.createElement('div');
+      div.className='i-bs-date-item'+(i===d?' active':'');
+      div.textContent=i+'日';
+      div.addEventListener('click',()=>{ temp.useDateD=i; useSelectedDate=`${temp.useDateY}-${String(temp.useDateM).padStart(2,'0')}-${String(i).padStart(2,'0')}`; renderUseDatePicker(); });
+      dayCol.appendChild(div);
+    }
+    requestAnimationFrame(()=>{
+      ['#iUseDateYear','#iUseDateMonth','#iUseDateDay'].forEach(sel=>{
+        const active=$(sel+' .active');
+        if(active && active.parentNode) active.parentNode.scrollTop=active.offsetTop - active.parentNode.clientHeight/2 + active.clientHeight/2;
+      });
+    });
+  }
+  function saveUse(){
+    if(!useTargetItem) return;
+    const qty=Number($('#iUseQty').value)||0;
+    if(qty<=0){ showToast('请输入取用数量'); return; }
+    if(!useSelectedBatch){ showToast('请选择批次'); return; }
+    const avail=getBatchAvailableQty(useTargetItem, useSelectedBatch);
+    if(qty>avail){ showToast(`该批次仅 ${avail} 件可用`); return; }
+    const note=$('#iUseNote').value.trim();
+    const item=useTargetItem;
+    if(!Array.isArray(item.usings)) item.usings=[];
+    item.usings.push({
+      batchId: useSelectedBatch,
+      date: useSelectedDate,
+      quantity: Math.round(qty*10)/10,
+      note: note
+    });
+    item.updatedAt=new Date().toISOString();
+    save();
+    showToast('已取用');
+    closeModal('iUseModal');
+    hideTabbar(false);
+    const { groups }=groupItems(state.items);
+    const g=groups.find(gg=>gg.items.includes(item));
+    if(g) showDetail(g);
+    renderOverview();
+  }
+
+  /* ===== 隐藏/恢复底部标签栏（弹窗时） ===== */
+  function hideTabbar(hide){
+    const tb=document.querySelector('.tabbar-root');
+    if(!tb) return;
+    tb.style.display=hide?'none':'';
+  }
+
+  /* ===== 编辑库存品 子页 ===== */
+  let editTargetItem=null;
+  function openEditItem(item){
+    editTargetItem=item;
+    temp.selectedCategory=item.categoryId;
+    temp.selectedIcon=item.icon||'📦';
+    $('#iEditName').value=item.name||'';
+    updateEditCategoryUI();
+    updateEditIconBtn();
+    $('#iEditQty').textContent=getItemCurrentStock(item);
+    const batches=getItemBatches(item);
+    const latest=batches[batches.length-1] || {unitPrice:0, totalPrice:0};
+    $('#iEditUnitPrice').value=Number(latest.unitPrice||0).toFixed(2);
+    $('#iEditTotalPrice').value=Number(latest.totalPrice||0).toFixed(2);
+    $('#iEditBatchCount').textContent=batches.length;
+    $('#iEditLocation').value=item.location||'';
+    bindEditPriceLinks();
+    showSubpage('edit');
+  }
+  function bindEditPriceLinks(){
+    const up=$('#iEditUnitPrice'), tp=$('#iEditTotalPrice');
+    if(up && !up._bound){
+      up.addEventListener('input',()=>{
+        const stock=getItemCurrentStock(editTargetItem);
+        if(stock>0) tp.value=(Number(up.value||0)*stock).toFixed(2);
+      });
+      up._bound=true;
+    }
+  }
+  function updateEditCategoryUI(){
+    const cat=getCategory(temp.selectedCategory);
+    const display=$('#iEditCategory');
+    const tag=$('#iEditCatTag');
+    if(!cat){ display.innerHTML='<span class="i-placeholder">请选择分类</span>'; tag.style.display='none'; return; }
+    const path=getCategoryPath(cat.id);
+    display.textContent=path.primaryName;
+    tag.style.display=cat.system? 'none':'inline-block';
+  }
+  function updateEditIconBtn(){
+    const ic=temp.selectedIcon||'📦';
+    const html=(ic.includes('/')||ic.startsWith('data:'))
+      ? `<img src="${escapeHtml(ic)}" style="width:100%;height:100%;object-fit:contain" alt="">`
+      : escapeHtml(ic);
+    $('#iEditIconPreview').innerHTML=html;
+  }
+  function bindEditEvents(){
+    $('#iEditBack')?.addEventListener('click',()=>{ editTargetItem=null; showSubpage('detail'); });
+    $('#iEditCancel')?.addEventListener('click',()=>{ editTargetItem=null; showSubpage('detail'); });
+    $('#iEditIconBtn')?.addEventListener('click',()=>openIconPicker());
+    $('#iEditCatTrigger')?.addEventListener('click',()=>openCategoryPicker());
+    $('#iEditBatchCountRow')?.addEventListener('click',()=>{ renderEditBatchList(); openModal('iEditBatchListModal'); });
+    $('#iEditBatchListClose')?.addEventListener('click',()=>closeModal('iEditBatchListModal'));
+    $('#iEditSave')?.addEventListener('click', saveEdit);
+  }
+  function renderEditBatchList(){
+    if(!editTargetItem) return;
+    const batches=getItemBatches(editTargetItem).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    $('#iEditBatchList').innerHTML=batches.map(b=>{
+      const total=Number(b.quantity||0);
+      const avail=getBatchAvailableQty(editTargetItem, b.id);
+      const used=total-avail;
+      return `<div class="i-bs-batch-item">
+        <div class="i-bs-batch-top">
+          <span class="i-bs-batch-name">${b.id}</span>
+        </div>
+        <div class="i-bs-batch-sub">总数 ${total} · 可用 ${avail} · 已取用 ${used}</div>
+      </div>`;
+    }).join('') || '<div class="i-empty"><p>暂无入库批次</p></div>';
+  }
+  function saveEdit(){
+    if(!editTargetItem) return;
+    const name=$('#iEditName').value.trim();
+    if(!name){ showToast('请输入物品名称'); return; }
+    if(!temp.selectedCategory){ showToast('请选择分类'); return; }
+    const item=editTargetItem;
+    item.name=name;
+    item.icon=temp.selectedIcon||'📦';
+    item.categoryId=temp.selectedCategory;
+    const batches=getItemBatches(item);
+    if(batches.length){
+      const latest=batches[batches.length-1];
+      latest.unitPrice=Number($('#iEditUnitPrice').value)||0;
+      latest.totalPrice=Number($('#iEditTotalPrice').value)||(latest.unitPrice*(latest.quantity||0));
+    }
+    item.location=$('#iEditLocation').value.trim().slice(0,100);
+    item.updatedAt=new Date().toISOString();
+    save();
+    showToast('已保存修改');
+    editTargetItem=null;
+    const { groups }=groupItems(state.items);
+    const g=groups.find(gg=>gg.items.includes(item));
+    if(g) showDetail(g);
+  }
+
+  /* ===== 数据同步（导出/导入 JSON） ===== */
+  function openSyncModal(){
+    // 统计数据
+    let batchCount=0, usingCount=0;
+    state.items.forEach(it=>{
+      batchCount+=getItemBatches(it).length;
+      usingCount+=getItemUsings(it).length;
+    });
+    $('#iSyncItemCount').textContent=state.items.length;
+    $('#iSyncBatchCount').textContent=batchCount;
+    $('#iSyncUsingCount').textContent=usingCount;
+    openModal('iSyncModal');
+  }
+  function exportItems(){
+    const data={
+      version: 3,
+      exportedAt: new Date().toISOString(),
+      items: state.items,
+      customCategories: state.customCategories
+    };
+    const json=JSON.stringify(data, null, 2);
+    const blob=new Blob([json], {type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const ts=new Date().toISOString().slice(0,10).replace(/-/g,'');
+    a.href=url;
+    a.download=`you-items-backup-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    showToast(`已导出 ${state.items.length} 件物品`);
+  }
+  function importItems(file){
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      try{
+        const data=JSON.parse(e.target.result);
+        if(!data || !Array.isArray(data.items)){
+          showToast('文件格式不正确');
+          return;
+        }
+        if(!confirm(`检测到 ${data.items.length} 件物品。\n\n将合并到当前数据（${state.items.length} 件）。\n\n继续？`)) return;
+        // 合并：同 ID 以导入为准，新增直接添加
+        const existingMap=new Map(state.items.map(it=>[it.id, it]));
+        data.items.forEach(it=>{
+          existingMap.set(it.id, it);
+        });
+        state.items=[...existingMap.values()];
+        // 合并分类
+        if(Array.isArray(data.customCategories)){
+          const catMap=new Map(state.customCategories.map(c=>[c.id, c]));
+          data.customCategories.forEach(c=>catMap.set(c.id, c));
+          state.customCategories=[...catMap.values()];
+        }
+        save();
+        showToast(`已导入，当前共 ${state.items.length} 件物品`);
+        closeModal('iSyncModal');
+        renderOverview();
+        renderCategoriesPage();
+      }catch(err){
+        console.error(err);
+        showToast('文件解析失败：'+err.message);
+      }
+    };
+    reader.readAsText(file);
+  }
+  function bindSyncEvents(){
+    $('#iSyncBtn')?.addEventListener('click', openSyncModal);
+    $('#iSyncExportBtn')?.addEventListener('click', exportItems);
+    $('#iSyncImportBtn')?.addEventListener('click',()=>$('#iSyncFileInput').click());
+    $('#iSyncFileInput')?.addEventListener('change',(e)=>{
+      const file=e.target.files[0];
+      if(file) importItems(file);
+      e.target.value='';
+    });
   }
 
   /* ===== 弹层 ===== */
@@ -1531,6 +2071,8 @@
       btn.addEventListener('click', ()=>{
         temp.selectedIcon=btn.dataset.icon;
         updateIconBtn();
+        // 编辑页模式下同步刷新预览
+        if(editTargetItem) updateEditIconBtn();
         closeModal('iIconModal');
       });
     });
@@ -1597,8 +2139,15 @@
   function confirmExpiryPicker(){
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
-    const pd=$(temp.dateTarget==='#iExpiryDate'?'#iProductionDate':'#iBatchProductionDate').value;
-    if(!pd){ showToast('请先设置生产日期'); return; }
+    // 根据不同上下文选取基准日期
+    let pd, isRestock=false;
+    if(temp.dateTarget==='#iRestockExpiryHidden'){
+      isRestock=true;
+      pd=temp.restockDate;
+    }else{
+      pd=$(temp.dateTarget==='#iExpiryDate'?'#iProductionDate':'#iBatchProductionDate').value;
+    }
+    if(!pd){ showToast('请先设置基准日期'); return; }
     let res;
     if(temp.expiryUnit==='day'){
       const d=parseDate(pd); d.setDate(d.getDate()+v);
@@ -1608,7 +2157,12 @@
     }else{
       res=addYearsSafe(pd, v);
     }
-    $(temp.dateTarget).value=res;
+    if(isRestock){
+      temp.restockExpiry=res;
+      $('#iRestockExpiry').textContent=res.replace(/-/g,'.');
+    }else{
+      $(temp.dateTarget).value=res;
+    }
     closeModal('iExpiryModal');
   }
 
@@ -1689,6 +2243,20 @@
       nav.addEventListener('click',()=>{ showSubpage(nav.dataset.subpage||'overview'); });
     });
 
+    // 顶部 tabbar 导航也支持
+    $$('.tabbar-item[data-page="items"]').forEach(nav=>{
+      nav.addEventListener('click',()=>{ showSubpage(nav.dataset.subpage||'overview'); });
+    });
+
+    // 详情页分类/到期清单 返回时回到总览
+    $$('.nav-item[data-page="items"][data-subpage="detail"], .tabbar-item[data-page="items"][data-subpage="detail"]').forEach(()=>{});
+
+    // 新弹窗/编辑页事件绑定
+    bindRestockEvents();
+    bindUseEvents();
+    bindEditEvents();
+    bindSyncEvents();
+
     // overview
     $('#iEyeBtn')?.addEventListener('click',()=>{ state.settings.hideAmount=!state.settings.hideAmount; save(); renderOverview(); });
     $('#iFilterBtn')?.addEventListener('click', openFilterModal);
@@ -1715,7 +2283,7 @@
     $('#iCatWheelCancel')?.addEventListener('click',()=>closeModal('iCategoryModal'));
     $('#iCatWheelConfirm')?.addEventListener('click',()=>{
       const c=(temp.wheelList||[])[temp.wheelIndex];
-      if(c){ temp.selectedCategory=c.id; updateCategoryTrigger(); }
+      if(c){ temp.selectedCategory=c.id; updateCategoryTrigger(); if(editTargetItem) updateEditCategoryUI(); }
       closeModal('iCategoryModal');
     });
     $('#iIconBtn')?.addEventListener('click', openIconPicker);

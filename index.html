@@ -407,6 +407,10 @@
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 <span>画廊</span>
               </button>
+              <button class="i-tool-btn" id="iSyncBtn">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                同步
+              </button>
             </div>
           </div>
 
@@ -851,6 +855,249 @@
             <button class="i-detail-btns" data-action="edit"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>编辑</span></button>
             <button class="i-detail-btns" data-action="share"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>分享</span></button>
             <button class="i-detail-btns i-detail-btns-danger" data-action="delete"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>删除</span></button>
+          </div>
+        </div>
+
+        <!-- 补货入库 弹窗（截图2） -->
+        <div class="i-modal i-bottom-sheet" id="iRestockModal">
+          <div class="i-bottom-sheet-card">
+            <div class="i-bs-handle"></div>
+            <div class="i-bs-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h18M9 3v18"/></svg></div>
+            <h3 class="i-bs-title">补货入库</h3>
+            <p class="i-bs-sub" id="iRestockSub">为该物品新增一批独立成本的库存</p>
+            <div class="i-bs-form">
+              <div class="i-bs-row">
+                <span class="i-bs-label">入库时间</span>
+                <span class="i-bs-value i-bs-date" id="iRestockDate"></span>
+              </div>
+              <div class="i-bs-row">
+                <span class="i-bs-label">入库数量</span>
+                <input type="number" class="i-bs-input" id="iRestockQty" placeholder="请输入数量" inputmode="decimal" min="0">
+              </div>
+              <div class="i-bs-row">
+                <span class="i-bs-label">单价</span>
+                <input type="number" class="i-bs-input" id="iRestockUnitPrice" placeholder="选填" inputmode="decimal" min="0">
+              </div>
+              <div class="i-bs-row" id="iRestockExpiryRow">
+                <span class="i-bs-label">有效期</span>
+                <span class="i-bs-value" id="iRestockExpiry"><span class="i-placeholder">请选择</span></span>
+                <span class="i-bs-arrow">›</span>
+              </div>
+              <div class="i-bs-textarea-wrap">
+                <textarea class="i-bs-textarea" id="iRestockNote" placeholder="选填，例如促销补货" maxlength="300"></textarea>
+                <span class="i-bs-counter"><span id="iRestockNoteCount">0</span>/300</span>
+              </div>
+            </div>
+            <div class="i-bs-actions">
+              <button class="i-bs-btn i-bs-cancel" id="iRestockCancel">取消</button>
+              <button class="i-bs-btn i-bs-confirm" id="iRestockConfirm">确认入库</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 取用库存 弹窗（截图3） -->
+        <div class="i-modal i-bottom-sheet" id="iUseModal">
+          <div class="i-bottom-sheet-card">
+            <div class="i-bs-handle"></div>
+            <div class="i-bs-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <h3 class="i-bs-title">取用库存</h3>
+            <p class="i-bs-sub" id="iUseSub">从指定批次取用该物品</p>
+            <div class="i-bs-form">
+              <div class="i-bs-row" id="iUseBatchRow">
+                <span class="i-bs-label">取用批次</span>
+                <span class="i-bs-value i-bs-link" id="iUseBatch">请选择批次</span>
+                <span class="i-bs-arrow">›</span>
+              </div>
+              <div class="i-bs-row" id="iUseDateRow">
+                <span class="i-bs-label">取用日期</span>
+                <span class="i-bs-value" id="iUseDate"></span>
+                <span class="i-bs-arrow">›</span>
+              </div>
+              <div class="i-bs-row">
+                <span class="i-bs-label">取用数量</span>
+                <input type="number" class="i-bs-input" id="iUseQty" placeholder="0" inputmode="decimal" step="0.1" min="0">
+              </div>
+              <div class="i-bs-textarea-wrap">
+                <textarea class="i-bs-textarea" id="iUseNote" placeholder="选填" maxlength="300"></textarea>
+                <span class="i-bs-counter"><span id="iUseNoteCount">0</span>/300</span>
+              </div>
+            </div>
+            <div class="i-bs-actions">
+              <button class="i-bs-btn i-bs-cancel" id="iUseCancel">取消</button>
+              <button class="i-bs-btn i-bs-confirm" id="iUseConfirm">确认取用</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 取用批次 选择卡（截图4） -->
+        <div class="i-modal i-bottom-sheet" id="iUseBatchModal">
+          <div class="i-bottom-sheet-card i-bs-card-narrow">
+            <div class="i-bs-handle"></div>
+            <div class="i-bs-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <h3 class="i-bs-title">选择取用批次</h3>
+            <p class="i-bs-sub">每批次可用数量 = 该批次总数 − 该批次已取用数量</p>
+            <div class="i-bs-batch-list" id="iUseBatchList"></div>
+            <div class="i-bs-actions">
+              <button class="i-bs-btn i-bs-cancel" id="iUseBatchCancel">取消</button>
+              <button class="i-bs-btn i-bs-confirm" id="iUseBatchConfirm">确定</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 取用日期 3 列滚轮（截图5） -->
+        <div class="i-modal i-bottom-sheet" id="iUseDateModal">
+          <div class="i-bottom-sheet-card i-bs-card-narrow">
+            <div class="i-bs-handle"></div>
+            <div class="i-bs-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <h3 class="i-bs-title">选择取用日期</h3>
+            <p class="i-bs-sub">上下滚动选择年/月/日</p>
+            <div class="i-bs-date-picker">
+              <div class="i-bs-date-col" id="iUseDateYear"></div>
+              <div class="i-bs-date-col" id="iUseDateMonth"></div>
+              <div class="i-bs-date-col" id="iUseDateDay"></div>
+            </div>
+            <div class="i-bs-actions">
+              <button class="i-bs-btn i-bs-cancel" id="iUseDateCancel">取消</button>
+              <button class="i-bs-btn i-bs-confirm" id="iUseDateConfirm">确定</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 编辑���存品 子页（截图6/7） -->
+        <div class="i-subpage" id="i-subpage-edit">
+          <div class="i-page-header">
+            <button class="i-back" id="iEditBack">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              返回
+            </button>
+            <h1>编辑库存品</h1>
+            <span></span>
+          </div>
+
+          <div class="i-edit-body">
+            <!-- 卡片1：名称+图标+分类 -->
+            <div class="i-edit-card">
+              <div class="i-edit-row i-edit-name-row">
+                <div class="i-edit-name-block">
+                  <div class="i-edit-label">库存品名称</div>
+                  <input type="text" class="i-edit-name-input" id="iEditName" placeholder="请输入名称">
+                </div>
+                <button class="i-edit-icon-btn" id="iEditIconBtn">
+                  <div class="i-edit-icon-preview" id="iEditIconPreview">📦</div>
+                  <span class="i-edit-icon-hint">选择图标</span>
+                </button>
+              </div>
+              <div class="i-edit-row i-edit-cat-row" id="iEditCatTrigger">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <span class="i-edit-row-label">分类</span>
+                <span class="i-edit-row-value" id="iEditCategory"><span class="i-placeholder">请选择分类</span></span>
+                <span class="i-edit-cat-tag" id="iEditCatTag" style="display:none">自定义</span>
+                <span class="i-bs-arrow">›</span>
+              </div>
+            </div>
+
+            <!-- 入库信息 -->
+            <div class="i-edit-section-title">入库信息</div>
+            <div class="i-edit-card">
+              <div class="i-edit-info-row">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+                <span class="i-edit-row-label">物品数量</span>
+                <span class="i-edit-row-value i-edit-readonly" id="iEditQty"></span>
+                <span class="i-edit-row-unit">件</span>
+              </div>
+              <div class="i-edit-info-row">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 0 1 0 4H8"/><path d="M12 18v2M12 4v2"/></svg>
+                <span class="i-edit-row-label">物品单价</span>
+                <span class="i-edit-currency">¥</span>
+                <input type="number" class="i-edit-input" id="iEditUnitPrice" inputmode="decimal" min="0" step="0.01">
+              </div>
+              <div class="i-edit-info-row">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 0 1 0 4H8"/><path d="M12 18v2M12 4v2"/></svg>
+                <span class="i-edit-row-label">物品总价</span>
+                <span class="i-edit-currency">¥</span>
+                <input type="number" class="i-edit-input" id="iEditTotalPrice" inputmode="decimal" min="0" step="0.01">
+              </div>
+              <div class="i-edit-info-row" id="iEditBatchCountRow">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span class="i-edit-row-label">入库批次</span>
+                <span class="i-edit-row-value i-edit-readonly" id="iEditBatchCount"></span>
+                <span class="i-bs-arrow">›</span>
+              </div>
+            </div>
+
+            <!-- 存放位置 -->
+            <div class="i-edit-card">
+              <div class="i-edit-info-row i-edit-stack">
+                <div class="i-edit-label-block">
+                  <div class="i-edit-row-label">存放位置<span class="i-edit-optional">（选填）</span></div>
+                </div>
+                <input type="text" class="i-edit-input i-edit-input-block" id="iEditLocation" placeholder="请输入存放位置" maxlength="100">
+              </div>
+            </div>
+          </div>
+
+          <!-- 入库批次列表（点开后弹出） -->
+          <div class="i-modal i-bottom-sheet" id="iEditBatchListModal">
+            <div class="i-bottom-sheet-card i-bs-card-narrow">
+              <div class="i-bs-handle"></div>
+              <h3 class="i-bs-title">入库批次列表</h3>
+              <p class="i-bs-sub">每行为一次入库的唯一标识</p>
+              <div class="i-bs-batch-list" id="iEditBatchList"></div>
+              <div class="i-bs-actions">
+                <button class="i-bs-btn i-bs-confirm" id="iEditBatchListClose" style="flex:1">关闭</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部操作栏 -->
+          <div class="i-edit-bottom-actions">
+            <button class="i-edit-btns i-edit-btns-cancel" id="iEditCancel">取消</button>
+            <button class="i-edit-btns i-edit-btns-confirm" id="iEditSave">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              保存修改
+            </button>
+          </div>
+        </div>
+
+        <!-- 数据同步 弹窗（导出/导入 JSON 跨设备同步） -->
+        <div class="i-modal i-bottom-sheet" id="iSyncModal">
+          <div class="i-bottom-sheet-card">
+            <div class="i-bs-handle"></div>
+            <h3 class="i-bs-title">数据同步</h3>
+            <p class="i-bs-sub">手机端和电脑端维护的数据可通用</p>
+            <div class="i-sync-body">
+              <div class="i-sync-tip">
+                <strong>工作原理</strong>
+                <p>本工具是本地存储，数据保存在浏览器中。在<strong>手机端添加/修改物品</strong>后，导出 JSON 文件，传到电脑端导入即可完成同步，反之亦然。</p>
+              </div>
+              <div class="i-sync-tip">
+                <strong>软件更新数据不会丢</strong>
+                <p>即使工作台升级到新版本，本地数据和备份数据都会保留，刷新页面或重装 PWA 后自动恢复。</p>
+              </div>
+              <div class="i-sync-stats">
+                <div><span id="iSyncItemCount">0</span><span>件物品</span></div>
+                <div><span id="iSyncBatchCount">0</span><span>个批次</span></div>
+                <div><span id="iSyncUsingCount">0</span><span>条取用记录</span></div>
+              </div>
+              <div class="i-sync-actions">
+                <button class="i-sync-btn i-sync-export" id="iSyncExportBtn">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  导出 JSON 文件
+                </button>
+                <button class="i-sync-btn i-sync-import" id="iSyncImportBtn">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  导入 JSON 文件
+                </button>
+                <input type="file" id="iSyncFileInput" accept="application/json,.json" style="display:none">
+              </div>
+              <div class="i-sync-tip i-sync-tip-warn">
+                <strong>导入提示</strong>
+                <p>导入会<strong>合并</strong>新增数据；同 ID 的物品以<strong>导入文件</strong>为准。导入前请先导出当前数据做备份。</p>
+              </div>
+            </div>
+            <div class="i-bs-actions">
+              <button class="i-bs-btn i-bs-confirm" data-close-modal="iSyncModal" style="flex:1">关闭</button>
+            </div>
           </div>
         </div>
 
