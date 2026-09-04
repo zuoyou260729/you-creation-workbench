@@ -2,7 +2,7 @@
    服务 worker - 应用壳缓存 + 离线缓存 + 重连合并
    版本升级后旧缓存自动清理；data/ 走 network-first 保证重连后拿到云端最新数据
    ========================================== */
-const CACHE = 'you-workbench-v22';
+const CACHE = 'you-workbench-v23';
 
 // 安装时只缓存核心文件（HTML/CSS/JS/manifest/应用图标/data），
 // 物品分类图标改为按需缓存（首次访问时由 fetch 事件自动缓存），

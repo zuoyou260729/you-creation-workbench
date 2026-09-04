@@ -426,13 +426,12 @@
 
         <!-- 添加物品 -->
         <div class="i-subpage" id="i-subpage-add">
-          <div class="i-page-header">
+          <div class="i-page-header i-header-stacked">
             <button class="i-back" id="iCancelItemBtn">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               返回
             </button>
             <h1>添加物品</h1>
-            <span></span>
           </div>
 
           <div class="i-tabs">
@@ -473,30 +472,30 @@
               <div class="i-date-row" data-target="#iPurchaseDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  购入日期
+                  <span class="i-label-txt">购入日期</span>
                 </div>
-                <div class="i-value"><input type="date" id="iPurchaseDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+                <div class="i-value"><input type="date" id="iPurchaseDate"></div>
               </div>
               <div class="i-date-row" data-target="#iProductionDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  生产日期
+                  <span class="i-label-txt">生产日期</span>
                 </div>
-                <div class="i-value"><input type="date" id="iProductionDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+                <div class="i-value"><input type="date" id="iProductionDate"></div>
               </div>
               <div class="i-date-row" data-target="#iRetireDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  退役日期（选填）
+                  <span class="i-label-txt">退役日期（选填）</span>
                 </div>
-                <div class="i-value empty"><input type="date" id="iRetireDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+                <div class="i-value empty"><input type="date" id="iRetireDate"></div>
               </div>
               <div class="i-date-row" id="iExpiryDateTrigger">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  有效期
+                  <span class="i-label-txt">有效期</span>
                 </div>
-                <div class="i-value empty"><input type="date" id="iExpiryDate" style="border:none;background:transparent;font-size:14px;color:inherit" readonly placeholder="请选择"></div>
+                <div class="i-value empty"><input type="date" id="iExpiryDate" readonly placeholder="请选择"></div>
               </div>
             </div>
 
@@ -563,23 +562,23 @@
               <div class="i-date-row" data-target="#iBatchPurchaseDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  入库日期
+                  <span class="i-label-txt">入库日期</span>
                 </div>
-                <div class="i-value"><input type="date" id="iBatchPurchaseDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+                <div class="i-value"><input type="date" id="iBatchPurchaseDate"></div>
               </div>
               <div class="i-date-row" data-target="#iBatchProductionDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  生产日期
+                  <span class="i-label-txt">生产日期</span>
                 </div>
-                <div class="i-value"><input type="date" id="iBatchProductionDate" style="border:none;background:transparent;font-size:14px;color:inherit"></div>
+                <div class="i-value"><input type="date" id="iBatchProductionDate"></div>
               </div>
               <div class="i-date-row" id="iBatchExpiryDateTrigger">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  有效期
+                  <span class="i-label-txt">有效期</span>
                 </div>
-                <div class="i-value empty"><input type="date" id="iBatchExpiryDate" style="border:none;background:transparent;font-size:14px;color:inherit" readonly placeholder="请选择"></div>
+                <div class="i-value empty"><input type="date" id="iBatchExpiryDate" readonly placeholder="请选择"></div>
               </div>
               <div class="i-field i-switch-row" style="margin-top:14px">
                 <span>入库后立即取用 1 件</span>
@@ -617,7 +616,12 @@
           </div>
           <p style="color:var(--i-text-sec);font-size:13px;margin-bottom:16px">让每一件物品都有清晰的归处</p>
 
-          <div class="i-cat-search"><input type="text" id="iCatSearch" placeholder="搜索分类"></div>
+          <div class="i-cat-search">
+            <input type="text" id="iCatSearch" placeholder="搜索分类（支持模糊匹配）">
+            <button class="i-cat-search-btn" id="iCatSearchBtn" aria-label="搜索分类" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.9-3.9"/></svg>
+            </button>
+          </div>
           <div class="i-cat-tabs">
             <button class="i-cat-tab active" id="iCatTabMy">我的分类</button>
             <button class="i-cat-tab" id="iCatTabSys">系统分类（只读）</button>

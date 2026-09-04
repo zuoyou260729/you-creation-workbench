@@ -98,34 +98,56 @@
   font-weight: 700;
   color: var(--i-text);
 }
+/* 总览页：标题整行居中（自适应屏幕宽度） */
+#i-subpage-overview .i-page-header { justify-content: center; }
+#i-subpage-overview .i-page-header h1 {
+  width: 100%;
+  text-align: center;
+  font-size: clamp(18px, 5.4vw, 24px);
+}
+
+/* 添加物品页：返回占一行，标题换行后居中 */
+.i-header-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.i-header-stacked .i-back { align-self: flex-start; }
+.i-header-stacked h1 {
+  width: 100%;
+  text-align: center;
+  font-size: clamp(18px, 5vw, 22px);
+}
 
 /* ===== 总资产卡片 ===== */
 .i-asset-card {
   position: relative;
   background: linear-gradient(135deg, #E8F1E3 0%, #FFFFFF 100%);
   border-radius: var(--i-radius-lg);
-  padding: 22px;
-  margin-bottom: 16px;
+  padding: 16px 16px 14px;
+  margin-bottom: 14px;
   box-shadow: var(--i-shadow);
   overflow: hidden;
 }
 
 .i-asset-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--i-text-sec);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .i-asset-amount {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  font-size: 42px;
+  font-size: clamp(26px, 7.6vw, 32px);
   font-weight: 700;
   color: var(--i-text);
   letter-spacing: -0.02em;
 }
-.i-asset-amount .i-currency { font-size: 20px; }
+.i-asset-amount .i-currency { font-size: 16px; }
+.i-eye-btn { top: 12px; right: 12px; width: 32px; height: 32px; }
 
 .i-eye-btn {
   position: absolute;
@@ -146,24 +168,24 @@
 .i-stat-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .i-stat-card {
   background: rgba(255,255,255,0.75);
   border-radius: var(--i-radius);
-  padding: 14px;
+  padding: 10px 12px;
 }
 
 .i-stat-title {
   font-size: 12px;
   color: var(--i-text-sec);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .i-stat-value {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--i-text);
 }
@@ -187,31 +209,37 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 24px 0 14px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 18px 0 12px;
 }
 .i-section-title {
-  font-size: 20px;
+  font-size: clamp(15px, 4.4vw, 20px);
   font-weight: 700;
   color: var(--i-text);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .i-toolbar {
   display: flex;
-  gap: 8px;
+  gap: clamp(4px, 1.4vw, 8px);
+  flex-shrink: 0;
 }
 .i-tool-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 7px 12px;
+  gap: 3px;
+  padding: 6px clamp(6px, 2.6vw, 12px);
   border-radius: 999px;
   border: 1px solid var(--i-border);
   background: var(--i-surface);
   color: var(--i-text-sec);
-  font-size: 13px;
+  font-size: clamp(10px, 3.1vw, 13px);
+  white-space: nowrap;
   transition: all .2s;
 }
 .i-tool-btn:active { transform: scale(0.96); }
-.i-tool-btn svg { width: 14px; height: 14px; }
+.i-tool-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
 
 /* ===== 即将到期模块卡片 ===== */
 .i-expiring-module {
@@ -337,14 +365,20 @@
   background: var(--i-surface);
   border: 1px solid var(--i-border);
   border-radius: var(--i-radius);
-  padding: 16px;
+  padding: 14px;
   box-shadow: var(--i-shadow);
-  display: flex;
-  gap: 14px;
+  display: block;
   transition: transform .2s;
 }
 .i-list-card:active { transform: scale(0.99); }
 .i-list-card.expired { opacity: .6; background: #FDF4F4; }
+
+/* 上半部：图标 + 名称/日均（下半部分隔线与数据整行左对齐卡片左边） */
+.i-list-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
 .i-list-left {
   position: relative;
@@ -399,7 +433,7 @@
 .i-list-divider {
   height: 1px;
   background: var(--i-border);
-  margin: 10px 0;
+  margin: 12px 0 10px;
 }
 
 .i-list-stats {
@@ -440,6 +474,31 @@
   border-radius: 50%;
   color: var(--i-text-sec);
   display: flex; align-items: center; justify-content: center;
+}
+/* 置顶图标（替换原归档/分享两个图标） */
+button.i-action-pin {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--i-text-ter);
+  background: var(--i-bg);
+  transition: all .2s;
+}
+button.i-action-pin:active { transform: scale(.92); }
+button.i-action-pin.active {
+  background: var(--i-primary-light);
+  color: var(--i-primary-dark);
+}
+.i-action-pin svg { width: 16px; height: 16px; }
+/* 已置顶卡片加左侧标记条 */
+.i-list-card.pinned::before,
+.i-grid-card.pinned::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--i-primary);
 }
 
 .i-expired-badge {
@@ -586,9 +645,25 @@
   cursor: pointer;
 }
 .i-date-row:last-child { border-bottom: none; }
-.i-date-row .i-label { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--i-text); }
-.i-date-row .i-label svg { width: 18px; height: 18px; color: var(--i-text-sec); }
-.i-date-row .i-value { font-size: 14px; color: var(--i-text-sec); }
+/* 4 行共用同一标签宽度 → 4 个图标左对齐、4 个文字首字左对齐；"退役日期（选填）"不换行 */
+.i-date-row .i-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 clamp(126px, 35vw, 154px);
+  width: clamp(126px, 35vw, 154px);
+  font-size: clamp(12px, 3.3vw, 14px);
+  color: var(--i-text);
+  white-space: nowrap;
+}
+.i-date-row .i-label svg { width: 17px; height: 17px; flex-shrink: 0; color: var(--i-text-sec); }
+.i-date-row .i-value {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-size: clamp(12px, 3.3vw, 14px);
+  color: var(--i-text-sec);
+}
 .i-date-row .i-value.empty { color: var(--i-text-ter); }
 
 .i-stepper {
@@ -660,16 +735,112 @@
 
 /* ===== 分类管理页 ===== */
 .i-cat-search {
+  position: relative;
   margin-bottom: 14px;
 }
 .i-cat-search input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 12px 48px 12px 14px;
   border: 1px solid var(--i-border);
   border-radius: var(--i-radius-sm);
   font-size: 14px;
   background: var(--i-surface);
   outline: none;
+}
+.i-cat-search input:focus { border-color: var(--i-primary); }
+/* 搜索按钮（放大镜，位于输入框右侧） */
+.i-cat-search-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--i-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(92, 122, 78, 0.25);
+  transition: transform .15s ease;
+}
+.i-cat-search-btn:active { transform: translateY(-50%) scale(0.92); }
+.i-cat-search-btn svg { width: 17px; height: 17px; }
+
+/* ===== 未找到分类 · 空状态卡片 ===== */
+.i-cat-nofound {
+  background: var(--i-surface);
+  border: 1px dashed #D8DFD3;
+  border-radius: var(--i-radius);
+  padding: 26px 18px 22px;
+  text-align: center;
+  box-shadow: var(--i-shadow);
+}
+.i-cat-nofound-icon {
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--i-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--i-primary-dark);
+  position: relative;
+}
+.i-cat-nofound-icon svg.folder { width: 28px; height: 28px; }
+.i-cat-nofound-icon .lens {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--i-primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--i-primary-dark);
+}
+.i-cat-nofound-icon .lens svg { width: 13px; height: 13px; }
+.i-cat-nofound-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--i-text);
+  margin-bottom: 6px;
+}
+.i-cat-nofound-sub {
+  font-size: 13px;
+  color: var(--i-text-sec);
+  line-height: 1.6;
+  margin-bottom: 14px;
+  word-break: break-all;
+}
+.i-cat-nofound-sub em {
+  font-style: normal;
+  color: var(--i-primary-dark);
+  font-weight: 600;
+}
+.i-cat-nofound-btn {
+  width: 100%;
+  padding: 11px;
+  border-radius: var(--i-radius-sm);
+  background: var(--i-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.i-cat-nofound-btn:active { transform: scale(0.98); }
+.i-cat-nofound-tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--i-text-ter);
 }
 
 .i-cat-tabs {
@@ -961,6 +1132,28 @@
   background: var(--i-primary-light);
   color: var(--i-primary-dark);
   font-weight: 700;
+}
+
+/* 日期/有效期弹窗的确认按钮：更高更饱满 */
+#iDateConfirm,
+#iExpiryConfirm {
+  width: 100%;
+  padding: 15px 0;
+  margin-top: 2px;
+  border: none;
+  border-radius: 14px;
+  background: var(--i-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  box-shadow: 0 6px 16px rgba(92, 122, 78, 0.25);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+#iDateConfirm:active,
+#iExpiryConfirm:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 8px rgba(92, 122, 78, 0.2);
 }
 
 /* ===== 有效期数字+单位 ===== */
@@ -1349,8 +1542,21 @@
   text-align: right;
   color: var(--i-text-sec);
   font-family: inherit;
+  border: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  outline: none;
 }
 .i-date-row input::-webkit-calendar-picker-indicator { display: none; }
+/* 标签文字：与图标同排，首字严格左对齐、不换行 */
+.i-date-row .i-label-txt {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* 详情弹层按钮 */
 .i-detail-actions button {
@@ -2208,3 +2414,29 @@
   background: #E5E5E5;
 }
 .i-sync-divider span { padding: 0 10px; white-space: nowrap; }
+
+/* ===== 页面居中提示（用于「收藏功能暂未启用」等） ===== */
+.i-center-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  max-width: 78vw;
+  padding: 14px 22px;
+  border-radius: 14px;
+  background: rgba(28, 34, 26, 0.88);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.5;
+  z-index: 3000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease, transform .22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.i-center-toast.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}

@@ -440,6 +440,39 @@
     clearTimeout(showToast._timer);
     showToast._timer=setTimeout(()=>toast.classList.remove('show'),2000);
   }
+  // 页面正中提示（用于「收藏功能暂未启用」等占位提示）
+  function showCenterToast(msg){
+    let el=document.getElementById('iCenterToast');
+    if(!el){
+      el=document.createElement('div');
+      el.id='iCenterToast';
+      el.className='i-center-toast';
+      document.body.appendChild(el);
+    }
+    el.textContent=msg;
+    // 强制重排以确保动画每次都触发
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(showCenterToast._timer);
+    showCenterToast._timer=setTimeout(()=>el.classList.remove('show'), 1800);
+  }
+  // 置顶：最多 10 个
+  function togglePin(g){
+    const MAX_PIN=10;
+    const groups=groupItems(state.items).groups;
+    if(!g.pinned){
+      const pinnedCount=groups.filter(x=>x.pinned).length;
+      if(pinnedCount>=MAX_PIN){
+        showCenterToast(`最多可置顶 ${MAX_PIN} 个物品`);
+        return;
+      }
+    }
+    const next=!g.pinned;
+    g.items.forEach(it=>{ it.pinned=next; });
+    save();
+    renderOverview();
+    showToast(next?'已置顶':'已取消置顶');
+  }
 
   /* ===== 数据持久化 ===== */
   function load(){
@@ -720,6 +753,7 @@
           purchaseDates:[],
           holdingDays:0,
           starred:false,
+          pinned:false,
           items:[]
         };
       }
@@ -742,6 +776,7 @@
         g.purchaseDates.push(item.purchaseDate);
       }
       g.starred=g.starred||!!item.starred;
+      g.pinned=g.pinned||!!item.pinned;
       g.items.push(item);
       totalAsset+=totalPrice;
     });
@@ -795,6 +830,8 @@
       }
       return (av-bv)*dir;
     });
+    // 置顶物品优先展示（sort 稳定，仅按 pinned 二次排序，保持组内原顺序）
+    arr.sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));
     return arr;
   }
 
@@ -869,35 +906,31 @@
   function bindItemCards(ctx){
     $$('.i-grid-card, .i-list-card', ctx).forEach(card=>{
       card.addEventListener('click', e=>{
-        if(e.target.closest('button, .i-star')) return;
+        if(e.target.closest('button, .i-star, .i-list-star')) return;
         const key=card.dataset.key;
         const { groups }=groupItems(state.items);
         const g=groups.find(gg=>gg.key===key);
         if(g) showDetail(g);
       });
     });
-    $$('.i-star', ctx).forEach(btn=>{
+    // 五角星：暂不启用收藏功能，点击仅做居中提示
+    $$('.i-star, .i-list-star', ctx).forEach(btn=>{
       btn.addEventListener('click', e=>{
         e.stopPropagation();
+        e.preventDefault();
+        showCenterToast('收藏功能暂未启用');
+      });
+    });
+    // 置顶图标：最多置顶 10 个
+    $$('.i-action-pin', ctx).forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        e.stopPropagation();
+        e.preventDefault();
         const key=btn.dataset.key;
         const { groups }=groupItems(state.items);
         const g=groups.find(gg=>gg.key===key);
         if(!g) return;
-        const newStar=!g.starred;
-        g.items.forEach(it=>it.starred=newStar);
-        save(); renderOverview();
-      });
-    });
-    $$('.i-action-archive', ctx).forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        e.stopPropagation();
-        showToast('已归档（演示）');
-      });
-    });
-    $$('.i-action-share', ctx).forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        e.stopPropagation();
-        showToast('分享链接已复制（演示）');
+        togglePin(g);
       });
     });
   }
@@ -906,15 +939,14 @@
   function gridCardHtml(g){
     const batch=g.qty>1?`<span class="i-batch-badge">批量</span>`:'';
     return `
-    <div class="i-grid-card" data-key="${g.key}">
+    <div class="i-grid-card ${g.pinned?'pinned':''}" data-key="${g.key}">
       ${batch}
       <div class="i-star ${g.starred?'active':''}" data-key="${g.key}">${starSvg()}</div>
       <div class="i-grid-icon">${renderIcon(g.icon, g.name)}</div>
       <div class="i-grid-name">${escapeHtml(g.name)}</div>
       <div class="i-grid-daily"><span>¥</span><strong>${g.dailyCost.toFixed(2)}</strong><span>/日</span></div>
       <div class="i-grid-actions">
-        <button class="i-action-archive" aria-label="归档">${archiveSvg()}</button>
-        <button class="i-action-share" aria-label="分享">${shareSvg()}</button>
+        <button class="i-action-pin ${g.pinned?'active':''}" data-key="${g.key}" aria-label="置顶">${pinSvg()}</button>
       </div>
     </div>`;
   }
@@ -924,32 +956,33 @@
     const batch=g.qty>1?`<span class="i-batch-badge">批量</span>`:'';
     const metaIcon = g.dailyCost>0? diamondSvg():clockSvg();
     return `
-    <div class="i-list-card ${isExpired?'expired':''}" data-key="${g.key}">
+    <div class="i-list-card ${isExpired?'expired':''} ${g.pinned?'pinned':''}" data-key="${g.key}">
       ${batch}
       <div class="i-list-star ${g.starred?'active':''}" data-key="${g.key}">${starSvg()}</div>
       ${badge}
-      <div class="i-list-left">${renderIcon(g.icon, g.name)}</div>
-      <div class="i-list-right">
-        <div class="i-list-name">${escapeHtml(g.name)}</div>
-        <div class="i-list-daily">
-          <span class="i-label">日均成本</span>
-          <span class="i-currency">¥</span>
-          <span class="i-amount">${g.dailyCost.toFixed(2)}</span>
-          <span class="i-unit">/日</span>
-        </div>
-        <div class="i-list-divider"></div>
-        <div class="i-list-stats">
-          <div><strong>${g.stockQty}</strong>库存</div>
-          <div><strong>${g.inUseQty}</strong>在用</div>
-          <div><strong>${g.scrappedQty}</strong>报废</div>
-          <div><strong>${g.retiredQty}</strong>退役</div>
-        </div>
-        <div class="i-list-footer">
-          <div class="i-list-meta">${metaIcon} 买入均价 ${formatMoney(g.avgPrice)}，总价值 ${formatMoney(g.totalPrice)}</div>
-          <div class="i-list-actions">
-            <button class="i-action-archive" aria-label="归档">${archiveSvg()}</button>
-            <button class="i-action-share" aria-label="分享">${shareSvg()}</button>
+      <div class="i-list-top">
+        <div class="i-list-left">${renderIcon(g.icon, g.name)}</div>
+        <div class="i-list-right">
+          <div class="i-list-name">${escapeHtml(g.name)}</div>
+          <div class="i-list-daily">
+            <span class="i-label">日均成本</span>
+            <span class="i-currency">¥</span>
+            <span class="i-amount">${g.dailyCost.toFixed(2)}</span>
+            <span class="i-unit">/日</span>
           </div>
+        </div>
+      </div>
+      <div class="i-list-divider"></div>
+      <div class="i-list-stats">
+        <div><strong>${g.stockQty}</strong>库存</div>
+        <div><strong>${g.inUseQty}</strong>在用</div>
+        <div><strong>${g.scrappedQty}</strong>报废</div>
+        <div><strong>${g.retiredQty}</strong>退役</div>
+      </div>
+      <div class="i-list-footer">
+        <div class="i-list-meta">${metaIcon} 买入均价 ${formatMoney(g.avgPrice)}，总价值 ${formatMoney(g.totalPrice)}</div>
+        <div class="i-list-actions">
+          <button class="i-action-pin ${g.pinned?'active':''}" data-key="${g.key}" aria-label="置顶">${pinSvg()}</button>
         </div>
       </div>
     </div>`;
@@ -967,6 +1000,9 @@
   function eyeOpenSvg(){ return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`; }
   function eyeClosedSvg(){ return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`; }
   function starSvg(){ return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`; }
+  function pinSvg(){ return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3.5 3.5V15H6.5v-2.5L10 9z"/></svg>`; }
+  function folderSvg(){ return `<svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.6a2 2 0 0 1 1.4.6L11.4 7H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`; }
+  function searchSvg(size){ return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.9-3.9"/></svg>`; }
   function archiveSvg(){ return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`; }
   function shareSvg(){ return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>`; }
   function listSvg(){ return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`; }
@@ -1198,12 +1234,8 @@
     $('#iDetailBatch').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
-    starBtn.onclick=()=>{
-      const newStar=!g.starred;
-      g.items.forEach(it=>it.starred=newStar);
-      save(); renderOverview();
-      showDetail(g); // 重新渲染保持状态
-    };
+    // 收藏功能暂未启用：点击仅做居中提示
+    starBtn.onclick=()=>{ showCenterToast('收藏功能暂未启用'); };
     $('#iDetailHeroName').textContent=g.name;
     $('#iDetailHeroDaily').textContent=g.dailyCost.toFixed(2);
 
@@ -1319,21 +1351,74 @@
       renderSystemCategories();
     }
   }
+  /* ===== 分类搜索 ===== */
+  // 读取搜索框关键词
+  function getCatSearchTerm(){
+    const el=$('#iCatSearch');
+    return el ? (el.value||'').trim() : '';
+  }
+  // 模糊匹配：先做包含匹配，再做「按顺序出现」的子序列匹配
+  function fuzzyMatch(text, term){
+    if(!term) return true;
+    const t=String(text||'').toLowerCase();
+    const q=String(term).toLowerCase();
+    if(!q) return true;
+    if(t.indexOf(q)!==-1) return true;
+    let i=0;
+    for(const ch of t){
+      if(ch===q[i]) i++;
+      if(i>=q.length) return true;
+    }
+    return false;
+  }
+  // 「未找到分类」空状态卡片（我的分类 / 系统分类共用）
+  function noFoundHtml(term, mode){
+    const kw=escapeHtml(term);
+    const isMy=(mode==='my');
+    return `
+    <div class="i-cat-nofound">
+      <div class="i-cat-nofound-icon">${folderSvg()}<span class="lens">${searchSvg(13)}</span></div>
+      <div class="i-cat-nofound-title">未找到相关分类</div>
+      <div class="i-cat-nofound-sub">没有匹配「<em>${kw}</em>」的分类<br>${isMy?'换个关键词试试，或直接用该名称新建分类':'换个关键词，或切换上方的一级分类'}</div>
+      ${isMy
+        ? `<button class="i-cat-nofound-btn" id="iCatNoFoundAdd" data-name="${kw}">+ 新增「${kw}」为一级分类</button>`
+        : `<div class="i-cat-nofound-tip">系统分类为只读，无法新增</div>`}
+    </div>`;
+  }
+  // 点击搜索按钮 / 回车：按当前 tab 重新过滤
+  function runCatSearch(){
+    const tab=state.settings.catTab||'my';
+    if(tab==='sys') renderSystemCategories();
+    else renderMyCategories();
+  }
+
   function renderMyCategories(){
-    const term=($('#iCatSearch').value||'').trim().toLowerCase();
+    const term=getCatSearchTerm();
     const list=$('#iMyCategories');
     const primaries=customPrimaryCategories().filter(p=>{
       if(p.id===UNCATEGORIZED_ID) return false;
       if(!term) return true;
-      return p.name.toLowerCase().includes(term) || customChildren(p.id).some(c=>c.name.toLowerCase().includes(term));
+      return fuzzyMatch(p.name, term) || customChildren(p.id).some(c=>fuzzyMatch(c.name, term));
     });
 
     if(primaries.length===0){
-      list.innerHTML=`<div class="i-empty"><p>暂无自定义分类，点击上方按钮新增</p></div>`;
+      if(term){
+        list.innerHTML=noFoundHtml(term, 'my');
+        const addBtn=$('#iCatNoFoundAdd');
+        if(addBtn){
+          addBtn.addEventListener('click',()=>{
+            addPrimaryCategory(addBtn.dataset.name||term);
+            const el=$('#iCatSearch'); if(el) el.value='';
+            showToast('已新增分类');
+          });
+        }
+      }else{
+        list.innerHTML=`<div class="i-empty"><p>暂无自定义分类，点击上方按钮新增</p></div>`;
+      }
       return;
     }
     list.innerHTML=primaries.map(p=>{
-      const children=customChildren(p.id).filter(c=>!term || c.name.toLowerCase().includes(term) || p.name.toLowerCase().includes(term));
+      const children=customChildren(p.id).filter(c=>!term || fuzzyMatch(c.name, term) || fuzzyMatch(p.name, term));
       const expanded=temp.expandedCats.has(p.id);
       return `
       <div class="i-cat-group">
@@ -1401,9 +1486,21 @@
 
     let list=[];
     if(selected==='all'){
-      SYSTEM_PRIMARY.forEach(p=>list.push(...getSystemSecondary(p.id)));
+      SYSTEM_PRIMARY.forEach(p=>{
+        getSystemSecondary(p.id).forEach(c=>list.push({...c, _pname:p.name}));
+      });
     }else{
-      list=getSystemSecondary(selected);
+      const pname=(SYSTEM_PRIMARY.find(p=>p.id===selected)||{}).name||'';
+      list=getSystemSecondary(selected).map(c=>({...c, _pname:pname}));
+    }
+    // 模糊搜索：同时匹配二级分类名与所属一级分类名
+    const term=getCatSearchTerm();
+    if(term) list=list.filter(c=>fuzzyMatch(c.name, term)||fuzzyMatch(c._pname||'', term));
+
+    if(list.length===0){
+      // 横向一级分类卡片保留，仅在其下方显示「未找到」卡片
+      $('#iSysGrid').innerHTML=noFoundHtml(term||'当前分类', 'sys');
+      return;
     }
     $('#iSysGrid').innerHTML=list.map(c=>`
       <div class="i-sys-card" data-id="${c.id}">
@@ -2496,7 +2593,10 @@
     $('#iCatTabMy')?.addEventListener('click',()=>{ state.settings.catTab='my'; save(); renderCategoriesPage(); });
     $('#iCatTabSys')?.addEventListener('click',()=>{ state.settings.catTab='sys'; save(); renderCategoriesPage(); });
     $('#iAddPrimaryBtn')?.addEventListener('click',()=>openTextModal('新增一级分类','',addPrimaryCategory));
-    $('#iCatSearch')?.addEventListener('input', renderMyCategories);
+    // 分类搜索：输入实时过滤 + 放大镜按钮 + 回车
+    $('#iCatSearch')?.addEventListener('input', runCatSearch);
+    $('#iCatSearch')?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); runCatSearch(); } });
+    $('#iCatSearchBtn')?.addEventListener('click', e=>{ e.preventDefault(); runCatSearch(); });
 
     // modal closes
     $$('.i-modal').forEach(modal=>{
