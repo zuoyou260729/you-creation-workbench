@@ -899,12 +899,14 @@
 
   function updateCategoryTrigger(){
     const cat=getCategory(temp.selectedCategory);
-    const display=$('#iCategoryTrigger .i-value');
-    if(!cat) display.innerHTML='<span class="i-placeholder">请选择分类</span>';
-    else{
-      const path=getCategoryPath(cat.id);
-      display.textContent=path.primaryName;
-    }
+    // 未选择时显示占位文案，选择后显示一级分类名（单个/批量两处同步）
+    const html=cat
+      ? escapeHtml(getCategoryPath(cat.id).primaryName)
+      : '<span class="i-placeholder">请选择分类</span>';
+    const single=$('#iCategoryTrigger .i-value');
+    const batch=$('#iBatchCategoryTrigger .i-value');
+    if(single) single.innerHTML=html;
+    if(batch) batch.innerHTML=html;
   }
   function updateIconBtn(){
     const ic=temp.selectedIcon||'📦';
@@ -1370,8 +1372,13 @@
     }
     const idx=temp.wheelList.findIndex(c=>c.id===curId);
     temp.wheelIndex=idx>=0?idx:0;
-    renderCatWheel(true);
+    renderCatWheel();
     openModal('iCategoryModal');
+    // 隐藏态(display:none)下设置 scrollTop 无效，等弹层可见后再滚动到选中项
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      const wheel=$('#iCatWheel');
+      if(wheel) wheel.scrollTop=temp.wheelIndex*WHEEL_ITEM_H;
+    }));
   }
 
   const WHEEL_ITEM_H=48;

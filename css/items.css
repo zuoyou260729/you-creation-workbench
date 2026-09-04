@@ -1334,6 +1334,12 @@
   .i-fab { bottom: calc(122px + env(safe-area-inset-bottom)); }
 }
 
+/* 手机端：添加物品页末尾的「取消 / 保存物品」按钮同样会被底部标签栏+安装横幅遮挡，
+   给该子页留出滚动余量 */
+@media (max-width: 767px) {
+  #i-subpage-add { padding-bottom: calc(122px + env(safe-area-inset-bottom)); }
+}
+
 /* 日期行内的原生输入框不可直接点击，统一走自定义日期弹层 */
 .i-date-row input {
   pointer-events: none;
@@ -1579,20 +1585,8 @@
   scrollbar-width: none;
 }
 .i-wheel::-webkit-scrollbar { display: none; }
-/* 中心选中区上下分隔线 */
-.i-wheel::before,
-.i-wheel::after {
-  content: '';
-  position: absolute;
-  left: 24px; right: 24px;
-  height: 1px;
-  background: #E8E8E8;
-  pointer-events: none;
-  z-index: 1;
-}
-.i-wheel::before { top: calc(50% - 24px); }
-.i-wheel::after { top: calc(50% + 24px); }
 .i-wheel-item {
+  position: relative;
   height: 48px;
   display: flex;
   align-items: center;
@@ -1608,6 +1602,20 @@
   font-size: 20px;
   font-weight: 600;
 }
+/* 选中项上下分隔线：挂在条目上，随选中项一起移动
+   （容器 ::before/::after 会随滚动内容被滚走，故改为放在选中条目自身） */
+.i-wheel-item.active::before,
+.i-wheel-item.active::after {
+  content: '';
+  position: absolute;
+  left: 24px; right: 24px;
+  height: 1px;
+  background: #E8E8E8;
+  pointer-events: none;
+  z-index: 1;
+}
+.i-wheel-item.active::before { top: 0; }
+.i-wheel-item.active::after { bottom: 0; }
 .i-wheel-actions {
   display: flex;
   gap: 14px;
