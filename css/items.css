@@ -2018,7 +2018,7 @@ button.i-action-pin.active {
   min-height: 50px;
 }
 .i-bs-row:last-child { border-bottom: none; }
-.i-bs-row[data-clickable], #iRestockExpiryRow, #iUseBatchRow, #iUseDateRow {
+.i-bs-row[data-clickable], #iUseBatchRow, #iUseDateRow {
   cursor: pointer;
 }
 .i-bs-label {

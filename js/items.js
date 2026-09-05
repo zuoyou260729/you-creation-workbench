@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v29';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v30';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1287,8 +1287,7 @@
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
       btn.onclick=()=>{
         const action=btn.dataset.action;
-        if(action==='stock'){ openRestockModal(item); }
-        else if(action==='use'){ openUseModal(item); }
+        if(action==='use'){ openUseModal(item); }
         else if(action==='edit'){ openEditItem(item); }
         else if(action==='share'){ showShareUnavailable(); }
         else if(action==='delete'){ confirmDeleteItem(item, g); }
@@ -1652,67 +1651,6 @@
       return listCardHtml(g, x.delta<0, Math.abs(x.delta), x.delta<0);
     }).join('') || `<div class="i-empty"><p>暂无到期物品</p></div>`;
     bindItemCards($('#iExpiringList'));
-  }
-
-  /* ===== 补货入库 弹窗 ===== */
-  let restockTargetItem=null;
-  function openRestockModal(item){
-    restockTargetItem=item;
-    temp.restockDate=todayStr();
-    temp.restockExpiry='';
-    $('#iRestockDate').textContent=formatDateDot(temp.restockDate);
-    $('#iRestockSub').textContent=`为「${item.name}」新增一批独立成本的库存`;
-    $('#iRestockQty').value='';
-    $('#iRestockUnitPrice').value='';
-    $('#iRestockExpiry').innerHTML='<span class="i-placeholder">请选择</span>';
-    $('#iRestockNote').value='';
-    $('#iRestockNoteCount').textContent='0';
-    openModal('iRestockModal');
-    hideTabbar(true);
-  }
-  function pickRestockExpiry(){
-    temp.dateTarget='#iRestockExpiryHidden';
-    temp.expiryValue='';
-    temp.expiryUnit='day';
-    $('#iExpiryInput').value='';
-    $$('#iExpiryUnits button').forEach(b=>b.classList.toggle('active', b.dataset.unit==='day'));
-    openModal('iExpiryModal');
-  }
-  function bindRestockEvents(){
-    $('#iRestockExpiryRow')?.addEventListener('click', pickRestockExpiry);
-    $('#iRestockNote')?.addEventListener('input', e=>{ $('#iRestockNoteCount').textContent=e.target.value.length; });
-    $('#iRestockCancel')?.addEventListener('click',()=>{ closeModal('iRestockModal'); hideTabbar(false); });
-    $('#iRestockConfirm')?.addEventListener('click', saveRestock);
-  }
-  function saveRestock(){
-    if(!restockTargetItem) return;
-    const qty=Number($('#iRestockQty').value)||0;
-    if(qty<=0){ showToast('请输入入库数量'); return; }
-    if(!temp.restockExpiry){ showToast('请选择有效期'); return; }
-    const unitPrice=Number($('#iRestockUnitPrice').value)||0;
-    const note=$('#iRestockNote').value.trim();
-    const item=restockTargetItem;
-    if(!Array.isArray(item.batches)) item.batches=[];
-    item.batches.push({
-      id: dateToBatchId(temp.restockDate),
-      date: temp.restockDate,
-      quantity: qty,
-      unitPrice: unitPrice,
-      totalPrice: qty*unitPrice,
-      validity: { value:0, unit:'day' },
-      expiryDate: temp.restockExpiry,
-      note: note
-    });
-    mergeSameDayBatches(item);
-    item.updatedAt=new Date().toISOString();
-    save();
-    closeModal('iRestockModal');
-    hideTabbar(false);
-    showToast('已入库');
-    const { groups }=groupItems(state.items);
-    const g=groups.find(gg=>gg.items.includes(item));
-    if(g) showDetail(g);
-    renderOverview();
   }
 
   /* ===== 取用库存 弹窗 ===== */
@@ -2588,13 +2526,7 @@
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
     // 根据不同上下文选取基准日期
-    let pd, isRestock=false;
-    if(temp.dateTarget==='#iRestockExpiryHidden'){
-      isRestock=true;
-      pd=temp.restockDate;
-    }else{
-      pd=$(temp.dateTarget==='#iExpiryDate'?'#iProductionDate':'#iBatchProductionDate').value;
-    }
+    const pd=$(temp.dateTarget==='#iExpiryDate'?'#iProductionDate':'#iBatchProductionDate').value;
     if(!pd){ showToast('请先设置基准日期'); return; }
     let res;
     if(temp.expiryUnit==='day'){
@@ -2605,12 +2537,7 @@
     }else{
       res=addYearsSafe(pd, v);
     }
-    if(isRestock){
-      temp.restockExpiry=res;
-      $('#iRestockExpiry').textContent=res.replace(/-/g,'.');
-    }else{
-      $(temp.dateTarget).value=res;
-    }
+    $(temp.dateTarget).value=res;
     closeModal('iExpiryModal');
   }
 
@@ -2700,7 +2627,6 @@
     $$('.nav-item[data-page="items"][data-subpage="detail"], .tabbar-item[data-page="items"][data-subpage="detail"]').forEach(()=>{});
 
     // 新弹窗/编辑页事件绑定
-    bindRestockEvents();
     bindUseEvents();
     bindEditEvents();
     bindBatchDateEvents();

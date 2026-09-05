@@ -861,48 +861,10 @@
 
           <!-- 底部固定操作栏 -->
           <div class="i-detail-bottom-actions" id="iDetailBottomActions">
-            <button class="i-detail-btns" data-action="stock"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span>入库</span></button>
             <button class="i-detail-btns" data-action="use"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg><span>取用</span></button>
             <button class="i-detail-btns" data-action="edit"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>编辑</span></button>
             <button class="i-detail-btns" data-action="share"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>分享</span></button>
             <button class="i-detail-btns i-detail-btns-danger" data-action="delete"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span>删除</span></button>
-          </div>
-        </div>
-
-        <!-- 补货入库 弹窗（截图2） -->
-        <div class="i-modal i-bottom-sheet" id="iRestockModal">
-          <div class="i-bottom-sheet-card">
-            <div class="i-bs-handle"></div>
-            <div class="i-bs-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/><path d="M3 9h18M9 3v18"/></svg></div>
-            <h3 class="i-bs-title">补货入库</h3>
-            <p class="i-bs-sub" id="iRestockSub">为该物品新增一批独立成本的库存</p>
-            <div class="i-bs-form">
-              <div class="i-bs-row">
-                <span class="i-bs-label">入库时间</span>
-                <span class="i-bs-value i-bs-date" id="iRestockDate"></span>
-              </div>
-              <div class="i-bs-row">
-                <span class="i-bs-label">入库数量</span>
-                <input type="number" class="i-bs-input" id="iRestockQty" placeholder="请输入数量" inputmode="decimal" min="0">
-              </div>
-              <div class="i-bs-row">
-                <span class="i-bs-label">单价</span>
-                <input type="number" class="i-bs-input" id="iRestockUnitPrice" placeholder="选填" inputmode="decimal" min="0">
-              </div>
-              <div class="i-bs-row" id="iRestockExpiryRow">
-                <span class="i-bs-label">有效期</span>
-                <span class="i-bs-value" id="iRestockExpiry"><span class="i-placeholder">请选择</span></span>
-                <span class="i-bs-arrow">›</span>
-              </div>
-              <div class="i-bs-textarea-wrap">
-                <textarea class="i-bs-textarea" id="iRestockNote" placeholder="选填，例如促销补货" maxlength="300"></textarea>
-                <span class="i-bs-counter"><span id="iRestockNoteCount">0</span>/300</span>
-              </div>
-            </div>
-            <div class="i-bs-actions">
-              <button class="i-bs-btn i-bs-cancel" id="iRestockCancel">取消</button>
-              <button class="i-bs-btn i-bs-confirm" id="iRestockConfirm">确认入库</button>
-            </div>
           </div>
         </div>
 
