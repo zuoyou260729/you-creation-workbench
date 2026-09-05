@@ -2416,6 +2416,32 @@ button.i-action-pin.active {
   margin: 2px 0 10px;
   min-height: 18px;
 }
+.i-sync-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--i-text-sec);
+  background: var(--i-bg);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.i-sync-topbar b { color: var(--i-text); }
+.i-sync-errbox {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #B23A2E;
+  background: #FDECEA;
+  border: 1px solid #F5C6C0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 0 0 10px;
+  word-break: break-word;
+}
+.i-sync-actions-2 { margin-bottom: 4px; }
+.i-sync-test { background: #E8F1E3; color: #2F5233; }
+.i-sync-reload { background: #F0F0F0; color: #333; }
 .i-sync-divider {
   display: flex;
   align-items: center;

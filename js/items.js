@@ -3,6 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
+  window.APP_VERSION = 'v26';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -11,12 +12,9 @@
 
   const UNCATEGORIZED_ID = 'cat_uncategorized';
 
-  // 云端同步配置（由 js/sync-config.js 注入，含 GitHub Token）
+  // 云端同步配置（由 js/sync-config.js 注入，含 backend / github / gitee 三段）
+  // 实际读写通过下方的 sync*() 后端无关函数，按 SYNC_CONFIG.backend 选择 GitHub / Gitee。
   const SYNC_CONFIG = (typeof window !== 'undefined' && window.SYNC_CONFIG) ? window.SYNC_CONFIG : null;
-  const SYNC_REPO = SYNC_CONFIG ? SYNC_CONFIG.repo : 'zuoyou260729/you-creation-workbench';
-  const SYNC_BRANCH = SYNC_CONFIG ? SYNC_CONFIG.branch : 'main';
-  const SYNC_PATH = SYNC_CONFIG ? SYNC_CONFIG.path : 'data/items-sync.json';
-  function syncToken(){ return SYNC_CONFIG ? SYNC_CONFIG.token : null; }
 
   let TOMB = [];   // 已删除 id 列表（内存态，load 时从 localStorage 恢复）
 
@@ -1886,24 +1884,6 @@
   }
 
   /* ===== 数据同步（导出/导入 JSON） ===== */
-  function openSyncModal(){
-    // 统计数据
-    let batchCount=0, usingCount=0;
-    state.items.forEach(it=>{
-      batchCount+=getItemBatches(it).length;
-      usingCount+=getItemUsings(it).length;
-    });
-    $('#iSyncItemCount').textContent=state.items.length;
-    $('#iSyncBatchCount').textContent=batchCount;
-    $('#iSyncUsingCount').textContent=usingCount;
-    openModal('iSyncModal');
-    // 后台拉取云端更新时间（只读，无需 Token）
-    setSyncStatus('正在检查云端…');
-    fetch(syncRawUrl()+'?t='+Date.now(), {cache:'no-store'})
-      .then(r=>{ if(r.status===404) throw new Error('empty'); return r.json(); })
-      .then(d=> setSyncStatus(d.syncedAt?('云端更新于 '+fmtSyncTime(d.syncedAt)):'云端暂无数据'))
-      .catch(()=> setSyncStatus('云端暂无数据'));
-  }
   function exportItems(){
     const data={
       version: 3,
@@ -1972,13 +1952,58 @@
     };
     reader.readAsText(file);
   }
-  /* ===== 云端双向同步（GitHub Contents API：raw 下载 + API 上传） ===== */
-  function syncRawUrl(){ return `https://raw.githubusercontent.com/${SYNC_REPO}/${SYNC_BRANCH}/${SYNC_PATH}`; }
-  function syncApiUrl(){ return `https://api.github.com/repos/${SYNC_REPO}/contents/${SYNC_PATH}`; }
+  /* ===== 云端双向同步（后端可切换：GitHub / Gitee） ===== */
+  function syncBackend(){ return (window.SYNC_CONFIG && window.SYNC_CONFIG.backend) || 'github'; }
+  function syncCfg(){ const c=window.SYNC_CONFIG; return (c && c[syncBackend()]) || c.github; }
+  function syncRepo(){ return syncCfg().repo; }
+  function syncBranch(){ return syncCfg().branch || (syncBackend()==='gitee'?'master':'main'); }
+  function syncPath(){ return syncCfg().path; }
+  function syncToken(){ return syncCfg().token; }
+  function syncIsGitee(){ return syncBackend()==='gitee'; }
+  function syncApiUrl(){
+    if(syncIsGitee()) return `https://gitee.com/api/v5/repos/${syncRepo()}/contents/${syncPath()}`;
+    return `https://api.github.com/repos/${syncRepo()}/contents/${syncPath()}`;
+  }
+  function syncRawUrl(){
+    if(syncIsGitee()) return `https://gitee.com/${syncRepo()}/raw/${syncBranch()}/${syncPath()}`;
+    return `https://raw.githubusercontent.com/${syncRepo()}/${syncBranch()}/${syncPath()}`;
+  }
+  function syncHeaders(extra){
+    const h=Object.assign({}, extra||{});
+    if(syncIsGitee()){ h['Authorization']='token '+syncToken(); }
+    else { h['Authorization']='Bearer '+syncToken(); h['Accept']='application/vnd.github+json'; }
+    return h;
+  }
   function b64utf8(str){ return btoa(unescape(encodeURIComponent(str))); }
   function unb64utf8(b64){ return decodeURIComponent(escape(atob(String(b64).replace(/\s/g,'')))); }
   function fmtSyncTime(iso){ try{ return new Date(iso).toLocaleString('zh-CN',{hour12:false}); }catch(e){ return iso||'未知'; } }
   function setSyncStatus(text){ const el=document.getElementById('iSyncCloudStatus'); if(el) el.textContent=text||''; }
+  function setSyncErr(msg){
+    const el=document.getElementById('iSyncErrBox');
+    if(el){ el.textContent=msg||''; el.style.display=msg?'block':'none'; }
+    if(msg) console.warn('[sync]', msg);
+  }
+  function syncBackendLabel(){ return syncIsGitee()?'Gitee（码云）':'GitHub'; }
+  // 弱网/被限速时自动重试（GitHub API 在大陆常时通时断），默认 3 次、单次 18s 超时
+  async function retryFetch(url, options, attempts, timeoutMs){
+    attempts=attempts||3; timeoutMs=timeoutMs||18000;
+    let lastErr;
+    for(let i=0;i<attempts;i++){
+      const ctrl=new AbortController();
+      const to=setTimeout(()=>ctrl.abort(), timeoutMs);
+      try{
+        const r=await fetch(url, Object.assign({signal:ctrl.signal}, options));
+        clearTimeout(to);
+        return r;   // 任何 HTTP 状态码都算"连通成功"，由调用方判断 401/404 等
+      }catch(e){
+        clearTimeout(to);
+        lastErr=e;
+        if(e && e.name==='AbortError') lastErr=new Error('连接超时（'+Math.round(timeoutMs/1000)+'s 无响应）');
+        if(i<attempts-1){ await new Promise(r=>setTimeout(r, 800*(i+1))); }  // 退避后重试
+      }
+    }
+    throw lastErr||new Error('连接失败');
+  }
 
   // 回填缺失的 updatedAt（legacy 数据），避免合并时被误判为"更旧"而丢失
   function ensureSyncMeta(){
@@ -2014,13 +2039,21 @@
 
   function pullCloudData(){
     return new Promise((resolve, reject)=>{
-      fetch(syncRawUrl()+'?t='+Date.now(), {cache:'no-store'})
+      const url=(syncIsGitee()?syncApiUrl():syncRawUrl())+'?t='+Date.now();
+      const opts={cache:'no-store', headers: syncIsGitee()?syncHeaders():{}};
+      retryFetch(url, opts, 3, 18000)
         .then(r=>{
           if(r.status===404) return {items:[], customCategories:[], deletedIds:[], empty:true};
           if(!r.ok) throw new Error('HTTP '+r.status);
           return r.json();
         })
-        .then(data=> resolve((data && Array.isArray(data.items))?data:{items:[],customCategories:[],deletedIds:[]}))
+        .then(data=>{
+          // Gitee 经 API 返回 base64 content；GitHub 经 raw 返回纯 JSON
+          if(syncIsGitee() && data && data.content){
+            try{ data=JSON.parse(unb64utf8(data.content)); }catch(e){ data={items:[],customCategories:[],deletedIds:[]}; }
+          }
+          resolve((data && Array.isArray(data.items))?data:{items:[],customCategories:[],deletedIds:[]});
+        })
         .catch(err=> reject(err));
     });
   }
@@ -2030,7 +2063,7 @@
     if(btn){ btn.disabled=true; btn.textContent='下载中…'; }
     try{
       const data=await pullCloudData();
-      if(data.empty){ showToast('云端暂无数据'); setSyncStatus('云端暂无数据'); return; }
+      if(data.empty){ showToast('云端暂无数据'); setSyncStatus('云端暂无数据'); setSyncErr(''); return; }
       ensureSyncMeta();
       TOMB=unionTombstones(TOMB, data.deletedIds);
       state.items=mergeByUpdatedAt(state.items, data.items);
@@ -2040,9 +2073,12 @@
       renderOverview(); renderCategoriesPage();
       showToast('已从云端同步（'+state.items.length+' 件）');
       setSyncStatus('云端更新于 '+fmtSyncTime(data.syncedAt));
+      setSyncErr('');
     }catch(err){
       console.error(err);
-      showToast('下载失败：'+(err&&err.message?err.message:err));
+      const msg='下载失败：'+(err&&err.message?err.message:err);
+      showToast(msg);
+      setSyncErr('❌ '+msg+'（多为网络无法访问 '+syncBackendLabel()+' API，建议改用 Gitee 后端）');
     }finally{
       if(btn){ btn.disabled=false; btn.textContent='从云端下载'; }
     }
@@ -2052,10 +2088,10 @@
     const btn=document.getElementById('iSyncPushBtn');
     if(btn){ btn.disabled=true; btn.textContent='同步中…'; }
     const token=syncToken();
-    if(!token){ showToast('未配置云端同步 Token'); if(btn){ btn.disabled=false; btn.textContent='同步到云端'; } return; }
+    if(!token){ const m='未配置云端同步 Token'; showToast(m); setSyncErr('⚠️ '+m); if(btn){ btn.disabled=false; btn.textContent='同步到云端'; } return; }
     try{
       // 1) 先拉取云端，做 last-write-wins 合并，避免覆盖另一端的新数据
-      const api=await fetch(syncApiUrl(), {headers:{Authorization:'Bearer '+token, Accept:'application/vnd.github+json'}});
+      const api=await retryFetch(syncApiUrl(), {headers:syncHeaders()}, 3, 18000);
       let cloudSha=null, cloudData={items:[], customCategories:[], deletedIds:[]};
       if(api.ok){
         const j=await api.json();
@@ -2074,29 +2110,84 @@
       const uploadTomb=unionTombstones(TOMB, cloudData.deletedIds);
       // 2) 上传合并后的完整数据（含删除标记）。本地数据原封不动，不 save、不改写。
       const payload={ version:3, syncedAt:new Date().toISOString(), items:uploadItems, customCategories:uploadCats, deletedIds:uploadTomb };
-      const body={ message:'物品数据同步 '+payload.syncedAt, content:b64utf8(JSON.stringify(payload,null,2)) };
+      const body={ message:'物品数据同步 '+payload.syncedAt, content:b64utf8(JSON.stringify(payload,null,2)), branch: syncBranch() };
       if(cloudSha) body.sha=cloudSha;
-      const pu=await fetch(syncApiUrl(), {
+      const pu=await retryFetch(syncApiUrl(), {
         method:'PUT',
-        headers:{Authorization:'Bearer '+token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'},
+        headers:syncHeaders({'Content-Type':'application/json'}),
         body: JSON.stringify(body)
-      });
+      }, 3, 18000);
       if(!pu.ok){ const er=await pu.json().catch(()=>({})); throw new Error('上传失败 HTTP '+pu.status+(er&&er.message?(' '+er.message):'')); }
-      showToast('已同步到云端');
+      showToast('已同步到云端（'+uploadItems.length+' 件）');
       setSyncStatus('云端更新于 '+fmtSyncTime(payload.syncedAt));
+      setSyncErr('✅ 已成功上传到 '+syncBackendLabel()+' 云端');
       renderOverview(); renderCategoriesPage();
     }catch(err){
       console.error(err);
-      showToast('同步失败：'+(err&&err.message?err.message:err));
+      const msg='同步失败：'+(err&&err.message?err.message:err);
+      showToast(msg);
+      setSyncErr('❌ '+msg+'（多为网络无法访问 '+syncBackendLabel()+' API，建议改用 Gitee 后端）');
     }finally{
       if(btn){ btn.disabled=false; btn.textContent='同步到云端'; }
     }
+  }
+
+  async function testConnection(){
+    const btn=document.getElementById('iSyncTestBtn');
+    const b=syncBackend(), cfg=syncCfg();
+    if(!cfg.token){ setSyncErr('⚠️ 未配置 Token，无法测试连接'); return; }
+    if(btn){ btn.disabled=true; btn.textContent='测试中…'; }
+    setSyncErr('正在测试连接 '+syncBackendLabel()+' API（含 3 次重试）…');
+    try{
+      const r=await retryFetch(syncApiUrl()+'?t='+Date.now(), {headers:syncHeaders()}, 3, 18000);
+      if(r.status===200){ setSyncErr('✅ 连接成功（'+b+' API 可达），可正常同步'); }
+      else if(r.status===401||r.status===403){ setSyncErr('⚠️ 连接成功但 Token 无效/无权限（HTTP '+r.status+'），请检查 Token'); }
+      else if(r.status===404){ setSyncErr('✅ 连接成功（'+b+' API 可达，仓库/文件尚未创建，首次同步会自动创建）'); }
+      else { setSyncErr('⚠️ 连接返回 HTTP '+r.status+'，请检查仓库/路径配置'); }
+    }catch(e){
+      if(e && e.name==='AbortError'){ setSyncErr('❌ 连接超时（多次重试仍无响应）—— 你的网络很可能无法访问 '+b+' API。建议把 sync-config.js 的 backend 改为 "gitee" 使用码云。'); }
+      else { setSyncErr('❌ 连接失败：'+(e&&e.message||e)+' —— 通常是网络被拦截，无法访问 '+b+' API。建议改用 Gitee 后端。'); }
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='测试连接'; }
+    }
+  }
+
+  function forceReload(){
+    try{
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(regs=>regs.forEach(r=>r.update()));
+      }
+    }catch(e){}
+    window.location.reload(true);
+  }
+
+  function openSyncModal(){
+    const be=document.getElementById('iSyncBackendLabel');
+    if(be) be.textContent=syncBackendLabel();
+    const ver=document.getElementById('iSyncVerLabel');
+    if(ver) ver.textContent=(window.APP_VERSION||'v?');
+    setSyncErr('');
+    setSyncStatus('');
+    const counts=countSyncStats();
+    const ic=document.getElementById('iSyncItemCount'); if(ic) ic.textContent=counts.items;
+    const bc=document.getElementById('iSyncBatchCount'); if(bc) bc.textContent=counts.batches;
+    const uc=document.getElementById('iSyncUsingCount'); if(uc) uc.textContent=counts.usings;
+    // 后台探一下云端时间
+    pullCloudData().then(d=>{ if(!d.empty) setSyncStatus('云端更新于 '+fmtSyncTime(d.syncedAt)); }).catch(()=>{});
+    openModal('iSyncModal');
+  }
+  function countSyncStats(){
+    let batches=0, usings=0;
+    (state.items||[]).forEach(it=>{ batches+=(it.batches||[]).length; usings+=(it.usings||[]).length; });
+    return {items:(state.items||[]).length, batches, usings};
   }
 
   function bindSyncEvents(){
     $('#iSyncBtn')?.addEventListener('click', openSyncModal);
     $('#iSyncPullBtn')?.addEventListener('click', doPull);
     $('#iSyncPushBtn')?.addEventListener('click', doPush);
+    $('#iSyncTestBtn')?.addEventListener('click', testConnection);
+    $('#iSyncReloadBtn')?.addEventListener('click', forceReload);
     $('#iSyncExportBtn')?.addEventListener('click', exportItems);
     $('#iSyncImportBtn')?.addEventListener('click',()=>$('#iSyncFileInput').click());
     $('#iSyncFileInput')?.addEventListener('change',(e)=>{

@@ -1070,9 +1070,13 @@
             <h3 class="i-bs-title">数据同步</h3>
             <p class="i-bs-sub">手机端和电脑端维护的数据可通用</p>
             <div class="i-sync-body">
+              <div class="i-sync-topbar">
+                <span class="i-sync-badge">当前云端：<b id="iSyncBackendLabel">GitHub</b></span>
+                <span class="i-sync-ver">版本 <b id="iSyncVerLabel">v?</b></span>
+              </div>
               <div class="i-sync-tip">
                 <strong>工作原理</strong>
-                <p>数据保存在本机浏览器，手机和电脑<strong>各自一份本地库</strong>。点「同步到云端」把本机数据上传到 GitHub 共享仓库；在另一台设备点「从云端下载」即可拉取，实现两端互通。</p>
+                <p>数据保存在本机浏览器，手机和电脑<strong>各自一份本地库</strong>。点「同步到云端」把本机数据上传到共享仓库；在另一台设备点「从云端下载」即可拉取，实现两端互通。大陆网络若无法连接 GitHub，可在 <code>js/sync-config.js</code> 把 backend 改为 <code>gitee</code> 使用码云。</p>
               </div>
               <div class="i-sync-stats">
                 <div><span id="iSyncItemCount">0</span><span>件物品</span></div>
@@ -1083,6 +1087,11 @@
               <div class="i-sync-actions">
                 <button class="i-sync-btn i-sync-pull" id="iSyncPullBtn">从云端下载</button>
                 <button class="i-sync-btn i-sync-push" id="iSyncPushBtn">同步到云端</button>
+              </div>
+              <div class="i-sync-errbox" id="iSyncErrBox" style="display:none"></div>
+              <div class="i-sync-actions i-sync-actions-2">
+                <button class="i-sync-btn i-sync-test" id="iSyncTestBtn">测试连接</button>
+                <button class="i-sync-btn i-sync-reload" id="iSyncReloadBtn">强制刷新最新版</button>
               </div>
               <div class="i-sync-divider"><span>本地备份（手动文件，离线可用）</span></div>
               <div class="i-sync-actions">
