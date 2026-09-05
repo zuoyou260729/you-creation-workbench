@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v30';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v31';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1252,6 +1252,8 @@
     // "批量"角标：多个批次或总入库量 > 1 才显示
     $('#iDetailBatch').textContent='批量';
     $('#iDetailBatch').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
+    // 底部「入库」按钮：与「批量」角标同条件 —— 单个物品(单批次且总入库≤1)隐藏，批量物品显示
+    $('#iDetailRestockBtn').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
     // 收藏功能暂未启用：点击仅做居中提示
@@ -1287,7 +1289,8 @@
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
       btn.onclick=()=>{
         const action=btn.dataset.action;
-        if(action==='use'){ openUseModal(item); }
+        if(action==='stock'){ openRestockModal(item); }
+        else if(action==='use'){ openUseModal(item); }
         else if(action==='edit'){ openEditItem(item); }
         else if(action==='share'){ showShareUnavailable(); }
         else if(action==='delete'){ confirmDeleteItem(item, g); }
@@ -1657,6 +1660,75 @@
   let useTargetItem=null;
   let useSelectedBatch=null;
   let useSelectedDate=null;
+  /* ===== 补货入库（仅批量物品档案页显示） ===== */
+  let restockTargetItem=null;
+  function openRestockModal(item){
+    restockTargetItem=item;
+    temp.restockDate=todayStr();
+    $('#iRestockSub').textContent=`为「${item.name}」新增一个入库批次`;
+    $('#iRestockDate').textContent=formatDateDot(temp.restockDate);
+    $('#iRestockExpiry').textContent='请选择';
+    $('#iRestockQty').value='';
+    $('#iRestockUnitPrice').value='';
+    $('#iRestockTotalPrice').value='';
+    $('#iRestockNote').value='';
+    $('#iRestockNoteCount').textContent='0';
+    openModal('iRestockModal');
+    hideTabbar(true);
+  }
+  function bindRestockEvents(){
+    $('#iRestockDateRow')?.addEventListener('click',()=>{
+      openDatePicker('#iRestockDate', temp.restockDate||todayStr());
+    });
+    $('#iRestockExpiryRow')?.addEventListener('click',()=>{
+      if(!$('#iRestockDate').value){ showToast('请先选择入库日期'); return; }
+      openExpiryPicker('#iRestockExpiry', $('#iRestockDate').value);
+    });
+    $('#iRestockNote')?.addEventListener('input', e=>{ $('#iRestockNoteCount').textContent=e.target.value.length; });
+    $('#iRestockCancel')?.addEventListener('click',()=>{ closeModal('iRestockModal'); hideTabbar(false); });
+    $('#iRestockConfirm')?.addEventListener('click', saveRestock);
+  }
+  function saveRestock(){
+    if(!restockTargetItem) return;
+    const qty=Number($('#iRestockQty').value)||0;
+    if(qty<=0){ showToast('请输入入库数量'); return; }
+    const expiry=$('#iRestockExpiry').value;
+    if(!expiry || expiry==='请选择'){ showToast('请选择有效期'); return; }
+    const price=Number($('#iRestockUnitPrice').value)||0;
+    const total=Number($('#iRestockTotalPrice').value)||(qty*price);
+    const date=temp.restockDate||todayStr();
+    const item=restockTargetItem;
+    if(!Array.isArray(item.batches)) item.batches=[];
+    item.batches.push({
+      id: dateToBatchId(date),
+      date: date,
+      quantity: Math.round(qty*10)/10,
+      unitPrice: price,
+      totalPrice: total,
+      validity: { value:365, unit:'day' },
+      expiryDate: expiry,
+      note: $('#iRestockNote').value.trim()||''
+    });
+    mergeSameDayBatches(item);
+    // 重算兼容字段
+    const totalQty=getItemTotalIn(item);
+    const used=getItemTotalUsed(item);
+    item.qty=totalQty;
+    item.stockQty=Math.max(0,totalQty-used);
+    item.totalPrice=item.batches.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
+    item.price=totalQty>0?item.totalPrice/totalQty:0;
+    item.avgPrice=item.price;
+    item.updatedAt=new Date().toISOString();
+    save();
+    showToast('已入库');
+    closeModal('iRestockModal');
+    hideTabbar(false);
+    const { groups }=groupItems(state.items);
+    const g=groups.find(gg=>gg.items.includes(item));
+    if(g) showDetail(g);
+    renderOverview();
+  }
+
   function openUseModal(item){
     useTargetItem=item;
     const batches=getItemBatches(item);
@@ -2526,7 +2598,10 @@
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
     // 根据不同上下文选取基准日期
-    const pd=$(temp.dateTarget==='#iExpiryDate'?'#iProductionDate':'#iBatchProductionDate').value;
+    let pd;
+    if(temp.dateTarget==='#iExpiryDate') pd=$('#iProductionDate').value;
+    else if(temp.dateTarget==='#iRestockExpiry') pd=$('#iRestockDate').value;
+    else pd=$('#iBatchProductionDate').value;
     if(!pd){ showToast('请先设置基准日期'); return; }
     let res;
     if(temp.expiryUnit==='day'){
@@ -2628,6 +2703,7 @@
 
     // 新弹窗/编辑页事件绑定
     bindUseEvents();
+    bindRestockEvents();
     bindEditEvents();
     bindBatchDateEvents();
     bindSyncEvents();

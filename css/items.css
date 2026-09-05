@@ -1283,6 +1283,8 @@ button.i-action-pin.active {
 }
 .i-detail-batch:empty,
 .i-detail-batch.i-hide { display: none; }
+/* 单个物品档案页：底部「入库」按钮按类型隐藏 */
+.i-detail-btns.i-hide { display: none; }
 .i-detail-star {
   position: absolute;
   top: 12px; right: 12px;
