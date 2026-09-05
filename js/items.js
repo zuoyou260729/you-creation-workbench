@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v27';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v28';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -711,6 +711,11 @@
     if(days<=0) return 0;
     return itemTotalPrice(item)/days;
   }
+  function isRetired(item){
+    const d=item.retiredDate;
+    if(!d) return false;
+    return d<=todayStr();
+  }
   function groupItems(items){
     const map={};
     let totalAsset=0, avgDailyCost=0;
@@ -722,7 +727,7 @@
       const currentStock=getItemCurrentStock(item);
       const totalPrice=batches.reduce((s,b)=>s+(Number(b.totalPrice)||(Number(b.unitPrice||0)*Number(b.quantity||0))),0);
       const dailyCost=getItemDailyCost(item);
-      if(batches.length) avgDailyCost+=dailyCost;
+      if(batches.length && !isRetired(item)) avgDailyCost+=dailyCost;
 
       const path=getCategoryPath(item.categoryId);
       const key=`${item.name}|${path.primaryId}|${path.secondaryId||''}|${item.icon||'📦'}`;
@@ -761,7 +766,7 @@
       g.totalUsed+=totalUsed;
       // 旧字段映射（保持）
       g.qty+=totalIn;
-      g.totalPrice+=totalPrice;
+      if(!isRetired(item)) g.totalPrice+=totalPrice;
       g.stockQty+=currentStock;
       g.inUseQty+=totalUsed;
       g.scrappedQty+=0;  // 新模型无 scrapped
@@ -776,7 +781,7 @@
       g.starred=g.starred||!!item.starred;
       g.pinned=g.pinned||!!item.pinned;
       g.items.push(item);
-      totalAsset+=totalPrice;
+      if(!isRetired(item)) totalAsset+=totalPrice;
     });
     const groups=Object.values(map);
     groups.forEach(g=>{
@@ -1129,6 +1134,8 @@
     item.productionDate=isBatch?$('#iBatchProductionDate').value:$('#iProductionDate').value;
     item.location=isBatch?$('#iBatchLocation').value.trim():$('#iLocation').value.trim();
     item.memo=isBatch?$('#iBatchMemo').value.trim():$('#iMemo').value.trim();
+    // 任务5/6：退库日期（选填）—— 已维护且日期已过则不计入总资产/平均每日成本
+    item.retiredDate=isBatch?($('#iBatchRetireDate').value||''):($('#iRetireDate').value||'');
     item.updatedAt=new Date().toISOString();
 
     const isEdit=!!temp.editId;
@@ -1242,9 +1249,6 @@
     const usagePct=totalIn>0?((totalUsed/totalIn)*100).toFixed(1):'0.0';
 
     renderDetailHeroIcon(g);
-    // "批量"角标：多个批次或总入库量 > 1 才显示
-    $('#iDetailBatch').textContent='批量';
-    $('#iDetailBatch').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
     // 收藏功能暂未启用：点击仅做居中提示
@@ -1267,11 +1271,14 @@
     $('#iDetailTotalQty').textContent=totalIn+' 件';
     $('#iDetailInUse').textContent=totalUsed+' 件';
     $('#iDetailStatus').textContent=currentStock>0?'现役中':(totalUsed>0?'已用尽':'未入库');
-    $('#iDetailFirstDate').textContent=formatDateDot(g.purchaseDate);
+    $('#iDetailFirstDate').textContent='选择批次';
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
-    $('#iDetailCreated').textContent=formatIsoDot(item.createdAt);
+    $('#iDetailCreated').textContent='选择批次';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
+    // 任务4：库存档案“添加时间/首次入库时间”可点击→选择批次查看入库日期
+    bindBatchDateRow('#iDetailCreatedRow');
+    bindBatchDateRow('#iDetailFirstDateRow');
 
     // 底部操作栏 → 接入新弹窗
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
@@ -1287,6 +1294,53 @@
 
     showSubpage('detail');
     $('.main').scrollTop=0;
+  }
+  // ===== 任务4：库存档案卡片“添加时间/首次入库时间”→ 选择批次查看入库日期 =====
+  let batchDateTargetRow=null, batchDateSelectedId=null;
+  function bindBatchDateRow(sel){
+    const el=$(sel);
+    if(!el || el._bd) return;
+    el.addEventListener('click',()=>openBatchDatePicker(el));
+    el._bd=true;
+  }
+  function openBatchDatePicker(rowEl){
+    if(!currentDetailGroup) return;
+    batchDateTargetRow=rowEl;
+    batchDateSelectedId=null;
+    const all=[];
+    currentDetailGroup.items.forEach(it=>getItemBatches(it).forEach(b=>all.push(b)));
+    all.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    $('#iBatchDateList').innerHTML=all.map(b=>`
+      <div class="i-bs-batch-item" data-id="${escapeHtml(b.id)}">
+        <div class="i-bs-batch-top">
+          <span class="i-bs-batch-name">${formatDateDot(b.date)}</span>
+          <span class="i-bs-batch-qty">${Number(b.quantity||0)} 件</span>
+        </div>
+        <div class="i-bs-batch-sub">${escapeHtml(b.id)} · 单价 ¥${Number(b.unitPrice||0).toFixed(2)}</div>
+      </div>`).join('') || '<div class="i-empty"><p>暂无入库批次</p></div>';
+    $$('#iBatchDateList .i-bs-batch-item').forEach(el=>{
+      el.addEventListener('click',()=>{
+        $$('#iBatchDateList .i-bs-batch-item').forEach(x=>x.classList.remove('active'));
+        el.classList.add('active');
+        batchDateSelectedId=el.dataset.id;
+      });
+    });
+    openModal('iBatchDateModal');
+    hideTabbar(true);
+  }
+  function bindBatchDateEvents(){
+    $('#iBatchDateCancel')?.addEventListener('click',()=>{ closeModal('iBatchDateModal'); hideTabbar(false); });
+    $('#iBatchDateConfirm')?.addEventListener('click',()=>{
+      if(!batchDateSelectedId || !batchDateTargetRow) return;
+      const all=[];
+      currentDetailGroup.items.forEach(it=>getItemBatches(it).forEach(b=>all.push(b)));
+      const b=all.find(x=>x.id===batchDateSelectedId);
+      if(b){
+        const val=batchDateTargetRow.querySelector('.i-detail-row-value');
+        if(val) val.textContent=formatDateDot(b.date);
+      }
+      closeModal('iBatchDateModal'); hideTabbar(false);
+    });
   }
   function confirmDeleteItem(item, g){
     if(!confirm(`确定删除「${item.name}」？该操作会从数据库中彻底删除该物品的所有批次和取用记录，手机端和电脑端的数据都会同步删除。`)) return;
@@ -2646,6 +2700,7 @@
     bindRestockEvents();
     bindUseEvents();
     bindEditEvents();
+    bindBatchDateEvents();
     bindSyncEvents();
 
     // overview

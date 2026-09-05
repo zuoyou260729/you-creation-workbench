@@ -472,7 +472,7 @@
               <div class="i-date-row" data-target="#iPurchaseDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                  <span class="i-label-txt">购入日期</span>
+                  <span class="i-label-txt">入库日期</span>
                 </div>
                 <div class="i-value"><input type="date" id="iPurchaseDate"></div>
               </div>
@@ -486,7 +486,7 @@
               <div class="i-date-row" data-target="#iRetireDate">
                 <div class="i-label">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span class="i-label-txt">退役日期（选填）</span>
+                  <span class="i-label-txt">退库日期（选填）</span>
                 </div>
                 <div class="i-value empty"><input type="date" id="iRetireDate"></div>
               </div>
@@ -579,6 +579,13 @@
                   <span class="i-label-txt">有效期</span>
                 </div>
                 <div class="i-value empty"><input type="date" id="iBatchExpiryDate" readonly placeholder="请选择"></div>
+              </div>
+              <div class="i-date-row" data-target="#iBatchRetireDate">
+                <div class="i-label">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span class="i-label-txt">退库日期（选填）</span>
+                </div>
+                <div class="i-value empty"><input type="date" id="iBatchRetireDate" placeholder="请选择"></div>
               </div>
               <div class="i-field i-switch-row" style="margin-top:14px">
                 <span>入库后立即取用 1 件</span>
@@ -803,7 +810,6 @@
           <div class="i-detail-body">
             <!-- 顶部大卡片（缩短：上=图标+名称+日均，下=三列统计合一） -->
             <div class="i-detail-hero">
-              <span class="i-detail-batch" id="iDetailBatch">批量</span>
               <button class="i-detail-star" id="iDetailStar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></button>
               <div class="i-detail-hero-top">
                 <div class="i-detail-hero-icon" id="iDetailHeroIcon">📦</div>
@@ -843,10 +849,10 @@
                 <div class="i-detail-row"><span class="i-detail-row-label">库存总量</span><span class="i-detail-row-value" id="iDetailTotalQty">--</span></div>
                 <div class="i-detail-row"><span class="i-detail-row-label">正在使用</span><span class="i-detail-row-value" id="iDetailInUse">--</span></div>
                 <div class="i-detail-row"><span class="i-detail-row-label">当前状态</span><span class="i-detail-row-value" id="iDetailStatus">--</span></div>
-                <div class="i-detail-row"><span class="i-detail-row-label">首次入库</span><span class="i-detail-row-value" id="iDetailFirstDate">--</span></div>
+                <div class="i-detail-row i-detail-row-click" id="iDetailFirstDateRow"><span class="i-detail-row-label">首次入库时间</span><span class="i-detail-row-value i-link" id="iDetailFirstDate">选择批次</span></div>
                 <div class="i-detail-row"><span class="i-detail-row-label">所属分类</span><span class="i-detail-row-value i-detail-tag" id="iDetailCategory">--</span></div>
                 <div class="i-detail-row"><span class="i-detail-row-label">存放位置</span><span class="i-detail-row-value" id="iDetailLocation">--</span></div>
-                <div class="i-detail-row"><span class="i-detail-row-label">添加时间</span><span class="i-detail-row-value" id="iDetailCreated">--</span></div>
+                <div class="i-detail-row i-detail-row-click" id="iDetailCreatedRow"><span class="i-detail-row-label">添加时间</span><span class="i-detail-row-value i-link" id="iDetailCreated">选择批次</span></div>
                 <div class="i-detail-row"><span class="i-detail-row-label">最后更新</span><span class="i-detail-row-value" id="iDetailUpdated">--</span></div>
               </div>
             </div>
@@ -968,8 +974,23 @@
         </div>
 
         <!-- 编辑���存品 子页（截图6/7） -->
+        <!-- 入库批次日期 选择卡（任务4：库存档案卡片→选择批次查看入库日期） -->
+        <div class="i-modal i-bottom-sheet" id="iBatchDateModal">
+          <div class="i-bottom-sheet-card i-bs-card-narrow">
+            <div class="i-bs-handle"></div>
+            <div class="i-bs-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <h3 class="i-bs-title">选择入库批次</h3>
+            <p class="i-bs-sub">选择批次后可查看该批次的入库日期</p>
+            <div class="i-bs-batch-list" id="iBatchDateList"></div>
+            <div class="i-bs-actions">
+              <button class="i-bs-btn i-bs-cancel" id="iBatchDateCancel">取消</button>
+              <button class="i-bs-btn i-bs-confirm" id="iBatchDateConfirm">确定</button>
+            </div>
+          </div>
+        </div>
+
         <div class="i-subpage" id="i-subpage-edit">
-          <div class="i-page-header">
+          <div class="i-page-header i-header-stacked">
             <button class="i-back" id="iEditBack">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               返回
