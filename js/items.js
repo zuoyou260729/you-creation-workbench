@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v31';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v32';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -594,6 +594,11 @@
 
   /* ===== 批次相关计算 ===== */
   function getItemBatches(item){ return Array.isArray(item.batches)?item.batches:[]; }
+  // 有效批次 = 未退库的批次（退库日期为空，或退库日期 > 今天）
+  function getActiveBatches(item){
+    const today=todayStr();
+    return getItemBatches(item).filter(b=>!(b.retiredDate && b.retiredDate<=today));
+  }
   function getItemUsings(item){ return Array.isArray(item.usings)?item.usings:[]; }
   function getItemTotalIn(item){
     return getItemBatches(item).reduce((s,b)=>s+(Number(b.quantity)||0),0);
@@ -623,16 +628,17 @@
     const d=Math.floor((db-da)/86400000);
     return Math.max(1, d+1);  // 维护当天为第 1 天
   }
-  // 取所有有效批次的并集有效期，得到日均成本（取最早批次与最近到期日的差距）
+  // 取所有有效批次（未退库）的并集有效期，得到日均成本（取最早批次与最近到期日的差距）
   function getItemDailyCost(item){
-    const bs=getItemBatches(item).filter(b=>b.expiryDate);
+    const all=getActiveBatches(item);
+    const bs=all.filter(b=>b.expiryDate);
     if(!bs.length) return 0;
     const minExp=bs.map(b=>b.expiryDate).sort()[0];
-    const firstDate=getItemBatches(item).map(b=>b.date).filter(Boolean).sort()[0];
+    const firstDate=all.map(b=>b.date).filter(Boolean).sort()[0];
     if(!firstDate || !minExp) return 0;
     const days=daysDiffInclusive(firstDate, minExp);
     if(days<=0) return 0;
-    const total=getItemBatches(item).reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
+    const total=all.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
     return total/days;
   }
 
@@ -722,12 +728,13 @@
     items.forEach(item=>{
       // 使用新批次模型计算
       const batches=getItemBatches(item);
+      const activeBatches=getActiveBatches(item);   // 仅未退库批次参与财务计算
       const totalIn=getItemTotalIn(item);
       const totalUsed=getItemTotalUsed(item);
       const currentStock=getItemCurrentStock(item);
-      const totalPrice=batches.reduce((s,b)=>s+(Number(b.totalPrice)||(Number(b.unitPrice||0)*Number(b.quantity||0))),0);
+      const totalPrice=activeBatches.reduce((s,b)=>s+(Number(b.totalPrice)||(Number(b.unitPrice||0)*Number(b.quantity||0))),0);
       const dailyCost=getItemDailyCost(item);
-      if(batches.length && !isRetired(item)) avgDailyCost+=dailyCost;
+      if(activeBatches.length) avgDailyCost+=dailyCost;
 
       const path=getCategoryPath(item.categoryId);
       const key=`${item.name}|${path.primaryId}|${path.secondaryId||''}|${item.icon||'📦'}`;
@@ -766,7 +773,7 @@
       g.totalUsed+=totalUsed;
       // 旧字段映射（保持）
       g.qty+=totalIn;
-      if(!isRetired(item)) g.totalPrice+=totalPrice;
+      g.totalPrice+=totalPrice;
       g.stockQty+=currentStock;
       g.inUseQty+=totalUsed;
       g.scrappedQty+=0;  // 新模型无 scrapped
@@ -781,7 +788,7 @@
       g.starred=g.starred||!!item.starred;
       g.pinned=g.pinned||!!item.pinned;
       g.items.push(item);
-      if(!isRetired(item)) totalAsset+=totalPrice;
+      totalAsset+=totalPrice;
     });
     const groups=Object.values(map);
     groups.forEach(g=>{
@@ -1165,6 +1172,7 @@
       totalPrice: totalPrice,
       validity: { value:365, unit:'day' },
       expiryDate: expiryDate,
+      retiredDate: isBatch ? '' : (item.retiredDate||''),
       note: note
     };
 
@@ -1276,14 +1284,32 @@
     $('#iDetailTotalQty').textContent=totalIn+' 件';
     $('#iDetailInUse').textContent=totalUsed+' 件';
     $('#iDetailStatus').textContent=currentStock>0?'现役中':(totalUsed>0?'已用尽':'未入库');
-    $('#iDetailFirstDate').textContent='选择批次';
+    // 「首次入库时间」= 最早入库批次的日期（第一次填写的入库日期），纯展示，不再点击选批次
+    const firstBatchDate=getItemBatches(item).map(b=>b.date).filter(Boolean).sort()[0];
+    $('#iDetailFirstDate').textContent=firstBatchDate?formatDateDot(firstBatchDate):'--';
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
+    // 「添加时间」保持可点击选批次（v28 行为）
     $('#iDetailCreated').textContent='选择批次';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
-    // 任务4：库存档案“添加时间/首次入库时间”可点击→选择批次查看入库日期
-    bindBatchDateRow('#iDetailCreatedRow');
-    bindBatchDateRow('#iDetailFirstDateRow');
+    // 退库日期：单个物品显示一行（取 item.retiredDate）；批量物品显示两行（选批次→取该批次退库日期）
+    const isSingle = getItemBatches(item).length<=1 && totalIn<=1;
+    if(isSingle){
+      $('#iDetailRetiredSingleRow').style.display='';
+      $('#iDetailRetiredBatchRow').style.display='none';
+      $('#iDetailRetiredBatchDateRow').style.display='none';
+      $('#iDetailRetiredSingle').textContent=item.retiredDate?formatDateDot(item.retiredDate):'--';
+    }else{
+      $('#iDetailRetiredSingleRow').style.display='none';
+      $('#iDetailRetiredBatchRow').style.display='';
+      $('#iDetailRetiredBatchDateRow').style.display='';
+      $('#iDetailRetiredBatch').textContent='选择批次';
+      $('#iDetailRetiredBatch').dataset.bid='';
+      $('#iDetailRetiredBatchDate').textContent='选择日期';
+    }
+    // 任务4：库存档案“添加时间”可点击→选择批次查看入库日期（首次入库时间已改为纯展示）
+    bindBatchDateRow('#iDetailCreatedRow', 'created');
+    bindBatchDateRow('#iDetailRetiredBatchRow', 'retired');
 
     // 底部操作栏 → 接入新弹窗
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
@@ -1300,28 +1326,27 @@
     showSubpage('detail');
     $('.main').scrollTop=0;
   }
-  // ===== 任务4：库存档案卡片“添加时间/首次入库时间”→ 选择批次查看入库日期 =====
-  let batchDateTargetRow=null, batchDateSelectedId=null;
-  function bindBatchDateRow(sel){
+  // ===== 任务4/6：库存档案卡片“添加时间/退库日期”→ 选择批次 =====
+  let batchDateTargetRow=null, batchDateSelectedId=null, batchDateMode='created';
+  function bindBatchDateRow(sel, mode){
     const el=$(sel);
     if(!el || el._bd) return;
+    el.dataset.mode=mode||'created';
     el.addEventListener('click',()=>openBatchDatePicker(el));
     el._bd=true;
   }
   function openBatchDatePicker(rowEl){
     if(!currentDetailGroup) return;
+    batchDateMode=rowEl.dataset.mode||'created';
     batchDateTargetRow=rowEl;
     batchDateSelectedId=null;
     const all=[];
     currentDetailGroup.items.forEach(it=>getItemBatches(it).forEach(b=>all.push(b)));
     all.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    // 批次清单只显示唯一标识符（如 20260904入库）
     $('#iBatchDateList').innerHTML=all.map(b=>`
       <div class="i-bs-batch-item" data-id="${escapeHtml(b.id)}">
-        <div class="i-bs-batch-top">
-          <span class="i-bs-batch-name">${formatDateDot(b.date)}</span>
-          <span class="i-bs-batch-qty">${Number(b.quantity||0)} 件</span>
-        </div>
-        <div class="i-bs-batch-sub">${escapeHtml(b.id)} · 单价 ¥${Number(b.unitPrice||0).toFixed(2)}</div>
+        <div class="i-bs-batch-top"><span class="i-bs-batch-name">${escapeHtml(b.id)}</span></div>
       </div>`).join('') || '<div class="i-empty"><p>暂无入库批次</p></div>';
     $$('#iBatchDateList .i-bs-batch-item').forEach(el=>{
       el.addEventListener('click',()=>{
@@ -1340,7 +1365,13 @@
       const all=[];
       currentDetailGroup.items.forEach(it=>getItemBatches(it).forEach(b=>all.push(b)));
       const b=all.find(x=>x.id===batchDateSelectedId);
-      if(b){
+      if(!b) return;
+      if(batchDateMode==='retired'){
+        // 退库日期选择批次：第一行显示唯一标识符，第二行显示该批次退库日期
+        $('#iDetailRetiredBatch').textContent=b.id;
+        $('#iDetailRetiredBatch').dataset.bid=b.id;
+        $('#iDetailRetiredBatchDate').textContent=b.retiredDate?formatDateDot(b.retiredDate):'选择日期';
+      }else{
         const val=batchDateTargetRow.querySelector('.i-detail-row-value');
         if(val) val.textContent=formatDateDot(b.date);
       }
@@ -1707,6 +1738,7 @@
       totalPrice: total,
       validity: { value:365, unit:'day' },
       expiryDate: expiry,
+      retiredDate: '',
       note: $('#iRestockNote').value.trim()||''
     });
     mergeSameDayBatches(item);
@@ -1876,9 +1908,44 @@
     $('#iEditTotalPrice').value=Number(latest.totalPrice||0).toFixed(2);
     $('#iEditBatchCount').textContent=batches.length;
     $('#iEditLocation').value=item.location||'';
+    // 退库日期（选填）：单件直接选日期；批量按批次各自设置
+    temp.editRetiredMap={};
+    temp.editRetiredSel='';
+    const eb=getItemBatches(item);
+    if(eb.length<=1){
+      $('#iEditRetiredSingleWrap').style.display='';
+      $('#iEditRetiredBatchWrap').style.display='none';
+      $('#iEditRetiredDate').value=item.retiredDate||'';
+    }else{
+      $('#iEditRetiredSingleWrap').style.display='none';
+      $('#iEditRetiredBatchWrap').style.display='';
+      eb.forEach(b=>{ temp.editRetiredMap[b.id]=b.retiredDate||''; });
+      $('#iEditRetiredBatchSel').textContent='选择批次';
+      $('#iEditRetiredBatchDate').value='';
+    }
     bindEditPriceLinks();
     hideTabbar(true);
     showSubpage('edit');
+  }
+  function openEditRetiredBatchModal(){
+    if(!editTargetItem) return;
+    const item=editTargetItem;
+    const batches=getItemBatches(item).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    $('#iEditRetiredBatchList').innerHTML=batches.map(b=>`
+      <div class="i-bs-batch-item ${temp.editRetiredSel===b.id?'active':''}" data-id="${escapeHtml(b.id)}">
+        <div class="i-bs-batch-top"><span class="i-bs-batch-name">${escapeHtml(b.id)}</span></div>
+        <div class="i-bs-batch-sub">${b.retiredDate?('退库日期 '+formatDateDot(b.retiredDate)):'未设置退库日期'}</div>
+      </div>`).join('') || '<div class="i-empty"><p>暂无入库批次</p></div>';
+    $$('#iEditRetiredBatchList .i-bs-batch-item').forEach(el=>{
+      el.addEventListener('click',()=>{
+        $$('#iEditRetiredBatchList .i-bs-batch-item').forEach(x=>x.classList.remove('active'));
+        el.classList.add('active');
+        temp.editRetiredSel=el.dataset.id;
+        $('#iEditRetiredBatchSel').textContent=el.dataset.id;
+        $('#iEditRetiredBatchDate').value=temp.editRetiredMap[el.dataset.id]||'';
+      });
+    });
+    openModal('iEditRetiredBatchModal');
   }
   function bindEditPriceLinks(){
     const up=$('#iEditUnitPrice'), tp=$('#iEditTotalPrice');
@@ -1913,6 +1980,13 @@
     $('#iEditCatTrigger')?.addEventListener('click',()=>openCategoryPicker());
     $('#iEditBatchCountRow')?.addEventListener('click',()=>{ renderEditBatchList(); openModal('iEditBatchListModal'); });
     $('#iEditBatchListClose')?.addEventListener('click',()=>closeModal('iEditBatchListModal'));
+    // 退库日期（批量）：选择入库批次 + 该批次退库日期
+    $('#iEditRetiredBatchSelRow')?.addEventListener('click',()=>openEditRetiredBatchModal());
+    $('#iEditRetiredBatchDate')?.addEventListener('change',()=>{
+      if(temp.editRetiredSel) temp.editRetiredMap[temp.editRetiredSel]=$('#iEditRetiredBatchDate').value||'';
+    });
+    $('#iEditRetiredBatchCancel')?.addEventListener('click',()=>closeModal('iEditRetiredBatchModal'));
+    $('#iEditRetiredBatchConfirm')?.addEventListener('click',()=>closeModal('iEditRetiredBatchModal'));
     $('#iEditSave')?.addEventListener('click', saveEdit);
   }
   function renderEditBatchList(){
@@ -1951,6 +2025,15 @@
     const allBatches=getItemBatches(item);
     item.avgPrice=allBatches.length?allBatches[allBatches.length-1].unitPrice:0;
     item.location=$('#iEditLocation').value.trim().slice(0,100);
+    // 退库日期（选填）：单件存 item.retiredDate 并同步到唯一批次；批量按批次各自保存
+    const ebatches=getItemBatches(item);
+    if(ebatches.length<=1){
+      item.retiredDate=$('#iEditRetiredDate').value||'';
+      if(ebatches.length) ebatches[0].retiredDate=item.retiredDate;
+    }else{
+      ebatches.forEach(b=>{ b.retiredDate=temp.editRetiredMap[b.id]||''; });
+      item.retiredDate='';
+    }
     item.updatedAt=new Date().toISOString();
     save();
     showToast('已保存修改');
