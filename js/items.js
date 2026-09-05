@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v28';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v29';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1249,6 +1249,9 @@
     const usagePct=totalIn>0?((totalUsed/totalIn)*100).toFixed(1):'0.0';
 
     renderDetailHeroIcon(g);
+    // "批量"角标：多个批次或总入库量 > 1 才显示
+    $('#iDetailBatch').textContent='批量';
+    $('#iDetailBatch').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
     // 收藏功能暂未启用：点击仅做居中提示
