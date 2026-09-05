@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v26';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v27';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1066,13 +1066,10 @@
     $('#iBatchTotalPrice').value='';
 
     if(editItem){
+      // 物品级字段：编辑时保留并可修改（分类/图标已在外部设置）
       $('#iName').value=editItem.name;
-      $('#iPrice').value=editItem.price||'';
       $('#iExpectedDaily').value=editItem.expectedDaily||'';
-      $('#iProductionDate').value=editItem.productionDate||todayStr();
-      $('#iPurchaseDate').value=editItem.purchaseDate||todayStr();
       $('#iRetireDate').value=editItem.retireDate||'';
-      $('#iExpiryDate').value=editItem.expiryDate||'';
       $('#iUsageCount').value=editItem.usageCount||'';
       $('#iMaintenance').value=editItem.maintenanceTotal||'';
       $('#iLocation').value=editItem.location||'';
@@ -1080,17 +1077,12 @@
       $('#iCalcTime').checked=(editItem.calcMode||'time')==='time';
       $('#iCalcFreq').checked=editItem.calcMode==='freq';
       $('#iCalcNone').checked=editItem.calcMode==='none';
-
       $('#iBatchName').value=editItem.name;
-      $('#iQty').value=editItem.qty||1;
-      $('#iBatchUnitPrice').value=editItem.price||'';
-      $('#iBatchTotalPrice').value=editItem.totalPrice||'';
-      $('#iBatchProductionDate').value=editItem.productionDate||todayStr();
-      $('#iBatchPurchaseDate').value=editItem.purchaseDate||todayStr();
-      $('#iBatchExpiryDate').value=editItem.expiryDate||'';
       $('#iBatchLocation').value=editItem.location||'';
       $('#iBatchMemo').value=editItem.memo||'';
       if(editItem.autoTakeOne) $('#iAutoTakeOne').classList.add('on');
+      // 批次相关字段（购买/生产日期、数量、单价、有效期）【不预填旧值】：
+      // 编辑语义 = 追加一条新入库批次，避免覆盖历史批次。
     }else{
       $('#iCalcTime').checked=true;
     }
@@ -1139,10 +1131,12 @@
     item.memo=isBatch?$('#iBatchMemo').value.trim():$('#iMemo').value.trim();
     item.updatedAt=new Date().toISOString();
 
-    // 新批次模型：构造单一批次
+    const isEdit=!!temp.editId;
+    // 新批次模型：构造本次入库批次
     let qty=1, price=0, totalPrice=0, expiryDate='', note=item.memo||'';
     if(isBatch){
       qty=Math.max(0, parseInt($('#iQty').value)||0);
+      if(qty<=0){ showToast('请输入入库数量'); return; }   // 编辑/批量均需有效数量
       price=Number($('#iBatchUnitPrice').value)||0;
       totalPrice=Number($('#iBatchTotalPrice').value)||(qty*price);
       expiryDate=$('#iBatchExpiryDate').value;
@@ -1156,7 +1150,7 @@
     }
 
     const batchId=dateToBatchId(item.purchaseDate);
-    item.batches=[{
+    const newBatch={
       id: batchId,
       date: item.purchaseDate,
       quantity: qty,
@@ -1165,20 +1159,37 @@
       validity: { value:365, unit:'day' },
       expiryDate: expiryDate,
       note: note
-    }];
-    item.usings=[];
-    // 兼容字段（保留以防其他代码依赖）
-    item.qty=qty;
-    item.price=price;
-    item.avgPrice=price; // 购买均价 = 维护时填写的单价，之后不再重算
-    item.totalPrice=totalPrice;
-    item.expiryDate=expiryDate;
-    item.stockQty=qty;
-    item.inUseQty=0;
-    item.scrappedQty=0;
-    item.retiredQty=0;
+    };
 
-    if(temp.editId){
+    if(isEdit){
+      // 编辑模式：保留历史批次与取用记录，仅追加本次入库批次（同日自动合并）
+      if(!Array.isArray(item.batches)) item.batches=[];
+      item.batches.push(newBatch);
+      mergeSameDayBatches(item);
+      if(!Array.isArray(item.usings)) item.usings=[];   // 保留历史取用，不重置
+      // 兼容字段：基于合并后的批次重算，且不破坏库存/取用计数
+      item.qty=getItemTotalIn(item);
+      item.price=price;
+      item.avgPrice=price;                               // 购买均价 = 本次填写单价，不重算
+      item.totalPrice=getItemBatches(item).reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
+      item.expiryDate=expiryDate;
+      // stockQty/inUseQty/scrappedQty/retiredQty 由专属入库/取用按钮维护，编辑时保持不变
+    }else{
+      // 新增模式：初始化物品
+      item.batches=[newBatch];
+      item.usings=[];
+      item.qty=qty;
+      item.price=price;
+      item.avgPrice=price;
+      item.totalPrice=totalPrice;
+      item.expiryDate=expiryDate;
+      item.stockQty=qty;
+      item.inUseQty=0;
+      item.scrappedQty=0;
+      item.retiredQty=0;
+    }
+
+    if(isEdit){
       const idx=state.items.findIndex(it=>it.id===temp.editId);
       state.items[idx]=item;
     }else{
