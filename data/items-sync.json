@@ -1,6 +1,6 @@
 {
   "version": 3,
-  "syncedAt": "2026-09-04T16:58:29.931Z",
+  "syncedAt": "2026-09-05T06:33:16.826Z",
   "items": [],
   "customCategories": [
     {
@@ -8,7 +8,14 @@
       "name": "未分类",
       "icon": "📁",
       "system": false,
-      "updatedAt": "2026-09-04T16:58:29.895Z"
+      "updatedAt": "2026-09-05T06:33:16.814Z"
+    },
+    {
+      "id": "uvvxrieoxknmtny8efj",
+      "name": "日用品",
+      "icon": "📁",
+      "system": false,
+      "updatedAt": "2026-09-05T06:33:16.814Z"
     },
     {
       "id": "lnb8u2kc61smtlpv3gb",
