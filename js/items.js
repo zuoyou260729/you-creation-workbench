@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v32';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v33';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1931,10 +1931,10 @@
     if(!editTargetItem) return;
     const item=editTargetItem;
     const batches=getItemBatches(item).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    // 批次清单只显示唯一标识符（如 20260904入库），不显示日期等附加信息
     $('#iEditRetiredBatchList').innerHTML=batches.map(b=>`
       <div class="i-bs-batch-item ${temp.editRetiredSel===b.id?'active':''}" data-id="${escapeHtml(b.id)}">
-        <div class="i-bs-batch-top"><span class="i-bs-batch-name">${escapeHtml(b.id)}</span></div>
-        <div class="i-bs-batch-sub">${b.retiredDate?('退库日期 '+formatDateDot(b.retiredDate)):'未设置退库日期'}</div>
+        <span class="i-bs-batch-name">${escapeHtml(b.id)}</span>
       </div>`).join('') || '<div class="i-empty"><p>暂无入库批次</p></div>';
     $$('#iEditRetiredBatchList .i-bs-batch-item').forEach(el=>{
       el.addEventListener('click',()=>{
