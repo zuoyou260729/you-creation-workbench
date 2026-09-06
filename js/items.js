@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v33';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v34';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1696,8 +1696,13 @@
   function openRestockModal(item){
     restockTargetItem=item;
     temp.restockDate=todayStr();
+    temp.restockProdDate=temp.restockDate;
+    temp.restockTotalManual=false;
     $('#iRestockSub').textContent=`为「${item.name}」新增一个入库批次`;
     $('#iRestockDate').textContent=formatDateDot(temp.restockDate);
+    $('#iRestockDate').value=temp.restockDate;
+    $('#iRestockProductionDate').textContent=formatDateDot(temp.restockProdDate);
+    $('#iRestockProductionDate').value=temp.restockProdDate;
     $('#iRestockExpiry').textContent='请选择';
     $('#iRestockQty').value='';
     $('#iRestockUnitPrice').value='';
@@ -1711,10 +1716,23 @@
     $('#iRestockDateRow')?.addEventListener('click',()=>{
       openDatePicker('#iRestockDate', temp.restockDate||todayStr());
     });
-    $('#iRestockExpiryRow')?.addEventListener('click',()=>{
-      if(!$('#iRestockDate').value){ showToast('请先选择入库日期'); return; }
-      openExpiryPicker('#iRestockExpiry', $('#iRestockDate').value);
+    $('#iRestockProductionDateRow')?.addEventListener('click',()=>{
+      openDatePicker('#iRestockProductionDate', $('#iRestockProductionDate').value||temp.restockProdDate||todayStr());
     });
+    $('#iRestockExpiryRow')?.addEventListener('click',()=>{
+      if(!$('#iRestockProductionDate').value){ showToast('请先选择生产日期'); return; }
+      openExpiryPicker('#iRestockExpiry', $('#iRestockProductionDate').value);
+    });
+    // 总价 = 入库数量 × 单价，输入后自动计算；总价也可手动直接编辑
+    const recalcRestockTotal=()=>{
+      if(temp.restockTotalManual) return;
+      const q=Number($('#iRestockQty').value)||0;
+      const p=Number($('#iRestockUnitPrice').value)||0;
+      $('#iRestockTotalPrice').value=(q>0&&p>0)?(Math.round(q*p*100)/100).toFixed(2):'';
+    };
+    $('#iRestockQty')?.addEventListener('input', recalcRestockTotal);
+    $('#iRestockUnitPrice')?.addEventListener('input', recalcRestockTotal);
+    $('#iRestockTotalPrice')?.addEventListener('input', ()=>{ temp.restockTotalManual=!!$('#iRestockTotalPrice').value; });
     $('#iRestockNote')?.addEventListener('input', e=>{ $('#iRestockNoteCount').textContent=e.target.value.length; });
     $('#iRestockCancel')?.addEventListener('click',()=>{ closeModal('iRestockModal'); hideTabbar(false); });
     $('#iRestockConfirm')?.addEventListener('click', saveRestock);
@@ -1912,7 +1930,9 @@
     temp.editRetiredMap={};
     temp.editRetiredSel='';
     const eb=getItemBatches(item);
-    if(eb.length<=1){
+    // 单件物品（单批次且总入库≤1）：直接选退库日期；批量物品：无论批次数是 1 还是多个，均固定显示「选择入库批次」行
+    const isSingle=eb.length<=1 && getItemTotalIn(item)<=1;
+    if(isSingle){
       $('#iEditRetiredSingleWrap').style.display='';
       $('#iEditRetiredBatchWrap').style.display='none';
       $('#iEditRetiredDate').value=item.retiredDate||'';
@@ -2660,7 +2680,14 @@
   }
   function confirmDatePicker(){
     if(temp.dateTarget){
-      $(temp.dateTarget).value=temp.dateValue;
+      const el=$(temp.dateTarget);
+      if(el){
+        el.value=temp.dateValue;
+        // 补货入库弹窗的日期行用 span 展示，需同步 textContent 才能在界面看到所选日期
+        if(temp.dateTarget==='#iRestockDate' || temp.dateTarget==='#iRestockProductionDate'){
+          el.textContent=formatDateDot(temp.dateValue);
+        }
+      }
     }
     closeModal('iDateModal');
   }
@@ -2683,7 +2710,7 @@
     // 根据不同上下文选取基准日期
     let pd;
     if(temp.dateTarget==='#iExpiryDate') pd=$('#iProductionDate').value;
-    else if(temp.dateTarget==='#iRestockExpiry') pd=$('#iRestockDate').value;
+    else if(temp.dateTarget==='#iRestockExpiry') pd=$('#iRestockProductionDate').value;
     else pd=$('#iBatchProductionDate').value;
     if(!pd){ showToast('请先设置基准日期'); return; }
     let res;
