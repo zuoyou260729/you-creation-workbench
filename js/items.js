@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v37';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v38';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -2052,8 +2052,10 @@
     item.avgPrice=allBatches.length?allBatches[allBatches.length-1].unitPrice:0;
     item.location=$('#iEditLocation').value.trim().slice(0,100);
     // 退库日期（选填）：单件存 item.retiredDate 并同步到唯一批次；批量按批次各自保存
+    // 注意：判定必须与 openEditItem 保持一致（单件 = 单批次 且 总入库≤1），否则批量 UI 编辑的退库日期保存时会被单件分支清掉
     const ebatches=getItemBatches(item);
-    if(ebatches.length<=1){
+    const eIsSingle=ebatches.length<=1 && getItemTotalIn(item)<=1;
+    if(eIsSingle){
       item.retiredDate=$('#iEditRetiredDate').value||'';
       if(ebatches.length) ebatches[0].retiredDate=item.retiredDate;
     }else{
