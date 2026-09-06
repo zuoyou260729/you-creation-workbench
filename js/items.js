@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v35';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v36';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1289,8 +1289,10 @@
     $('#iDetailFirstDate').textContent=firstBatchDate?formatDateDot(firstBatchDate):'--';
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
-    // 「添加时间」保持可点击选批次（v28 行为）
-    $('#iDetailCreated').textContent='选择批次';
+    // 「添加时间」默认带出最新批次的入库日期（仍可点击切换批次）
+    const detailBatches=getItemBatches(item).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const detailDefBatch=detailBatches[0];
+    $('#iDetailCreated').textContent=detailDefBatch?formatDateDot(detailDefBatch.date):'选择批次';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
     // 退库日期：单个物品显示一行（取 item.retiredDate）；批量物品显示两行（选批次→取该批次退库日期）
     const isSingle = getItemBatches(item).length<=1 && totalIn<=1;
@@ -1303,9 +1305,16 @@
       $('#iDetailRetiredSingleRow').style.display='none';
       $('#iDetailRetiredBatchRow').style.display='';
       $('#iDetailRetiredBatchDateRow').style.display='';
-      $('#iDetailRetiredBatch').textContent='选择批次';
-      $('#iDetailRetiredBatch').dataset.bid='';
-      $('#iDetailRetiredBatchDate').textContent='选择日期';
+      // 默认选中最新批次，自动带出入库日期对应的退库日期（无需先手动点选）
+      if(detailDefBatch){
+        $('#iDetailRetiredBatch').textContent=detailDefBatch.id;
+        $('#iDetailRetiredBatch').dataset.bid=detailDefBatch.id;
+        $('#iDetailRetiredBatchDate').textContent=detailDefBatch.retiredDate?formatDateDot(detailDefBatch.retiredDate):'未设置退库日期';
+      }else{
+        $('#iDetailRetiredBatch').textContent='选择批次';
+        $('#iDetailRetiredBatch').dataset.bid='';
+        $('#iDetailRetiredBatchDate').textContent='选择日期';
+      }
     }
     // 任务4：库存档案“添加时间”可点击→选择批次查看入库日期（首次入库时间已改为纯展示）
     bindBatchDateRow('#iDetailCreatedRow', 'created');
