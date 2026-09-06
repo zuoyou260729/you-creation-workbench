@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v34';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v35';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1366,15 +1366,12 @@
       currentDetailGroup.items.forEach(it=>getItemBatches(it).forEach(b=>all.push(b)));
       const b=all.find(x=>x.id===batchDateSelectedId);
       if(!b) return;
-      if(batchDateMode==='retired'){
-        // 退库日期选择批次：第一行显示唯一标识符，第二行显示该批次退库日期
-        $('#iDetailRetiredBatch').textContent=b.id;
-        $('#iDetailRetiredBatch').dataset.bid=b.id;
-        $('#iDetailRetiredBatchDate').textContent=b.retiredDate?formatDateDot(b.retiredDate):'选择日期';
-      }else{
-        const val=batchDateTargetRow.querySelector('.i-detail-row-value');
-        if(val) val.textContent=formatDateDot(b.date);
-      }
+      // 退库日期卡片联动：无论点击“添加时间”还是“退库日期-选择批次”，均同步到同一选中批次
+      // 添加时间行显示该批次入库日期；退库日期第一行显示唯一标识符、第二行显示该批次退库日期
+      $('#iDetailCreated').textContent=formatDateDot(b.date);
+      $('#iDetailRetiredBatch').textContent=b.id;
+      $('#iDetailRetiredBatch').dataset.bid=b.id;
+      $('#iDetailRetiredBatchDate').textContent=b.retiredDate?formatDateDot(b.retiredDate):'选择日期';
       closeModal('iBatchDateModal'); hideTabbar(false);
     });
   }
@@ -2723,6 +2720,8 @@
       res=addYearsSafe(pd, v);
     }
     $(temp.dateTarget).value=res;
+    // 补货入库弹窗的有效期为 span 展示，需同步 textContent 才能在界面看到计算后的日期
+    if(temp.dateTarget==='#iRestockExpiry'){ $(temp.dateTarget).textContent=formatDateDot(res); }
     closeModal('iExpiryModal');
   }
 

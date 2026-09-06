@@ -2283,6 +2283,15 @@ button.i-action-pin.active {
   border-radius: 8px;
   overflow-wrap: anywhere;
 }
+/* 编辑页·退库日期卡片：第二行(退库日期)与第一行(入库批次)图标/文字对齐、字号一致 */
+#iEditRetiredBatchWrap .i-date-row { padding: 14px 16px; gap: 12px; }
+#iEditRetiredBatchWrap .i-date-row .i-label { flex: 0 0 auto; width: auto; font-size: 15px; color: #111; gap: 12px; }
+#iEditRetiredBatchWrap .i-date-row .i-label svg { width: 18px; height: 18px; color: #999; }
+#iEditRetiredBatchWrap .i-date-row .i-value { font-size: 15px; color: #111; }
+/* 编辑页·入库批次选择提示：单行显示，避免回行 */
+#iEditRetiredBatchSel { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+/* 详情页·退库日期-选择批次提示：灰框 + 单行显示 */
+#iDetailRetiredBatch.i-link { background: #F2F2F2; color: #999; padding: 4px 10px; border-radius: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
 .i-edit-currency {
   color: #111;
   font-size: 15px;
