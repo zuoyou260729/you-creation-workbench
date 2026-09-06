@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v36';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v37';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1172,6 +1172,7 @@
       totalPrice: totalPrice,
       validity: { value:365, unit:'day' },
       expiryDate: expiryDate,
+      productionDate: item.productionDate||'',
       retiredDate: isBatch ? '' : (item.retiredDate||''),
       note: note
     };
@@ -1218,6 +1219,7 @@
 
   /* ===== 详情页 ===== */
   let currentDetailGroup=null;
+  let currentDetailItem=null;
   function formatDateDot(s){
     if(!s) return '-';
     const d=parseDate(s);
@@ -1289,36 +1291,30 @@
     $('#iDetailFirstDate').textContent=firstBatchDate?formatDateDot(firstBatchDate):'--';
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
-    // 「添加时间」默认带出最新批次的入库日期（仍可点击切换批次）
-    const detailBatches=getItemBatches(item).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-    const detailDefBatch=detailBatches[0];
-    $('#iDetailCreated').textContent=detailDefBatch?formatDateDot(detailDefBatch.date):'选择批次';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
-    // 退库日期：单个物品显示一行（取 item.retiredDate）；批量物品显示两行（选批次→取该批次退库日期）
-    const isSingle = getItemBatches(item).length<=1 && totalIn<=1;
-    if(isSingle){
-      $('#iDetailRetiredSingleRow').style.display='';
-      $('#iDetailRetiredBatchRow').style.display='none';
-      $('#iDetailRetiredBatchDateRow').style.display='none';
-      $('#iDetailRetiredSingle').textContent=item.retiredDate?formatDateDot(item.retiredDate):'--';
+    // 每批次档案：批量物品默认全部为空（需先选择批次）；单件物品自动选中唯一批次并带出数据
+    currentDetailItem=item;
+    const baBatches=getItemBatches(item);
+    const baIsSingle = baBatches.length<=1 && totalIn<=1;
+    if(baIsSingle && baBatches[0]){
+      const b=baBatches[0];
+      $('#iDetailBatchSel').textContent=b.id;
+      $('#iDetailBatchSel').dataset.bid=b.id;
+      $('#iDetailAddTime').textContent=formatDateDot(b.date);
+      $('#iDetailInDate').textContent=formatDateDot(b.date);
+      $('#iDetailProdDate').textContent=b.productionDate?formatDateDot(b.productionDate):(item.productionDate?formatDateDot(item.productionDate):'--');
+      $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
+      $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
     }else{
-      $('#iDetailRetiredSingleRow').style.display='none';
-      $('#iDetailRetiredBatchRow').style.display='';
-      $('#iDetailRetiredBatchDateRow').style.display='';
-      // 默认选中最新批次，自动带出入库日期对应的退库日期（无需先手动点选）
-      if(detailDefBatch){
-        $('#iDetailRetiredBatch').textContent=detailDefBatch.id;
-        $('#iDetailRetiredBatch').dataset.bid=detailDefBatch.id;
-        $('#iDetailRetiredBatchDate').textContent=detailDefBatch.retiredDate?formatDateDot(detailDefBatch.retiredDate):'未设置退库日期';
-      }else{
-        $('#iDetailRetiredBatch').textContent='选择批次';
-        $('#iDetailRetiredBatch').dataset.bid='';
-        $('#iDetailRetiredBatchDate').textContent='选择日期';
-      }
+      $('#iDetailBatchSel').textContent='请选择批次';
+      $('#iDetailBatchSel').dataset.bid='';
+      $('#iDetailAddTime').textContent='--';
+      $('#iDetailInDate').textContent='--';
+      $('#iDetailProdDate').textContent='--';
+      $('#iDetailExpiry').textContent='--';
+      $('#iDetailBatchRetired').textContent='--';
     }
-    // 任务4：库存档案“添加时间”可点击→选择批次查看入库日期（首次入库时间已改为纯展示）
-    bindBatchDateRow('#iDetailCreatedRow', 'created');
-    bindBatchDateRow('#iDetailRetiredBatchRow', 'retired');
+    bindBatchDateRow('#iDetailBatchSelRow', 'batch');
 
     // 底部操作栏 → 接入新弹窗
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
@@ -1375,12 +1371,15 @@
       currentDetailGroup.items.forEach(it=>getItemBatches(it).forEach(b=>all.push(b)));
       const b=all.find(x=>x.id===batchDateSelectedId);
       if(!b) return;
-      // 退库日期卡片联动：无论点击“添加时间”还是“退库日期-选择批次”，均同步到同一选中批次
-      // 添加时间行显示该批次入库日期；退库日期第一行显示唯一标识符、第二行显示该批次退库日期
-      $('#iDetailCreated').textContent=formatDateDot(b.date);
-      $('#iDetailRetiredBatch').textContent=b.id;
-      $('#iDetailRetiredBatch').dataset.bid=b.id;
-      $('#iDetailRetiredBatchDate').textContent=b.retiredDate?formatDateDot(b.retiredDate):'选择日期';
+      // 每批次档案（v37）：选择批次后，第一行显示唯一标识符，其余字段带出该批次对应数据
+      const owner=currentDetailGroup.items.find(it=>getItemBatches(it).some(x=>x.id===b.id)) || currentDetailItem;
+      $('#iDetailBatchSel').textContent=b.id;
+      $('#iDetailBatchSel').dataset.bid=b.id;
+      $('#iDetailAddTime').textContent=formatDateDot(b.date);
+      $('#iDetailInDate').textContent=formatDateDot(b.date);
+      $('#iDetailProdDate').textContent=b.productionDate?formatDateDot(b.productionDate):((owner&&owner.productionDate)?formatDateDot(owner.productionDate):'--');
+      $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
+      $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       closeModal('iBatchDateModal'); hideTabbar(false);
     });
   }
@@ -1762,6 +1761,7 @@
       totalPrice: total,
       validity: { value:365, unit:'day' },
       expiryDate: expiry,
+      productionDate: temp.restockProdDate||'',
       retiredDate: '',
       note: $('#iRestockNote').value.trim()||''
     });
