@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v39';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v40';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1730,6 +1730,10 @@
       if(!$('#iRestockProductionDate').value){ showToast('请先选择生产日期'); return; }
       openExpiryPicker('#iRestockExpiry', $('#iRestockProductionDate').value);
     });
+    // 退库日期（选填）：点击弹出日期选择器，确定后由 confirmDatePicker 写入 temp.restockRetiredDate 并展示
+    $('#iRestockRetiredDateRow')?.addEventListener('click',()=>{
+      openDatePicker('#iRestockRetiredDate', temp.restockRetiredDate||todayStr());
+    });
     // 总价 = 入库数量 × 单价，输入后自动计算；总价也可手动直接编辑
     const recalcRestockTotal=()=>{
       if(temp.restockTotalManual) return;
@@ -1764,7 +1768,7 @@
       validity: { value:365, unit:'day' },
       expiryDate: expiry,
       productionDate: temp.restockProdDate||'',
-      retiredDate: '',
+      retiredDate: temp.restockRetiredDate||'',
       note: $('#iRestockNote').value.trim()||''
     });
     mergeSameDayBatches(item);
