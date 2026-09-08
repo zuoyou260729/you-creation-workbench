@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v40';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v41';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1071,6 +1071,7 @@
 
     $('#iProductionDate').value=todayStr();
     $('#iPurchaseDate').value=todayStr();
+    $('#iWarrantyDate').value='';
     $('#iBatchProductionDate').value=todayStr();
     $('#iBatchPurchaseDate').value=todayStr();
     $('#iQty').value='1';
@@ -1082,13 +1083,11 @@
       $('#iName').value=editItem.name;
       $('#iExpectedDaily').value=editItem.expectedDaily||'';
       $('#iRetireDate').value=editItem.retireDate||'';
+      $('#iWarrantyDate').value=editItem.warrantyDate||'';
       $('#iUsageCount').value=editItem.usageCount||'';
       $('#iMaintenance').value=editItem.maintenanceTotal||'';
       $('#iLocation').value=editItem.location||'';
       $('#iMemo').value=editItem.memo||'';
-      $('#iCalcTime').checked=(editItem.calcMode||'time')==='time';
-      $('#iCalcFreq').checked=editItem.calcMode==='freq';
-      $('#iCalcNone').checked=editItem.calcMode==='none';
       $('#iBatchName').value=editItem.name;
       $('#iBatchLocation').value=editItem.location||'';
       $('#iBatchMemo').value=editItem.memo||'';
@@ -1096,7 +1095,7 @@
       // 批次相关字段（购买/生产日期、数量、单价、有效期）【不预填旧值】：
       // 编辑语义 = 追加一条新入库批次，避免覆盖历史批次。
     }else{
-      $('#iCalcTime').checked=true;
+      /* 新增模式：无需额外预填（计算方式卡片已移除） */
     }
     updateCategoryTrigger();
     updateIconBtn();
@@ -1143,6 +1142,8 @@
     item.memo=isBatch?$('#iBatchMemo').value.trim():$('#iMemo').value.trim();
     // 任务5/6：退库日期（选填）—— 已维护且日期已过则不计入总资产/平均每日成本
     item.retiredDate=isBatch?($('#iBatchRetireDate').value||''):($('#iRetireDate').value||'');
+    // 质保期（选填）：仅单个物品页维护，批量物品保留原值不覆盖
+    if(!isBatch) item.warrantyDate=$('#iWarrantyDate')?.value||'';
     item.updatedAt=new Date().toISOString();
 
     const isEdit=!!temp.editId;
@@ -1271,21 +1272,18 @@
     $('#iDetailHeroName').textContent=g.name;
     $('#iDetailHeroDaily').textContent=g.dailyCost.toFixed(2);
 
-    $('#iDetailStock').textContent=currentStock;
-    $('#iDetailTotalIn').textContent=totalIn;
     $('#iDetailUsed').textContent=totalUsed;
 
+    // 已入库天数（卡片展示，已移除「已使用」字段与进度条）
     $('#iDetailDays').textContent=g.holdingDays;
-    $('#iDetailUsageText').textContent=`已使用 ${usagePct}%`;
-    $('#iDetailUsageEnd').textContent=`${(100-Number(usagePct)).toFixed(1)}%`;
-    $('#iDetailProgressFill').style.width=Math.min(100, Number(usagePct))+'%';
 
     // 库存档案明细
     $('#iDetailAvgPrice').textContent=formatMoney(g.avgPrice);
     $('#iDetailTotalPrice').textContent=formatMoney(g.totalPrice);
     $('#iDetailTotalQty').textContent=totalIn+' 件';
     $('#iDetailInUse').textContent=totalUsed+' 件';
-    $('#iDetailStatus').textContent=currentStock>0?'现役中':(totalUsed>0?'已用尽':'未入库');
+    // 当前状态：按「正在使用」数量判定 —— 0 件=待使用，≥1 件=现役中
+    $('#iDetailStatus').textContent=totalUsed<=0?'待使用':'现役中';
     // 「首次入库时间」= 最早入库批次的日期（第一次填写的入库日期），纯展示，不再点击选批次
     const firstBatchDate=getItemBatches(item).map(b=>b.date).filter(Boolean).sort()[0];
     $('#iDetailFirstDate').textContent=firstBatchDate?formatDateDot(firstBatchDate):'--';
@@ -2886,15 +2884,6 @@
     $('#iSaveItemBtn')?.addEventListener('click', saveItemForm);
     $('#iCancelItemBtn')?.addEventListener('click',()=>showSubpage('overview'));
     $('#iCancelItemBtn2')?.addEventListener('click',()=>showSubpage('overview'));
-
-    // 计算方式标签高亮
-    $$('input[name="calcMode"]').forEach(r=>{
-      r.addEventListener('change',()=>{
-        $$('input[name="calcMode"]').forEach(rr=>{
-          if(rr.closest('.i-tab')) rr.closest('.i-tab').classList.toggle('active', rr.checked);
-        });
-      });
-    });
 
     // batch total auto
     function updateBatchTotal(){

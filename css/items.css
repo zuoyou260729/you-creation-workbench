@@ -1329,7 +1329,8 @@ button.i-action-pin.active {
 /* 三列统计（嵌入大卡片底部） */
 .i-detail-hero-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
+  align-items: stretch;      /* 两个卡片等高（已入库天数 = 已取用） */
   gap: 8px;
   margin-top: 14px;
   padding-top: 14px;
@@ -1340,6 +1341,9 @@ button.i-action-pin.active {
   border-radius: var(--i-radius-sm);
   padding: 12px 8px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .i-detail-stat-label {
   font-size: 12px;
@@ -1362,47 +1366,7 @@ button.i-action-pin.active {
   color: var(--i-text-sec);
 }
 
-/* 已入库天数 + 进度 */
-.i-detail-days {
-  background: var(--i-surface);
-  border: 1px solid var(--i-border-light);
-  border-radius: var(--i-radius);
-  padding: 18px 16px;
-}
-.i-detail-days-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 14px;
-  color: var(--i-text-sec);
-}
-.i-detail-days-top strong {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--i-text);
-  margin: 0 3px;
-}
-.i-detail-progress {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--i-bg);
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-.i-detail-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--i-primary);
-  width: 0%;
-  transition: width .3s ease;
-}
-.i-detail-days-bottom {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--i-text-ter);
-}
+/* 已入库天数：已改为 hero 统计卡片（已移除进度条与「已使用」字段） */
 
 /* 库存档案 */
 .i-detail-section {
@@ -2034,6 +1998,12 @@ button.i-action-pin.active {
   font-size: 15px;
   color: #111;
   text-align: right;
+}
+/* 取用批次：所选批次内容强制单行显示，超长省略不换行 */
+#iUseBatch {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .i-bs-date::before {
   content: '📅';
