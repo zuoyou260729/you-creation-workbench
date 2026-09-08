@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v41';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v42';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1072,6 +1072,8 @@
     $('#iProductionDate').value=todayStr();
     $('#iPurchaseDate').value=todayStr();
     $('#iWarrantyDate').value='';
+    $('#iBatchWarrantyDate').value='';
+    temp.expirySpec={};   // 重置有效期时长，避免上次选择残留导致改生产日期时误重算
     $('#iBatchProductionDate').value=todayStr();
     $('#iBatchPurchaseDate').value=todayStr();
     $('#iQty').value='1';
@@ -1084,6 +1086,7 @@
       $('#iExpectedDaily').value=editItem.expectedDaily||'';
       $('#iRetireDate').value=editItem.retireDate||'';
       $('#iWarrantyDate').value=editItem.warrantyDate||'';
+      $('#iBatchWarrantyDate').value=editItem.warrantyDate||'';
       $('#iUsageCount').value=editItem.usageCount||'';
       $('#iMaintenance').value=editItem.maintenanceTotal||'';
       $('#iLocation').value=editItem.location||'';
@@ -1142,8 +1145,8 @@
     item.memo=isBatch?$('#iBatchMemo').value.trim():$('#iMemo').value.trim();
     // 任务5/6：退库日期（选填）—— 已维护且日期已过则不计入总资产/平均每日成本
     item.retiredDate=isBatch?($('#iBatchRetireDate').value||''):($('#iRetireDate').value||'');
-    // 质保期（选填）：仅单个物品页维护，批量物品保留原值不覆盖
-    if(!isBatch) item.warrantyDate=$('#iWarrantyDate')?.value||'';
+    // 质保期（选填）：单个/批量各自维护；物品级存一份用于编辑回显，同时写入本次批次
+    item.warrantyDate=isBatch?($('#iBatchWarrantyDate')?.value||''):($('#iWarrantyDate')?.value||'');
     item.updatedAt=new Date().toISOString();
 
     const isEdit=!!temp.editId;
@@ -1175,6 +1178,7 @@
       expiryDate: expiryDate,
       productionDate: item.productionDate||'',
       retiredDate: isBatch ? '' : (item.retiredDate||''),
+      warrantyDate: item.warrantyDate||'',
       note: note
     };
 
@@ -1303,6 +1307,7 @@
       $('#iDetailProdDate').textContent=b.productionDate?formatDateDot(b.productionDate):(item.productionDate?formatDateDot(item.productionDate):'--');
       $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
+      $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
     }else{
       $('#iDetailBatchSel').textContent='请选择批次';
       $('#iDetailBatchSel').dataset.bid='';
@@ -1311,6 +1316,7 @@
       $('#iDetailProdDate').textContent='--';
       $('#iDetailExpiry').textContent='--';
       $('#iDetailBatchRetired').textContent='--';
+      $('#iDetailBatchWarranty').textContent='--';
     }
     bindBatchDateRow('#iDetailBatchSelRow', 'batch');
 
@@ -1378,6 +1384,7 @@
       $('#iDetailProdDate').textContent=b.productionDate?formatDateDot(b.productionDate):((owner&&owner.productionDate)?formatDateDot(owner.productionDate):'--');
       $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
+      $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
       closeModal('iBatchDateModal'); hideTabbar(false);
     });
   }
@@ -1767,6 +1774,7 @@
       expiryDate: expiry,
       productionDate: temp.restockProdDate||'',
       retiredDate: temp.restockRetiredDate||'',
+      warrantyDate: '',
       note: $('#iRestockNote').value.trim()||''
     });
     mergeSameDayBatches(item);
@@ -1936,7 +1944,7 @@
     // 每批次档案：以每个批次为单位维护 单价 / 总价 / 退库日期
     temp.editBatchMap={};
     batches.forEach(b=>{
-      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'' };
+      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'' };
     });
     const isSingle=batches.length<=1 && getItemTotalIn(item)<=1;
     if(isSingle && batches[0]){
@@ -1948,6 +1956,8 @@
       $('#iEditBatchTotalPrice').value='';
       $('#iEditBatchRetiredDate').value='';
       $('#iEditBatchRetiredDateText').textContent='请选择';
+      $('#iEditBatchWarrantyDate').value='';
+      $('#iEditBatchWarrantyDateText').textContent='请选择';
     }
     hideTabbar(true);
     showSubpage('edit');
@@ -1961,6 +1971,8 @@
     $('#iEditBatchTotalPrice').value=Number(m.totalPrice||0).toFixed(2);
     $('#iEditBatchRetiredDate').value=m.retiredDate||'';
     $('#iEditBatchRetiredDateText').textContent=m.retiredDate?formatDateDot(m.retiredDate):'请选择';
+    $('#iEditBatchWarrantyDate').value=m.warrantyDate||'';
+    $('#iEditBatchWarrantyDateText').textContent=m.warrantyDate?formatDateDot(m.warrantyDate):'请选择';
   }
   function openEditBatchArchiveModal(){
     if(!editTargetItem) return;
@@ -2017,6 +2029,9 @@
     $('#iEditBatchRetiredRow')?.addEventListener('click',()=>{
       openDatePicker('#iEditBatchRetiredDate', $('#iEditBatchRetiredDate').value||todayStr());
     });
+    $('#iEditBatchWarrantyRow')?.addEventListener('click',()=>{
+      openDatePicker('#iEditBatchWarrantyDate', $('#iEditBatchWarrantyDate').value||todayStr());
+    });
     $('#iEditRetiredBatchCancel')?.addEventListener('click',()=>closeModal('iEditRetiredBatchModal'));
     $('#iEditRetiredBatchConfirm')?.addEventListener('click',()=>{
       if(temp.editBatchPickId) fillEditBatchArchive(temp.editBatchPickId);
@@ -2059,6 +2074,7 @@
         b.unitPrice=Number(m.unitPrice)||0;
         b.totalPrice=Number(m.totalPrice)||0;
         b.retiredDate=m.retiredDate||'';
+        b.warrantyDate=m.warrantyDate||'';
       }
     });
     // 兼容字段：物品级 总价 = 各批次总价之和；均价 = 最新批次单价
@@ -2711,6 +2727,17 @@
             temp.editBatchMap[temp.editBatchSel].retiredDate=temp.dateValue;
           }
         }
+        // 编辑页「每批次档案 - 质保期」：写入当前选中批次的质保期
+        if(temp.dateTarget==='#iEditBatchWarrantyDate'){
+          const wtxt=$('#iEditBatchWarrantyDateText');
+          if(wtxt) wtxt.textContent=formatDateDot(temp.dateValue);
+          if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]){
+            temp.editBatchMap[temp.editBatchSel].warrantyDate=temp.dateValue;
+          }
+        }
+        // 有效期联动：生产日期改动后，按已维护的有效期时长重新计算有效期
+        if(temp.dateTarget==='#iProductionDate') recalcExpiryFromProduction('#iProductionDate', '#iExpiryDate');
+        if(temp.dateTarget==='#iBatchProductionDate') recalcExpiryFromProduction('#iBatchProductionDate', '#iBatchExpiryDate');
       }
     }
     closeModal('iDateModal');
@@ -2728,6 +2755,26 @@
     temp.expiryUnit=unit;
     $$('#iExpiryUnits button').forEach(b=>b.classList.toggle('active', b.dataset.unit===unit));
   }
+  // 有效期计算：基准日期（生产日期）+ 时长（天/月/年）→ YYYY-MM-DD
+  function computeExpiryDate(pd, v, unit){
+    if(!pd || !v) return '';
+    if(unit==='day'){
+      const d=parseDate(pd); d.setDate(d.getDate()+v);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }else if(unit==='month'){
+      return addMonthsSafe(pd, v);
+    }
+    return addYearsSafe(pd, v);
+  }
+  // 生产日期变更后：用已维护的有效期时长重算有效期（先选了 3 年、再改生产日期也要跟着变）
+  function recalcExpiryFromProduction(prodSel, expirySel){
+    const spec=(temp.expirySpec||{})[expirySel];
+    if(!spec || !spec.value) return;
+    const pd=$(prodSel).value;
+    if(!pd) return;
+    const res=computeExpiryDate(pd, spec.value, spec.unit);
+    if(res) $(expirySel).value=res;
+  }
   function confirmExpiryPicker(){
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
@@ -2737,15 +2784,10 @@
     else if(temp.dateTarget==='#iRestockExpiry') pd=$('#iRestockProductionDate').value;
     else pd=$('#iBatchProductionDate').value;
     if(!pd){ showToast('请先设置基准日期'); return; }
-    let res;
-    if(temp.expiryUnit==='day'){
-      const d=parseDate(pd); d.setDate(d.getDate()+v);
-      res=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    }else if(temp.expiryUnit==='month'){
-      res=addMonthsSafe(pd, v);
-    }else{
-      res=addYearsSafe(pd, v);
-    }
+    const res=computeExpiryDate(pd, v, temp.expiryUnit);
+    // 记住本次选择的时长，供之后修改生产日期时自动重算有效期
+    if(!temp.expirySpec) temp.expirySpec={};
+    temp.expirySpec[temp.dateTarget]={ value:v, unit:temp.expiryUnit };
     $(temp.dateTarget).value=res;
     // 补货入库弹窗的有效期为 span 展示，需同步 textContent 才能在界面看到计算后的日期
     if(temp.dateTarget==='#iRestockExpiry'){ $(temp.dateTarget).textContent=formatDateDot(res); }
