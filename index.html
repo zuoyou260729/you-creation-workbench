@@ -647,16 +647,29 @@
 
         <!-- 到期完整清单 -->
         <div class="i-subpage" id="i-subpage-expiring">
-          <div class="i-page-header">
+          <div class="i-page-header i-header-stacked">
             <button class="i-back" id="iExpiringBackBtn">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               返回
             </button>
             <h1>到期清单</h1>
-            <span></span>
           </div>
-          <div id="iExpiringSummary" style="font-size:14px;color:var(--i-text-sec);margin-bottom:14px">0 件即将到期 / 0 件已过期</div>
+          <div id="iExpiringSummary" class="i-expiring-summary">0 件即将到期 / 0 件已过期</div>
+          <div class="i-expiring-tip">点击入库批次可查看该批次物品档案</div>
           <div id="iExpiringList"></div>
+        </div>
+
+        <!-- 批次档案页（到期清单 → 点击入库批次进入） -->
+        <div class="i-subpage" id="i-subpage-batch">
+          <div class="i-page-header i-header-stacked">
+            <button class="i-back" id="iBatchArchiveBackBtn">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+              返回
+            </button>
+            <h1>物品档案</h1>
+          </div>
+          <div id="iBatchArchiveTitle" class="i-batch-archive-title"></div>
+          <div id="iBatchArchiveBody"></div>
         </div>
 
         <!-- 通用弹层：文本输入 -->

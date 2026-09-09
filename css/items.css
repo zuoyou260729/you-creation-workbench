@@ -2497,3 +2497,63 @@ button.i-action-pin.active {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ===== 到期清单页：统计行 + 提示小字（均居中）===== */
+.i-expiring-summary {
+  font-size: 14px;
+  color: var(--i-text-sec);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.i-expiring-tip {
+  font-size: 12px;
+  color: var(--i-text-ter);
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+/* ===== 到期清单卡片：物品名称 + 入库批次（竖向排列，可点击）===== */
+.i-exp-card {
+  background: var(--i-surface);
+  border: 1px solid var(--i-border-light);
+  border-radius: var(--i-radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.i-exp-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--i-text);
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+.i-exp-batches { display: flex; flex-direction: column; gap: 8px; }
+.i-exp-batch {
+  background: var(--i-bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 15px;
+  color: var(--i-primary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.i-exp-batch:active { opacity: .7; }
+
+/* ===== 批次档案页（到期清单 → 点击入库批次）===== */
+.i-batch-archive-title {
+  font-size: 13px;
+  color: var(--i-text-sec);
+  text-align: center;
+  margin-bottom: 14px;
+  padding: 0 16px;
+  word-break: break-all;
+}
+
+/* ===== 底部留白：避免最后一张卡片被底部标签栏 / 安装横幅遮挡 ===== */
+#i-subpage-overview,
+#i-subpage-expiring,
+#i-subpage-batch {
+  padding-bottom: calc(122px + env(safe-area-inset-bottom));
+}
