@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v42';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v43';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1716,6 +1716,8 @@
     $('#iRestockExpiry').textContent='请选择';
     $('#iRestockRetiredDate').textContent='请选择';
     temp.restockRetiredDate='';
+    $('#iRestockWarrantyDate').textContent='请选择';
+    temp.restockWarrantyDate='';
     $('#iRestockQty').value='';
     $('#iRestockUnitPrice').value='';
     $('#iRestockTotalPrice').value='';
@@ -1738,6 +1740,10 @@
     // 退库日期（选填）：点击弹出日期选择器，确定后由 confirmDatePicker 写入 temp.restockRetiredDate 并展示
     $('#iRestockRetiredDateRow')?.addEventListener('click',()=>{
       openDatePicker('#iRestockRetiredDate', temp.restockRetiredDate||todayStr());
+    });
+    // 质保期（选填）：与退库日期同款，确定后写入 temp.restockWarrantyDate 并展示
+    $('#iRestockWarrantyDateRow')?.addEventListener('click',()=>{
+      openDatePicker('#iRestockWarrantyDate', temp.restockWarrantyDate||todayStr());
     });
     // 总价 = 入库数量 × 单价，输入后自动计算；总价也可手动直接编辑
     const recalcRestockTotal=()=>{
@@ -1774,7 +1780,7 @@
       expiryDate: expiry,
       productionDate: temp.restockProdDate||'',
       retiredDate: temp.restockRetiredDate||'',
-      warrantyDate: '',
+      warrantyDate: temp.restockWarrantyDate||'',
       note: $('#iRestockNote').value.trim()||''
     });
     mergeSameDayBatches(item);
@@ -2718,6 +2724,11 @@
         if(temp.dateTarget==='#iRestockRetiredDate'){
           el.textContent=formatDateDot(temp.dateValue);
           temp.restockRetiredDate=temp.dateValue;
+        }
+        // 补货入库「质保期」：span 展示 + 写入临时变量
+        if(temp.dateTarget==='#iRestockWarrantyDate'){
+          el.textContent=formatDateDot(temp.dateValue);
+          temp.restockWarrantyDate=temp.dateValue;
         }
         // 编辑页「每批次档案 - 退库日期」：写入当前选中批次的退库日期
         if(temp.dateTarget==='#iEditBatchRetiredDate'){

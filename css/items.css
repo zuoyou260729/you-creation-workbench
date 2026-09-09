@@ -2476,3 +2476,26 @@ button.i-action-pin.active {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
+
+/* ===== 质保期：标签与选中后的内容都强制单行显示（字号可缩小，超长省略）===== */
+.i-date-row[data-target="#iWarrantyDate"] .i-label,
+.i-date-row[data-target="#iBatchWarrantyDate"] .i-label,
+#iRestockWarrantyDateRow .i-bs-label,
+#iEditBatchWarrantyRow .i-edit-row-label {
+  white-space: nowrap;
+  font-size: clamp(11px, 3vw, 13px);
+}
+.i-date-row[data-target="#iWarrantyDate"] .i-label-txt,
+.i-date-row[data-target="#iBatchWarrantyDate"] .i-label-txt {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 选中日期后展示的值：单行不换行（覆盖 .i-edit-readonly 的 overflow-wrap:anywhere） */
+#iRestockWarrantyDate,
+#iEditBatchWarrantyDateText,
+#iDetailBatchWarranty {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
