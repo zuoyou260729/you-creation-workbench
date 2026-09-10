@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v45';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v46';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1729,11 +1729,8 @@
       list.innerHTML=`<div class="i-empty"><p>暂无到期物品</p></div>`;
       return;
     }
+    // 只渲染卡片，点击事件由 #iExpiringList 上的事件委托统一处理（重渲染也不会丢绑定）
     list.innerHTML=entries.map(expiringCardHtml).join('');
-    // 点击入库批次 → 打开该批次的「物品档案」页
-    $$('.i-exp-batch', list).forEach(el=>{
-      el.addEventListener('click',()=>showBatchArchive(el.dataset.itemid, el.dataset.batchid));
-    });
   }
 
   /* ===== 批次档案页（到期清单点击入库批次进入） ===== */
@@ -1765,7 +1762,9 @@
     }
     const title=$('#iBatchArchiveTitle');
     if(title) title.textContent=`${item.name} · ${b.id}`;
-    $('#iBatchArchiveBody').innerHTML=`
+    const body=$('#iBatchArchiveBody');
+    if(!body) return;
+    body.innerHTML=`
       <div class="i-detail-section">
         <h2 class="i-detail-section-title">每批次档案</h2>
         <div class="i-detail-rows">
@@ -2985,6 +2984,12 @@
     $('#iCatBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     $('#iExpiringBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     $('#iBatchArchiveBackBtn')?.addEventListener('click',()=>showSubpage('expiring'));
+    // 到期清单：点击「入库批次」→ 打开该批次的物品档案页（事件委托，卡片重渲染后依然有效）
+    $('#iExpiringList')?.addEventListener('click', e=>{
+      const el=e.target.closest('.i-exp-batch');
+      if(!el) return;
+      showBatchArchive(el.dataset.itemid, el.dataset.batchid);
+    });
     $('#iDetailBack')?.addEventListener('click',()=>showSubpage('overview'));
 
     // add form tabs
