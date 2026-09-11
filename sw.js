@@ -7,7 +7,7 @@
    - data/：network-first（重连后自动拿到最新采集数据）
    - 图标等静态资源：cache-first（避免每次加载大量图片导致卡顿）
    ========================================== */
-const CACHE = 'you-workbench-v48';
+const CACHE = 'you-workbench-v49';
 
 // 需要「始终取最新」的文件后缀（命中即走 network-first）
 function isCodeFile(pathname){
