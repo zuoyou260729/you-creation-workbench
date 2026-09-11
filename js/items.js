@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v46';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v47';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';

@@ -1,8 +1,19 @@
 /* ==========================================
    服务 worker - 应用壳缓存 + 离线缓存 + 重连合并
-   版本升级后旧缓存自动清理；data/ 走 network-first 保证重连后拿到云端最新数据
+   版本升级后旧缓存自动清理。
+   缓存策略（重要）：
+   - 代码文件（HTML/JS/CSS/manifest）：network-first —— 联网时始终取最新版本，
+     离线才回退缓存。解决「已部署新版但手机一直显示旧版」的问题。
+   - data/：network-first（重连后自动拿到最新采集数据）
+   - 图标等静态资源：cache-first（避免每次加载大量图片导致卡顿）
    ========================================== */
-const CACHE = 'you-workbench-v46';
+const CACHE = 'you-workbench-v47';
+
+// 需要「始终取最新」的文件后缀（命中即走 network-first）
+function isCodeFile(pathname){
+  return pathname.endsWith('.html') || pathname.endsWith('.js') ||
+         pathname.endsWith('.css') || pathname.endsWith('.json');
+}
 
 // 安装时只缓存核心文件（HTML/CSS/JS/manifest/应用图标/data），
 // 物品分类图标改为按需缓存（首次访问时由 fetch 事件自动缓存），
@@ -54,8 +65,8 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // data/ 目录：network-first，离线时回退缓存（重连后自动拿最新）
-  if (url.pathname.includes('/data/')) {
+  // data/ 与 代码文件（HTML/JS/CSS/JSON）：network-first，离线时回退缓存
+  if (url.pathname.includes('/data/') || isCodeFile(url.pathname) || url.pathname.endsWith('/')) {
     event.respondWith(
       fetch(event.request).then(resp => {
         if (resp && resp.status === 200) {
