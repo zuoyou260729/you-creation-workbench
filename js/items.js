@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v47';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v48';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -876,16 +876,27 @@
     return out;
   }
   // 到期清单卡片：仅物品名称 + 符合条件的入库批次（竖向排列，可点击）
-  function expiringCardHtml(entry){
+  // 采用「内联 onclick + 数组下标」而非 addEventListener：不依赖绑定时机，
+  // 也不会因 id 匹配失败而静默 return（此前「点击无反应」的隐患点）。
+  let expiringEntries=[];
+  function expiringCardHtml(entry, idx){
     const { item, hits }=entry;
     return `
     <div class="i-exp-card">
       <div class="i-exp-name">${escapeHtml(item.name)}</div>
       <div class="i-exp-batches">
-        ${hits.map(h=>`<div class="i-exp-batch" data-itemid="${escapeHtml(item.id)}" data-batchid="${escapeHtml(h.batch.id)}">${escapeHtml(h.batch.id)}</div>`).join('')}
+        ${hits.map((h,j)=>`<div class="i-exp-batch" onclick="__openExpBatch(${idx},${j})">${escapeHtml(h.batch.id)}</div>`).join('')}
       </div>
     </div>`;
   }
+  // 全局入口：由卡片内联 onclick 调用，直接用下标取渲染时缓存的数据
+  window.__openExpBatch=function(i,j){
+    const e=expiringEntries[i];
+    if(!e){ showToast('列表已更新，请返回后重新进入'); return; }
+    const h=e.hits[j];
+    if(!h) return;
+    showBatchArchive(e.item, h.batch);
+  };
 
   /* ===== 渲染总览 ===== */
   function renderOverview(){
@@ -1729,16 +1740,14 @@
       list.innerHTML=`<div class="i-empty"><p>暂无到期物品</p></div>`;
       return;
     }
-    // 只渲染卡片，点击事件由 #iExpiringList 上的事件委托统一处理（重渲染也不会丢绑定）
-    list.innerHTML=entries.map(expiringCardHtml).join('');
+    // 缓存本次渲染的数据，卡片内联 onclick 按下标取用
+    expiringEntries=entries;
+    list.innerHTML=entries.map((e,i)=>expiringCardHtml(e,i)).join('');
   }
 
   /* ===== 批次档案页（到期清单点击入库批次进入） ===== */
-  function showBatchArchive(itemId, batchId){
-    const item=state.items.find(i=>i.id===itemId);
-    if(!item) return;
-    const b=getItemBatches(item).find(x=>x.id===batchId);
-    if(!b) return;
+  function showBatchArchive(item, b){
+    if(!item || !b) return;
     // 单个物品 = 单批次且总入库 ≤ 1（与全站判定一致）
     const isSingle=getItemBatches(item).length<=1 && getItemTotalIn(item)<=1;
     const path=getCategoryPath(item.categoryId);
@@ -2984,12 +2993,6 @@
     $('#iCatBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     $('#iExpiringBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     $('#iBatchArchiveBackBtn')?.addEventListener('click',()=>showSubpage('expiring'));
-    // 到期清单：点击「入库批次」→ 打开该批次的物品档案页（事件委托，卡片重渲染后依然有效）
-    $('#iExpiringList')?.addEventListener('click', e=>{
-      const el=e.target.closest('.i-exp-batch');
-      if(!el) return;
-      showBatchArchive(el.dataset.itemid, el.dataset.batchid);
-    });
     $('#iDetailBack')?.addEventListener('click',()=>showSubpage('overview'));
 
     // add form tabs
