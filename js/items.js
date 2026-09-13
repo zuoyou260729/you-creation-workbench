@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v49';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v50';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -2036,7 +2036,7 @@
     // 每批次档案：以每个批次为单位维护 单价 / 总价 / 退库日期
     temp.editBatchMap={};
     batches.forEach(b=>{
-      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'', expiryDate:b.expiryDate||'' };
+      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'', expiryDate:b.expiryDate||'', productionDate:b.productionDate||'' };
     });
     const isSingle=batches.length<=1 && getItemTotalIn(item)<=1;
     if(isSingle && batches[0]){
@@ -2052,6 +2052,8 @@
       $('#iEditBatchWarrantyDateText').textContent='请选择';
       $('#iEditBatchExpiryDate').value='';
       $('#iEditBatchExpiryDateText').textContent='请选择';
+      $('#iEditBatchProductionDate').value='';
+      $('#iEditBatchProductionDateText').textContent='请选择';
     }
     hideTabbar(true);
     showSubpage('edit');
@@ -2069,6 +2071,8 @@
     $('#iEditBatchWarrantyDateText').textContent=m.warrantyDate?formatDateDot(m.warrantyDate):'请选择';
     $('#iEditBatchExpiryDate').value=m.expiryDate||'';
     $('#iEditBatchExpiryDateText').textContent=m.expiryDate?formatDateDot(m.expiryDate):'请选择';
+    $('#iEditBatchProductionDate').value=m.productionDate||'';
+    $('#iEditBatchProductionDateText').textContent=m.productionDate?formatDateDot(m.productionDate):'请选择';
   }
   function openEditBatchArchiveModal(){
     if(!editTargetItem) return;
@@ -2128,6 +2132,11 @@
     $('#iEditBatchWarrantyRow')?.addEventListener('click',()=>{
       openDatePicker('#iEditBatchWarrantyDate', $('#iEditBatchWarrantyDate').value||todayStr());
     });
+    // 生产日期：与其他页面一致，点击调出日期选择器（基准默认今天）
+    $('#iEditBatchProductionRow')?.addEventListener('click',()=>{
+      if(!temp.editBatchSel){ showToast('请先选择批次'); return; }
+      openDatePicker('#iEditBatchProductionDate', $('#iEditBatchProductionDate').value||todayStr());
+    });
     // 有效期：与其他页面一致，点击调出有效期选择器（基准=所选批次的生产日期，回退物品/今天）
     $('#iEditBatchExpiryRow')?.addEventListener('click',()=>{
       if(!temp.editBatchSel){ showToast('请先选择批次'); return; }
@@ -2181,6 +2190,7 @@
         b.retiredDate=m.retiredDate||'';
         b.warrantyDate=m.warrantyDate||'';
         b.expiryDate=m.expiryDate||'';
+        b.productionDate=m.productionDate||'';
       }
     });
     // 兼容字段：物品级 总价 = 各批次总价之和；均价 = 最新批次单价
@@ -2844,6 +2854,24 @@
           if(wtxt) wtxt.textContent=formatDateDot(temp.dateValue);
           if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]){
             temp.editBatchMap[temp.editBatchSel].warrantyDate=temp.dateValue;
+          }
+        }
+        // 编辑页「每批次档案 - 生产日期」：写入当前选中批次的生产日期；
+        // 若已维护有效期时长，则按新生产日期重算有效期（与其它页面逻辑一致）
+        if(temp.dateTarget==='#iEditBatchProductionDate'){
+          const ptxt=$('#iEditBatchProductionDateText');
+          if(ptxt) ptxt.textContent=formatDateDot(temp.dateValue);
+          if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]){
+            temp.editBatchMap[temp.editBatchSel].productionDate=temp.dateValue;
+          }
+          const spec=(temp.expirySpec||{})['#iEditBatchExpiryDate'];
+          if(spec && spec.value){
+            const res=computeExpiryDate(temp.dateValue, spec.value, spec.unit);
+            if(res){
+              $('#iEditBatchExpiryDate').value=res;
+              $('#iEditBatchExpiryDateText').textContent=formatDateDot(res);
+              if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]) temp.editBatchMap[temp.editBatchSel].expiryDate=res;
+            }
           }
         }
         // 有效期联动：生产日期改动后，按已维护的有效期时长重新计算有效期
