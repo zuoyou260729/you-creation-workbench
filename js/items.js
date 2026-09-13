@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v52';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v53';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -2036,7 +2036,7 @@
     // 每批次档案：以每个批次为单位维护 单价 / 总价 / 退库日期
     temp.editBatchMap={};
     batches.forEach(b=>{
-      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'', expiryDate:b.expiryDate||'', productionDate:b.productionDate||'' };
+      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'', expiryDate:b.expiryDate||'', productionDate:b.productionDate||'', expiryValue:(b.expiryValue!=null?b.expiryValue:''), expiryUnit:b.expiryUnit||'' };
     });
     const isSingle=batches.length<=1 && getItemTotalIn(item)<=1;
     if(isSingle && batches[0]){
@@ -2142,7 +2142,9 @@
       if(!temp.editBatchSel){ showToast('请先选择批次'); return; }
       const item=editTargetItem;
       const b=getItemBatches(item).find(x=>x.id===temp.editBatchSel);
-      const pd=(b&&b.productionDate)||(item&&item.productionDate)||todayStr();
+      // 基准优先取编辑页当前(可能已被修改)的生产日期，其次批次/物品的生产日期，最后今天
+      const m=temp.editBatchMap[temp.editBatchSel];
+      const pd=(m&&m.productionDate)||(b&&b.productionDate)||(item&&item.productionDate)||todayStr();
       temp.editBatchExpiryProd=pd;
       openExpiryPicker('#iEditBatchExpiryDate', pd);
     });
@@ -2191,6 +2193,7 @@
         b.warrantyDate=m.warrantyDate||'';
         b.expiryDate=m.expiryDate||'';
         b.productionDate=m.productionDate||'';
+        if(m.expiryValue!=null && m.expiryValue!==''){ b.expiryValue=Number(m.expiryValue); b.expiryUnit=m.expiryUnit||'day'; }
       }
     });
     // 兼容字段：物品级 总价 = 各批次总价之和；均价 = 最新批次单价
@@ -2857,20 +2860,42 @@
           }
         }
         // 编辑页「每批次档案 - 生产日期」：写入当前选中批次的生产日期；
-        // 若已维护有效期时长，则按新生产日期重算有效期（与其它页面逻辑一致）
+        // 生产日期一旦修改，有效期同步重算（与其它页面「生产日期→有效期」联动逻辑一致）：
+        //   ① 本次已选过有效期时长 → 用「新生产日期 + 该时长」重算；
+        //   ② 未选过 → 沿用原「生产日期→有效期」的间隔(天)平移到新生产日期。
         if(temp.dateTarget==='#iEditBatchProductionDate'){
+          const newProd=temp.dateValue;
           const ptxt=$('#iEditBatchProductionDateText');
-          if(ptxt) ptxt.textContent=formatDateDot(temp.dateValue);
-          if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]){
-            temp.editBatchMap[temp.editBatchSel].productionDate=temp.dateValue;
-          }
-          const spec=(temp.expirySpec||{})['#iEditBatchExpiryDate'];
-          if(spec && spec.value){
-            const res=computeExpiryDate(temp.dateValue, spec.value, spec.unit);
+          if(ptxt) ptxt.textContent=formatDateDot(newProd);
+          const bsel=temp.editBatchSel;
+          const bm=bsel?(temp.editBatchMap[bsel]||null):null;
+          if(bm){
+            const oldProd=bm.productionDate||(editTargetItem&&editTargetItem.productionDate)||'';
+            const oldExp=bm.expiryDate||'';
+            bm.productionDate=newProd;
+            // 有效期时长：优先本次选择，其次该批次已保存的时长(单位精确)，最后按天间隔平移
+            let spec=(temp.expirySpec||{})['#iEditBatchExpiryDate'];
+            if((!spec || !spec.value) && bm.expiryValue){
+              spec={ value:Number(bm.expiryValue), unit:bm.expiryUnit||'day' };
+            }
+            let res='';
+            if(spec && spec.value){
+              res=computeExpiryDate(newProd, spec.value, spec.unit);
+            }else if(oldExp && oldProd){
+              const days=daysDiff(oldProd, oldExp);
+              if(days>0){
+                const d=parseDate(newProd);
+                d.setDate(d.getDate()+days);
+                res=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+              }
+            }
             if(res){
-              $('#iEditBatchExpiryDate').value=res;
-              $('#iEditBatchExpiryDateText').textContent=formatDateDot(res);
-              if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]) temp.editBatchMap[temp.editBatchSel].expiryDate=res;
+              bm.expiryDate=res;
+              temp.editBatchExpiryProd=newProd;
+              const eInput=$('#iEditBatchExpiryDate');
+              const eText=$('#iEditBatchExpiryDateText');
+              if(eInput) eInput.value=res;
+              if(eText) eText.textContent=formatDateDot(res);
             }
           }
         }
@@ -2934,7 +2959,12 @@
     // 编辑页每批次档案：有效期用隐藏 input 存值，需同步展示文字并写回临时批次映射
     if(temp.dateTarget==='#iEditBatchExpiryDate'){
       $('#iEditBatchExpiryDateText').textContent=formatDateDot(res);
-      if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]) temp.editBatchMap[temp.editBatchSel].expiryDate=res;
+      if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]){
+        temp.editBatchMap[temp.editBatchSel].expiryDate=res;
+        // 记住时长(含单位)，供之后修改生产日期时精确重算
+        temp.editBatchMap[temp.editBatchSel].expiryValue=v;
+        temp.editBatchMap[temp.editBatchSel].expiryUnit=temp.expiryUnit;
+      }
     }
     closeModal('iExpiryModal');
   }
