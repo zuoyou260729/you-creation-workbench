@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v51';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v52';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -3039,7 +3039,7 @@
     $('#iAddItemFab')?.addEventListener('click',()=>openAddItem('single'));
     $('#iExpiringMore')?.addEventListener('click',()=>showSubpage('expiring'));
     $('#iCatBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
-    $('#iExpiringBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
+    // 到期清单页的「返回」按钮已按要求删除（通过左侧导航/底部栏返回）
     $('#iBatchArchiveBackBtn')?.addEventListener('click',()=>showSubpage('expiring'));
     $('#iDetailBack')?.addEventListener('click',()=>showSubpage('overview'));
 

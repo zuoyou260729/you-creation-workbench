@@ -290,8 +290,7 @@ button {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  /* 顶部预留状态栏/刘海安全区：全屏(standalone) PWA 下避免子页返回按钮被状态栏遮挡 */
-  padding: calc(20px + env(safe-area-inset-top)) 16px 40px;
+  padding: 20px 16px 40px;
 }
 
 @media (min-width: 768px) {
