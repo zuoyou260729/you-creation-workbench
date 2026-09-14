@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v53';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v54';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -48,7 +48,7 @@
   ];
 
   const SYSTEM_SECONDARY = {
-    sys_digital: ['手机','笔记本电脑','台式电脑','平板电脑','相机','镜头','无人机','NAS','路由器','键盘','鼠标','显示器','打印机','音箱','耳机','智能手表','游戏机','投影仪','电子书','充电宝','硬盘','固态硬盘','U盘','存储卡','CPU','显卡','主板','内存','散热器','风扇','电源','机箱','音频设备','智能眼镜','加湿器'],
+    sys_digital: ['手机','笔记本电脑','台式电脑','平板电脑','相机','镜头','无人机','NAS','路由器','键盘','鼠标','显示器','打印机','音箱','耳机','健身手环','游戏机','投影仪','电子书','充电宝','硬盘','固态硬盘','U盘','存储卡','CPU','显卡','主板','内存条','散热器','风扇','电源','机箱','音频设备','智能眼镜','加湿器','充电器','数据线','扩展坞','其他'],
     sys_clothing: ['T恤','衬衫','毛衣','卫衣','外套','羽绒服','西装','裤子','牛仔裤','半身裙','连衣裙','内衣','袜子','运动鞋','靴子','拖鞋','雨鞋','双肩包','手提包','钱包','帽子','围巾','手套','皮带','其他'],
     sys_beauty: ['洁面','爽肤水','精华','乳液','面霜','防晒','面膜','眼霜','彩妆','香水','剃须刀','洗发护发','身体护理','女性护理','口腔健康','时尚配饰','其他'],
     sys_appliance: ['冰箱','洗衣机','烘干机','空调','电视','热水器','油烟机','洗碗机','微波炉','电磁炉','烤箱','电饭煲','空气炸锅','咖啡机','破壁机','吸尘器','扫地机器人','空气净化器','加湿器','电风扇','吹风机','洗地机','其他'],
@@ -168,7 +168,7 @@
     'sys_digital:U盘':'assets/items/icons/sys_digital_U盘.png',
     'sys_digital:主板':'assets/items/icons/sys_digital_主板.png',
     'sys_digital:充电宝':'assets/items/icons/sys_digital_充电宝.png',
-    'sys_digital:内存':'assets/items/icons/sys_digital_内存.png',
+    'sys_digital:内存条':'assets/items/icons/sys_digital_内存条.png',
     'sys_digital:加湿器':'assets/items/icons/sys_digital_加湿器.png',
     'sys_digital:台式电脑':'assets/items/icons/sys_digital_台式电脑.png',
     'sys_digital:固态硬盘':'assets/items/icons/sys_digital_固态硬盘.png',
@@ -181,7 +181,7 @@
     'sys_digital:无人机':'assets/items/icons/sys_digital_无人机.png',
     'sys_digital:显卡':'assets/items/icons/sys_digital_显卡.png',
     'sys_digital:显示器':'assets/items/icons/sys_digital_显示器.png',
-    'sys_digital:智能手表':'assets/items/icons/sys_digital_智能手表.png',
+    'sys_digital:健身手环':'assets/items/icons/sys_digital_健身手环.png',
     'sys_digital:智能眼镜':'assets/items/icons/sys_digital_智能眼镜.png',
     'sys_digital:机箱':'assets/items/icons/sys_digital_机箱.png',
     'sys_digital:游戏机':'assets/items/icons/sys_digital_游戏机.png',
@@ -198,6 +198,10 @@
     'sys_digital:音频设备':'assets/items/icons/sys_digital_音频设备.png',
     'sys_digital:风扇':'assets/items/icons/sys_digital_风扇.png',
     'sys_digital:鼠标':'assets/items/icons/sys_digital_鼠标.png',
+    'sys_digital:充电器':'assets/items/icons/sys_digital_充电器.png',
+    'sys_digital:数据线':'assets/items/icons/sys_digital_数据线.png',
+    'sys_digital:扩展坞':'assets/items/icons/sys_digital_扩展坞.png',
+    'sys_digital:其他':'assets/items/icons/sys_digital_其他.png',
     'sys_hardware:其他':'assets/items/icons/sys_hardware_其他.png',
     'sys_hardware:地板':'assets/items/icons/sys_hardware_地板.png',
     'sys_hardware:墙纸':'assets/items/icons/sys_hardware_墙纸.png',
@@ -654,7 +658,7 @@
   }
   function emojiFor(name){
     const map={
-      '手机':'📱','笔记本电脑':'💻','台式电脑':'🖥','平板电脑':'📱','相机':'📷','镜头':'🔍','无人机':'🚁','NAS':'💾','路由器':'📡','键盘':'⌨','鼠标':'🖱','显示器':'🖥','打印机':'🖨','音箱':'🔊','耳机':'🎧','智能手表':'⌚','游戏机':'🎮','投影仪':'📽','电子书':'📖','充电宝':'🔋','硬盘':'💾','固态硬盘':'💾','U盘':'💾','存储卡':'💾','CPU':'🧠','显卡':'🎮','主板':'🔌','内存':'🧩','散热器':'🌀','风扇':'🌀','电源':'🔌','机箱':'🖥','音频设备':'🎙','智能眼镜':'👓','加湿器':'💧',
+      '手机':'📱','笔记本电脑':'💻','台式电脑':'🖥','平板电脑':'📱','相机':'📷','镜头':'🔍','无人机':'🚁','NAS':'💾','路由器':'📡','键盘':'⌨','鼠标':'🖱','显示器':'🖥','打印机':'🖨','音箱':'🔊','耳机':'🎧','游戏机':'🎮','投影仪':'📽','电子书':'📖','充电宝':'🔋','硬盘':'💾','固态硬盘':'💾','U盘':'💾','存储卡':'💾','CPU':'🧠','显卡':'🎮','主板':'🔌','散热器':'🌀','风扇':'🌀','电源':'🔌','机箱':'🖥','音频设备':'🎙','智能眼镜':'👓','加湿器':'💧','充电器':'🔌','数据线':'🔗','扩展坞':'🔌','健身手环':'⌚','内存条':'🧩',
       'T恤':'👕','衬衫':'👔','毛衣':'🧶','卫衣':'🧥','外套':'🧥','羽绒服':'🧥','西装':'🤵','裤子':'👖','牛仔裤':'👖','半身裙':'👗','连衣裙':'👗','内衣':'👙','袜子':'🧦','运动鞋':'👟','靴子':'🥾','拖鞋':'🩴','雨鞋':'🌂','双肩包':'🎒','手提包':'👜','钱包':'👛','帽子':'🧢','围巾':'🧣','手套':'🧤','皮带':'🪢','其他':'📦',
       '洁面':'🧴','爽肤水':'🧴','精华':'🧴','乳液':'🧴','面霜':'🧴','防晒':'☀','面膜':'🧖','眼霜':'👁','彩妆':'💄','香水':'🌸','剃须刀':'🪒','洗发护发':'🧴','身体护理':'🧴','女性护理':'🩸','口腔健康':'🦷','时尚配饰':'💍',
       '冰箱':'🧊','洗衣机':'🧺','烘干机':'🌀','空调':'❄','电视':'📺','热水器':'🔥','油烟机':'🌪','洗碗机':'🍽','微波炉':'📟','电磁炉':'🔥','烤箱':'🔥','电饭煲':'🍚','空气炸锅':'🍟','咖啡机':'☕','破壁机':'🥤','吸尘器':'🧹','扫地机器人':'🤖','空气净化器':'🌬','加湿器':'💧','电风扇':'🌀','吹风机':'💨','洗地机':'🧽',
