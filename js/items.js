@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v58';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v59';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -49,7 +49,7 @@
 
   const SYSTEM_SECONDARY = {
     sys_digital: ['手机','笔记本电脑','台式电脑','平板电脑','相机','镜头','无人机','NAS','路由器','键盘','鼠标','显示器','打印机','音箱','耳机','健身手环','游戏机','投影仪','电子书','充电宝','硬盘','固态硬盘','U盘','存储卡','CPU','显卡','主板','内存条','散热器','风扇','电源','机箱','音频设备','智能眼镜',null,'充电器','数据线','扩展坞','其他'],
-    sys_clothing: ['T恤','衬衫','毛衣','卫衣','外套','羽绒服','西装','裤子','牛仔裤','半身裙','连衣裙','内衣','袜子','运动鞋','靴子','拖鞋','双肩包','手提包','钱包','帽子','围巾','手套','皮带','其他'],
+    sys_clothing: [null,'衬衫','毛衣','卫衣','外套','羽绒服','西装','裤子',null,'半身裙','连衣裙','内衣','袜子','运动鞋','靴子','拖鞋','双肩包','手提包','钱包','帽子','围巾','手套','腰带','其他','半袖','长袖','短裤','高跟鞋','皮鞋','领带','睡衣','眼镜墨镜'], // 下标0=T恤、下标8=牛仔裤 已删除(null占位，保持其余下标不变)
     sys_beauty: ['洁面','爽肤水','精华','乳液','面霜','防晒','面膜','眼霜','彩妆','香水','剃须刀','洗发护发','身体护理','女性护理','口腔健康','时尚配饰','其他'],
     sys_appliance: ['冰箱','洗衣机','烘干机','空调','电视','热水器','油烟机','洗碗机','微波炉','电磁炉','烤箱','电饭煲','空气炸锅','咖啡机','破壁机','吸尘器','扫地机器人','空气净化器','加湿器','电风扇','吹风机','洗地机','其他','电动打蛋器','绞肉机','搅面机','烤面包机'],
     sys_home: ['沙发','床','床垫','桌子','椅子','柜子','收纳','衣架','雨伞','厨具','餐具','清洁用品','洗衣用品','茶几','灯具','家纺','其他','地毯','洗护用品','四件套','坐垫靠垫'],
@@ -133,20 +133,18 @@
     'sys_beauty:面膜':'assets/items/icons/sys_beauty_面膜.png',
     'sys_beauty:面霜':'assets/items/icons/sys_beauty_面霜.png',
     'sys_beauty:香水':'assets/items/icons/sys_beauty_香水.png',
-    'sys_clothing:T恤':'assets/items/icons/sys_clothing_T恤.png',
     'sys_clothing:内衣':'assets/items/icons/sys_clothing_内衣.png',
     'sys_clothing:半身裙':'assets/items/icons/sys_clothing_半身裙.png',
     'sys_clothing:卫衣':'assets/items/icons/sys_clothing_卫衣.png',
     'sys_clothing:双肩包':'assets/items/icons/sys_clothing_雨鞋.png',
-    'sys_clothing:围巾':'assets/items/icons/sys_clothing_帽子.png',
+    'sys_clothing:围巾':'assets/items/icons/sys_clothing_围巾.png',
     'sys_clothing:外套':'assets/items/icons/sys_clothing_外套.png',
-    'sys_clothing:帽子':'assets/items/icons/sys_clothing_钱包.png',
-    'sys_clothing:手套':'assets/items/icons/sys_clothing_围巾.png',
+    'sys_clothing:帽子':'assets/items/icons/sys_clothing_帽子.png',
+    'sys_clothing:手套':'assets/items/icons/sys_clothing_手套.png',
     'sys_clothing:手提包':'assets/items/icons/sys_clothing_双肩包.png',
     'sys_clothing:拖鞋':'assets/items/icons/sys_clothing_拖鞋.png',
     'sys_clothing:毛衣':'assets/items/icons/sys_clothing_毛衣.png',
-    'sys_clothing:牛仔裤':'assets/items/icons/sys_clothing_牛仔裤.png',
-    'sys_clothing:皮带':'assets/items/icons/sys_clothing_手套.png',
+    'sys_clothing:腰带':'assets/items/icons/sys_clothing_腰带.png',
     'sys_clothing:羽绒服':'assets/items/icons/sys_clothing_羽绒服.png',
     'sys_clothing:衬衫':'assets/items/icons/sys_clothing_衬衫.png',
     'sys_clothing:袜子':'assets/items/icons/sys_clothing_袜子.png',
@@ -158,6 +156,14 @@
     'sys_clothing:雨鞋':'assets/items/icons/sys_clothing_雨鞋.png',
     'sys_clothing:其他':'assets/items/icons/sys_clothing_皮带.png',
     'sys_clothing:靴子':'assets/items/icons/sys_clothing_靴子.png',
+    'sys_clothing:半袖':'assets/items/icons/sys_clothing_半袖.png',
+    'sys_clothing:长袖':'assets/items/icons/sys_clothing_长袖.png',
+    'sys_clothing:短裤':'assets/items/icons/sys_clothing_短裤.png',
+    'sys_clothing:高跟鞋':'assets/items/icons/sys_clothing_高跟鞋.png',
+    'sys_clothing:皮鞋':'assets/items/icons/sys_clothing_皮鞋.png',
+    'sys_clothing:领带':'assets/items/icons/sys_clothing_领带.png',
+    'sys_clothing:睡衣':'assets/items/icons/sys_clothing_睡衣.png',
+    'sys_clothing:眼镜墨镜':'assets/items/icons/sys_clothing_眼镜墨镜.png',
     'sys_collection:乐器':'assets/items/icons/sys_collection_乐器.png',
     'sys_collection:其他':'assets/items/icons/sys_collection_其他.png',
     'sys_collection:卡牌':'assets/items/icons/sys_collection_卡牌.png',
@@ -673,7 +679,7 @@
   function emojiFor(name){
     const map={
       '手机':'📱','笔记本电脑':'💻','台式电脑':'🖥','平板电脑':'📱','相机':'📷','镜头':'🔍','无人机':'🚁','NAS':'💾','路由器':'📡','键盘':'⌨','鼠标':'🖱','显示器':'🖥','打印机':'🖨','音箱':'🔊','耳机':'🎧','游戏机':'🎮','投影仪':'📽','电子书':'📖','充电宝':'🔋','硬盘':'💾','固态硬盘':'💾','U盘':'💾','存储卡':'💾','CPU':'🧠','显卡':'🎮','主板':'🔌','散热器':'🌀','风扇':'🌀','电源':'🔌','机箱':'🖥','音频设备':'🎙','智能眼镜':'👓','加湿器':'💧','充电器':'🔌','数据线':'🔗','扩展坞':'🔌','健身手环':'⌚','内存条':'🧩',
-      'T恤':'👕','衬衫':'👔','毛衣':'🧶','卫衣':'🧥','外套':'🧥','羽绒服':'🧥','西装':'🤵','裤子':'👖','牛仔裤':'👖','半身裙':'👗','连衣裙':'👗','内衣':'👙','袜子':'🧦','运动鞋':'👟','靴子':'🥾','拖鞋':'🩴','雨鞋':'🌂','双肩包':'🎒','手提包':'👜','钱包':'👛','帽子':'🧢','围巾':'🧣','手套':'🧤','皮带':'🪢','其他':'📦',
+      '衬衫':'👔','毛衣':'🧶','卫衣':'🧥','外套':'🧥','羽绒服':'🧥','西装':'🤵','裤子':'👖','半身裙':'👗','连衣裙':'👗','内衣':'👙','袜子':'🧦','运动鞋':'👟','靴子':'🥾','拖鞋':'🩴','雨鞋':'🌂','双肩包':'🎒','手提包':'👜','钱包':'👛','帽子':'🧢','围巾':'🧣','手套':'🧤','腰带':'🪢','半袖':'👕','长袖':'🥼','短裤':'🩳','高跟鞋':'👠','皮鞋':'👞','领带':'👔','睡衣':'🛌','眼镜墨镜':'🕶','其他':'📦',
       '洁面':'🧴','爽肤水':'🧴','精华':'🧴','乳液':'🧴','面霜':'🧴','防晒':'☀','面膜':'🧖','眼霜':'👁','彩妆':'💄','香水':'🌸','剃须刀':'🪒','洗发护发':'🧴','身体护理':'🧴','女性护理':'🩸','口腔健康':'🦷','时尚配饰':'💍',
       '冰箱':'🧊','洗衣机':'🧺','烘干机':'🌀','空调':'❄','电视':'📺','热水器':'🔥','油烟机':'🌪','洗碗机':'🍽','微波炉':'📟','电磁炉':'🔥','烤箱':'🔥','电饭煲':'🍚','空气炸锅':'🍟','咖啡机':'☕','破壁机':'🥤','吸尘器':'🧹','扫地机器人':'🤖','空气净化器':'🌬','加湿器':'💧','电风扇':'🌀','吹风机':'💨','洗地机':'🧽','电动打蛋器':'🥚','绞肉机':'🥩','搅面机':'🥣','烤面包机':'🍞',
       '沙发':'🛋','床':'🛏','床垫':'🛏','桌子':'🪑','椅子':'🪑','柜子':'🗄','收纳':'📦','衣架':'👔','雨伞':'☂','厨具':'🍳','餐具':'🍽','清洁用品':'🧽','洗衣用品':'🧺','茶几':'🪑','灯具':'💡','家纺':'🛏','地毯':'🟫','四件套':'🛌','坐垫靠垫':'🛋',
