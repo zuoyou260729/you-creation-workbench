@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v63';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v64';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -57,7 +57,7 @@
     sys_outdoor: ['帐篷',null,'睡袋垫子','徒步登山','电器照明','钓鱼用品','球类用品','健身用品','滑雪用品','游泳用品','攀岩用品','救生用品','其他','露营用品','骑行用品','冰上运动','极限运动'],
     sys_baby: ['婴儿车','安全座椅','婴儿床','奶瓶','奶粉','纸尿裤','纸巾湿巾','童装','童鞋','玩具','绘本','孕妇用品','其他','儿童补剂','儿童餐具','平衡车','辅食'],
     sys_transport: ['自行车','电动车','摩托车','头盔','行李箱',null,null,'其他','便携用品','汽车'],
-    sys_medical: ['药品','急救用品','体温计','血压计','血糖仪','体重秤','按摩器械','眼镜','隐形眼镜','助听器','医学美容','手术治疗','其他'],
+    sys_medical: ['药品','急救用品','温度计','血压计','血糖仪','体重秤','按摩器械',null,null,'助听器','美容','手术','其他'],
     sys_collection: ['手办','卡牌','邮票','纪念币','徽章','模型','乐器','唱片','艺术品','其他'],
     sys_pet: ['宠物粮','食盆','猫砂','宠物包','牵引绳','宠物玩具','洗护用品','宠物窝','宠物服饰','其他'],
     sys_hardware: ['油漆','墙纸','瓷砖','地板','水龙头','花洒','马桶','水槽','开关插座','门锁','家装工具','其他'],
@@ -250,19 +250,17 @@
     'sys_home:衣架':'assets/items/icons/sys_home_衣架.png',
     'sys_home:雨伞':'assets/items/icons/sys_home_雨伞.png',
     'sys_home:餐具':'assets/items/icons/sys_home_餐具.png',
-    'sys_medical:体温计':'assets/items/icons/sys_medical_体温计.png',
+    'sys_medical:温度计':'assets/items/icons/sys_medical_温度计.png',
     'sys_medical:体重秤':'assets/items/icons/sys_medical_体重秤.png',
     'sys_medical:其他':'assets/items/icons/sys_medical_其他.png',
     'sys_medical:助听器':'assets/items/icons/sys_medical_助听器.png',
-    'sys_medical:医学美容':'assets/items/icons/sys_medical_医学美容.png',
+    'sys_medical:美容':'assets/items/icons/sys_medical_美容.png',
     'sys_medical:急救用品':'assets/items/icons/sys_medical_急救用品.png',
-    'sys_medical:手术治疗':'assets/items/icons/sys_medical_手术治疗.png',
+    'sys_medical:手术':'assets/items/icons/sys_medical_手术.png',
     'sys_medical:按摩器械':'assets/items/icons/sys_medical_按摩器械.png',
-    'sys_medical:眼镜':'assets/items/icons/sys_medical_眼镜.png',
     'sys_medical:药品':'assets/items/icons/sys_medical_药品.png',
     'sys_medical:血压计':'assets/items/icons/sys_medical_血压计.png',
     'sys_medical:血糖仪':'assets/items/icons/sys_medical_血糖仪.png',
-    'sys_medical:隐形眼镜':'assets/items/icons/sys_medical_隐形眼镜.png',
     'sys_office:书写用品':'assets/items/icons/sys_office_书写用品.png',
     'sys_office:书籍':'assets/items/icons/sys_office_书.png',
     'sys_office:其他':'assets/items/icons/sys_office_其他.png',
@@ -696,7 +694,7 @@
       '帐篷':'⛺','睡袋垫子':'🛌','徒步登山':'🥾','电器照明':'🔦','钓鱼用品':'🎣','球类用品':'🏸','健身用品':'🏋','滑雪用品':'🎿','游泳用品':'🏊','攀岩用品':'🧗','救生用品':'🛟','露营用品':'🏕','骑行用品':'🚲','冰上运动':'⛸','极限运动':'🪂',
       '婴儿车':'🍼','安全座椅':'💺','婴儿床':'🛏','奶瓶':'🍼','奶粉':'🥛','纸尿裤':'🧷','纸巾湿巾':'🧻','童装':'👶','童鞋':'👟','玩具':'🧸','绘本':'📖','孕妇用品':'🤰','儿童补剂':'💊','儿童餐具':'🥣','平衡车':'🛴','辅食':'🍲',
       '自行车':'🚲','电动车':'🛵','摩托车':'🏍','头盔':'⛑','行李箱':'🧳','便携用品':'🎒','汽车':'🚗',
-      '药品':'💊','急救用品':'🩹','体温计':'🌡','血压计':'🩺','血糖仪':'🩸','体重秤':'⚖','按摩器械':'💆','眼镜':'👓','隐形眼镜':'👁','助听器':'🦻','医学美容':'💉','手术治疗':'🏥',
+      '药品':'💊','急救用品':'🩹','温度计':'🌡','血压计':'🩺','血糖仪':'🩸','体重秤':'⚖','按摩器械':'💆','助听器':'🦻','美容':'💉','手术':'🏥',
       '手办':'🧸','卡牌':'🃏','邮票':'💌','纪念币':'🪙','徽章':'🏅','模型':'🎁','乐器':'🎸','唱片':'💿','艺术品':'🖼',
       '宠物粮':'🍖','食盆':'🥣','猫砂':'🧹','宠物包':'🎒','牵引绳':'🦮','宠物玩具':'🎾','洗护用品':'🧴','宠物窝':'🏠','宠物服饰':'🎀',
       '油漆':'🎨','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧',
