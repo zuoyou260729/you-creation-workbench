@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v64';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v65';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -58,7 +58,7 @@
     sys_baby: ['婴儿车','安全座椅','婴儿床','奶瓶','奶粉','纸尿裤','纸巾湿巾','童装','童鞋','玩具','绘本','孕妇用品','其他','儿童补剂','儿童餐具','平衡车','辅食'],
     sys_transport: ['自行车','电动车','摩托车','头盔','行李箱',null,null,'其他','便携用品','汽车'],
     sys_medical: ['药品','急救用品','温度计','血压计','血糖仪','体重秤','按摩器械',null,null,'助听器','美容','手术','其他'],
-    sys_collection: ['手办','卡牌','邮票','纪念币','徽章','模型','乐器','唱片','艺术品','其他'],
+    sys_collection: ['手办盲盒','卡牌','邮票','纪念币','吧唧','微缩模型',null,'唱片','艺术品','其他','棉花娃娃','娃衣','冰箱贴'],
     sys_pet: ['宠物粮','食盆','猫砂','宠物包','牵引绳','宠物玩具','洗护用品','宠物窝','宠物服饰','其他'],
     sys_hardware: ['油漆','墙纸','瓷砖','地板','水龙头','花洒','马桶','水槽','开关插座','门锁','家装工具','其他'],
     sys_vehicle: ['行车记录仪','车载支架','车载充电器','车载吸尘器','车载香薰','座套','脚垫','轮胎','机油','雨刮器','电瓶','洗车用品','其他'],
@@ -168,16 +168,18 @@
     'sys_clothing:领带':'assets/items/icons/sys_clothing_领带.png',
     'sys_clothing:睡衣':'assets/items/icons/sys_clothing_睡衣.png',
     'sys_clothing:眼镜墨镜':'assets/items/icons/sys_clothing_眼镜墨镜.png',
-    'sys_collection:乐器':'assets/items/icons/sys_collection_乐器.png',
     'sys_collection:其他':'assets/items/icons/sys_collection_其他.png',
     'sys_collection:卡牌':'assets/items/icons/sys_collection_卡牌.png',
     'sys_collection:唱片':'assets/items/icons/sys_collection_唱片.png',
-    'sys_collection:徽章':'assets/items/icons/sys_collection_徽章.png',
-    'sys_collection:手办':'assets/items/icons/sys_collection_手办.png',
-    'sys_collection:模型':'assets/items/icons/sys_collection_模型.png',
+    'sys_collection:吧唧':'assets/items/icons/sys_collection_吧唧.png',
+    'sys_collection:手办盲盒':'assets/items/icons/sys_collection_手办盲盒.png',
+    'sys_collection:微缩模型':'assets/items/icons/sys_collection_微缩模型.png',
     'sys_collection:纪念币':'assets/items/icons/sys_collection_纪念币.png',
     'sys_collection:艺术品':'assets/items/icons/sys_collection_艺术品.png',
     'sys_collection:邮票':'assets/items/icons/sys_collection_邮票.png',
+    'sys_collection:棉花娃娃':'assets/items/icons/sys_collection_棉花娃娃.png',
+    'sys_collection:娃衣':'assets/items/icons/sys_collection_娃衣.png',
+    'sys_collection:冰箱贴':'assets/items/icons/sys_collection_冰箱贴.png',
     'sys_digital:CPU':'assets/items/icons/sys_digital_CPU.png',
     'sys_digital:NAS':'assets/items/icons/sys_digital_NAS.png',
     'sys_digital:U盘':'assets/items/icons/sys_digital_U盘.png',
@@ -695,7 +697,7 @@
       '婴儿车':'🍼','安全座椅':'💺','婴儿床':'🛏','奶瓶':'🍼','奶粉':'🥛','纸尿裤':'🧷','纸巾湿巾':'🧻','童装':'👶','童鞋':'👟','玩具':'🧸','绘本':'📖','孕妇用品':'🤰','儿童补剂':'💊','儿童餐具':'🥣','平衡车':'🛴','辅食':'🍲',
       '自行车':'🚲','电动车':'🛵','摩托车':'🏍','头盔':'⛑','行李箱':'🧳','便携用品':'🎒','汽车':'🚗',
       '药品':'💊','急救用品':'🩹','温度计':'🌡','血压计':'🩺','血糖仪':'🩸','体重秤':'⚖','按摩器械':'💆','助听器':'🦻','美容':'💉','手术':'🏥',
-      '手办':'🧸','卡牌':'🃏','邮票':'💌','纪念币':'🪙','徽章':'🏅','模型':'🎁','乐器':'🎸','唱片':'💿','艺术品':'🖼',
+      '手办盲盒':'🧸','卡牌':'🃏','邮票':'💌','纪念币':'🪙','吧唧':'🏅','微缩模型':'🎁','唱片':'💿','艺术品':'🖼','棉花娃娃':'🐻','娃衣':'👗','冰箱贴':'🧲',
       '宠物粮':'🍖','食盆':'🥣','猫砂':'🧹','宠物包':'🎒','牵引绳':'🦮','宠物玩具':'🎾','洗护用品':'🧴','宠物窝':'🏠','宠物服饰':'🎀',
       '油漆':'🎨','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧',
       '行车记录仪':'📹','车载支架':'📱','车载充电器':'🔌','车载吸尘器':'🧹','车载香薰':'🌸','座套':'💺','脚垫':'🟫','轮胎':'🛞','机油':'🛢','雨刮器':'🌧','电瓶':'🔋','洗车用品':'🧼',
