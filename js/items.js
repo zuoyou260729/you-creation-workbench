@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v65';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v66';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -59,7 +59,7 @@
     sys_transport: ['自行车','电动车','摩托车','头盔','行李箱',null,null,'其他','便携用品','汽车'],
     sys_medical: ['药品','急救用品','温度计','血压计','血糖仪','体重秤','按摩器械',null,null,'助听器','美容','手术','其他'],
     sys_collection: ['手办盲盒','卡牌','邮票','纪念币','吧唧','微缩模型',null,'唱片','艺术品','其他','棉花娃娃','娃衣','冰箱贴'],
-    sys_pet: ['宠物粮','食盆','猫砂','宠物包','牵引绳','宠物玩具','洗护用品','宠物窝','宠物服饰','其他'],
+    sys_pet: ['宠物粮','饭盆水盆','猫砂','背包','牵引绳','玩具','洗护用品','宠物窝','宠物服饰','其他','宠物零食','冻干','罐头','航空箱','垃圾袋','美容用品','驱虫用品','洗护记录','消毒除臭','自动喂食(水)器','补剂药品','洗护设备'],
     sys_hardware: ['油漆','墙纸','瓷砖','地板','水龙头','花洒','马桶','水槽','开关插座','门锁','家装工具','其他'],
     sys_vehicle: ['行车记录仪','车载支架','车载充电器','车载吸尘器','车载香薰','座套','脚垫','轮胎','机油','雨刮器','电瓶','洗车用品','其他'],
     sys_asset: ['车辆','住宅','公寓','商铺','车位','其他资产'],
@@ -292,15 +292,27 @@
     'sys_outdoor:冰上运动':'assets/items/icons/sys_outdoor_冰上运动.png',
     'sys_outdoor:极限运动':'assets/items/icons/sys_outdoor_极限运动.png',
     'sys_pet:其他':'assets/items/icons/sys_pet_其他.png',
-    'sys_pet:宠物包':'assets/items/icons/sys_pet_宠物包.png',
-    'sys_pet:宠物服饰':'assets/items/icons/sys_pet_宠物服饰.png',
-    'sys_pet:宠物玩具':'assets/items/icons/sys_pet_宠物玩具.png',
+    'sys_pet:背包':'assets/items/icons/sys_pet_背包.png',
+    'sys_pet:宠物服饰':'assets/items/icons/sys_pet_宠物衣服.png',
     'sys_pet:宠物窝':'assets/items/icons/sys_pet_宠物窝.png',
     'sys_pet:宠物粮':'assets/items/icons/sys_pet_宠物粮.png',
+    'sys_pet:宠物零食':'assets/items/icons/sys_pet_宠物零食.png',
     'sys_pet:洗护用品':'assets/items/icons/sys_pet_洗护用品.png',
+    'sys_pet:洗护记录':'assets/items/icons/sys_pet_洗护记录.png',
+    'sys_pet:洗护设备':'assets/items/icons/sys_pet_洗护设备.png',
     'sys_pet:牵引绳':'assets/items/icons/sys_pet_牵引绳.png',
     'sys_pet:猫砂':'assets/items/icons/sys_pet_猫砂.png',
-    'sys_pet:食盆':'assets/items/icons/sys_pet_食盆.png',
+    'sys_pet:玩具':'assets/items/icons/sys_pet_玩具.png',
+    'sys_pet:美容用品':'assets/items/icons/sys_pet_美容用品.png',
+    'sys_pet:补剂药品':'assets/items/icons/sys_pet_补剂药品.png',
+    'sys_pet:航空箱':'assets/items/icons/sys_pet_航空箱.png',
+    'sys_pet:消毒除臭':'assets/items/icons/sys_pet_消毒除臭.png',
+    'sys_pet:罐头':'assets/items/icons/sys_pet_罐头.png',
+    'sys_pet:自动喂食(水)器':'assets/items/icons/sys_pet_自动喂食(水)器.png',
+    'sys_pet:驱虫用品':'assets/items/icons/sys_pet_驱虫用品.png',
+    'sys_pet:垃圾袋':'assets/items/icons/sys_pet_垃圾袋.png',
+    'sys_pet:饭盆水盆':'assets/items/icons/sys_pet_饭盆水盆.png',
+    'sys_pet:冻干':'assets/items/icons/sys_pet_冻干.png',
     'sys_service:课程培训':'assets/items/icons/sys_service_课程培训.png',
     'sys_vehicle:其他':'assets/items/icons/sys_vehicle_其他.png',
     'sys_vehicle:座套':'assets/items/icons/sys_vehicle_座套.png',
@@ -698,7 +710,7 @@
       '自行车':'🚲','电动车':'🛵','摩托车':'🏍','头盔':'⛑','行李箱':'🧳','便携用品':'🎒','汽车':'🚗',
       '药品':'💊','急救用品':'🩹','温度计':'🌡','血压计':'🩺','血糖仪':'🩸','体重秤':'⚖','按摩器械':'💆','助听器':'🦻','美容':'💉','手术':'🏥',
       '手办盲盒':'🧸','卡牌':'🃏','邮票':'💌','纪念币':'🪙','吧唧':'🏅','微缩模型':'🎁','唱片':'💿','艺术品':'🖼','棉花娃娃':'🐻','娃衣':'👗','冰箱贴':'🧲',
-      '宠物粮':'🍖','食盆':'🥣','猫砂':'🧹','宠物包':'🎒','牵引绳':'🦮','宠物玩具':'🎾','洗护用品':'🧴','宠物窝':'🏠','宠物服饰':'🎀',
+      '宠物粮':'🍖','饭盆水盆':'🥣','猫砂':'🧹','背包':'🎒','牵引绳':'🦮','玩具':'🎾','洗护用品':'🧴','宠物窝':'🏠','宠物服饰':'🎀','宠物零食':'🦴','冻干':'🍖','罐头':'🥫','航空箱':'🧳','垃圾袋':'🗑','美容用品':'✂','驱虫用品':'💊','洗护记录':'📅','消毒除臭':'🧼','自动喂食(水)器':'🚰','补剂药品':'💊','洗护设备':'🌀',
       '油漆':'🎨','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧',
       '行车记录仪':'📹','车载支架':'📱','车载充电器':'🔌','车载吸尘器':'🧹','车载香薰':'🌸','座套':'💺','脚垫':'🟫','轮胎':'🛞','机油':'🛢','雨刮器':'🌧','电瓶':'🔋','洗车用品':'🧼',
       '车辆':'🚗','住宅':'🏠','公寓':'🏢','商铺':'🏪','车位':'🅿','其他资产':'📦',
