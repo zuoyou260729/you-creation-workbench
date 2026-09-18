@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v60';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v61';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -54,7 +54,7 @@
     sys_appliance: ['冰箱','洗衣机','烘干机','空调','电视','热水器','油烟机','洗碗机','微波炉','电磁炉','烤箱','电饭煲','空气炸锅','咖啡机','破壁机','吸尘器','扫地机器人','空气净化器','加湿器','电风扇','吹风机','洗地机','其他','电动打蛋器','绞肉机','搅面机','烤面包机'],
     sys_home: ['沙发','床','床垫','桌子','椅子','柜子','收纳','衣架','雨伞','厨具','餐具','清洁用品','洗衣用品','茶几','灯具','家纺','其他','地毯','洗护用品','四件套','坐垫靠垫'],
     sys_office: ['书籍','计算器','书写用品','绘画工具','办公用品',null,null,'收纳用品','其他','裁切粘贴','电脑包','书包','学习仪器'],
-    sys_outdoor: ['帐篷','天幕','睡袋','徒步登山','电器照明','钓鱼用品','球（拍）类','健身器材','滑雪用品','游泳用品','攀岩用品','防护救生','其他'],
+    sys_outdoor: ['帐篷',null,'睡袋垫子','徒步登山','电器照明','钓鱼用品','球类用品','健身用品','滑雪用品','游泳用品','攀岩用品','救生用品','其他','露营用品','骑行用品','冰上运动','极限运动'],
     sys_baby: ['婴儿车','安全座椅','婴儿床','奶瓶','配方奶粉','纸尿裤','湿巾','童装','童鞋','玩具','绘本','孕妈用品','其他'],
     sys_transport: ['自行车','电动车','摩托车','头盔','行李箱','颈枕','转换插头','其他'],
     sys_medical: ['药品','急救用品','体温计','血压计','血糖仪','体重秤','按摩器械','眼镜','隐形眼镜','助听器','医学美容','手术治疗','其他'],
@@ -272,18 +272,21 @@
     'sys_office:计算器':'assets/items/icons/sys_office_计算器.png',
     'sys_other:礼品':'assets/items/icons/sys_other_礼品.png',
     'sys_other:票券':'assets/items/icons/sys_other_票券.png',
-    'sys_outdoor:健身器材':'assets/items/icons/sys_outdoor_健身器材.png',
-    'sys_outdoor:天幕':'assets/items/icons/sys_outdoor_天幕.png',
+    'sys_outdoor:健身用品':'assets/items/icons/sys_outdoor_健身用品.png',
     'sys_outdoor:帐篷':'assets/items/icons/sys_outdoor_帐篷.png',
     'sys_outdoor:徒步登山':'assets/items/icons/sys_outdoor_徒步登山.png',
     'sys_outdoor:攀岩用品':'assets/items/icons/sys_outdoor_攀岩用品.png',
     'sys_outdoor:游泳用品':'assets/items/icons/sys_outdoor_游泳用品.png',
     'sys_outdoor:滑雪用品':'assets/items/icons/sys_outdoor_滑雪用品.png',
-    'sys_outdoor:球（拍）类':'assets/items/icons/sys_outdoor_球（拍）类.png',
+    'sys_outdoor:球类用品':'assets/items/icons/sys_outdoor_球类用品.png',
     'sys_outdoor:电器照明':'assets/items/icons/sys_outdoor_电器照明.png',
-    'sys_outdoor:睡袋':'assets/items/icons/sys_outdoor_睡袋.png',
+    'sys_outdoor:睡袋垫子':'assets/items/icons/sys_outdoor_睡袋垫子.png',
     'sys_outdoor:钓鱼用品':'assets/items/icons/sys_outdoor_钓鱼用品.png',
-    'sys_outdoor:防护救生':'assets/items/icons/sys_outdoor_防护救生.png',
+    'sys_outdoor:救生用品':'assets/items/icons/sys_outdoor_救生用品.png',
+    'sys_outdoor:露营用品':'assets/items/icons/sys_outdoor_露营用品.png',
+    'sys_outdoor:骑行用品':'assets/items/icons/sys_outdoor_骑行用品.png',
+    'sys_outdoor:冰上运动':'assets/items/icons/sys_outdoor_冰上运动.png',
+    'sys_outdoor:极限运动':'assets/items/icons/sys_outdoor_极限运动.png',
     'sys_pet:其他':'assets/items/icons/sys_pet_其他.png',
     'sys_pet:宠物包':'assets/items/icons/sys_pet_宠物包.png',
     'sys_pet:宠物服饰':'assets/items/icons/sys_pet_宠物服饰.png',
@@ -686,7 +689,7 @@
       '冰箱':'🧊','洗衣机':'🧺','烘干机':'🌀','空调':'❄','电视':'📺','热水器':'🔥','油烟机':'🌪','洗碗机':'🍽','微波炉':'📟','电磁炉':'🔥','烤箱':'🔥','电饭煲':'🍚','空气炸锅':'🍟','咖啡机':'☕','破壁机':'🥤','吸尘器':'🧹','扫地机器人':'🤖','空气净化器':'🌬','加湿器':'💧','电风扇':'🌀','吹风机':'💨','洗地机':'🧽','电动打蛋器':'🥚','绞肉机':'🥩','搅面机':'🥣','烤面包机':'🍞',
       '沙发':'🛋','床':'🛏','床垫':'🛏','桌子':'🪑','椅子':'🪑','柜子':'🗄','收纳':'📦','衣架':'👔','雨伞':'☂','厨具':'🍳','餐具':'🍽','清洁用品':'🧽','洗衣用品':'🧺','茶几':'🪑','灯具':'💡','家纺':'🛏','地毯':'🟫','四件套':'🛌','坐垫靠垫':'🛋',
       '书籍':'📚','计算器':'🧮','书写用品':'✏','绘画工具':'🎨','办公用品':'📎','收纳用品':'📦','裁切粘贴':'✂','电脑包':'💼','书包':'🎒','学习仪器':'🌐',
-      '帐篷':'⛺','天幕':'⛺','睡袋':'🛌','徒步登山':'🥾','电器照明':'🔦','钓鱼用品':'🎣','球（拍）类':'🏸','健身器材':'🏋','滑雪用品':'🎿','游泳用品':'🏊','攀岩用品':'🧗','防护救生':'🛟',
+      '帐篷':'⛺','睡袋垫子':'🛌','徒步登山':'🥾','电器照明':'🔦','钓鱼用品':'🎣','球类用品':'🏸','健身用品':'🏋','滑雪用品':'🎿','游泳用品':'🏊','攀岩用品':'🧗','救生用品':'🛟','露营用品':'🏕','骑行用品':'🚲','冰上运动':'⛸','极限运动':'🪂',
       '婴儿车':'🍼','安全座椅':'💺','婴儿床':'🛏','奶瓶':'🍼','配方奶粉':'🥛','纸尿裤':'🧷','湿巾':'🧻','童装':'👶','童鞋':'👟','玩具':'🧸','绘本':'📖','孕妈用品':'🤰',
       '自行车':'🚲','电动车':'🛵','摩托车':'🏍','头盔':'⛑','行李箱':'🧳','颈枕':'💤','转换插头':'🔌',
       '药品':'💊','急救用品':'🩹','体温计':'🌡','血压计':'🩺','血糖仪':'🩸','体重秤':'⚖','按摩器械':'💆','眼镜':'👓','隐形眼镜':'👁','助听器':'🦻','医学美容':'💉','手术治疗':'🏥',
