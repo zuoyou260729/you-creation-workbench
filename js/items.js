@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v66';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v67';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -60,7 +60,7 @@
     sys_medical: ['药品','急救用品','温度计','血压计','血糖仪','体重秤','按摩器械',null,null,'助听器','美容','手术','其他'],
     sys_collection: ['手办盲盒','卡牌','邮票','纪念币','吧唧','微缩模型',null,'唱片','艺术品','其他','棉花娃娃','娃衣','冰箱贴'],
     sys_pet: ['宠物粮','饭盆水盆','猫砂','背包','牵引绳','玩具','洗护用品','宠物窝','宠物服饰','其他','宠物零食','冻干','罐头','航空箱','垃圾袋','美容用品','驱虫用品','洗护记录','消毒除臭','自动喂食(水)器','补剂药品','洗护设备'],
-    sys_hardware: ['油漆','墙纸','瓷砖','地板','水龙头','花洒','马桶','水槽','开关插座','门锁','家装工具','其他'],
+    sys_hardware: ['家装余料',null,null,null,null,'花洒',null,null,null,'门锁','家装工具','其他','下水多通','进水三通'],
     sys_vehicle: ['行车记录仪','车载支架','车载充电器','车载吸尘器','车载香薰','座套','脚垫','轮胎','机油','雨刮器','电瓶','洗车用品','其他'],
     sys_asset: ['车辆','住宅','公寓','商铺','车位','其他资产'],
     sys_service: ['课程培训','保险服务','其他服务'],
@@ -220,17 +220,12 @@
     'sys_digital:扩展坞':'assets/items/icons/sys_digital_扩展坞.png',
     'sys_digital:其他':'assets/items/icons/sys_digital_其他.png',
     'sys_hardware:其他':'assets/items/icons/sys_hardware_其他.png',
-    'sys_hardware:地板':'assets/items/icons/sys_hardware_地板.png',
-    'sys_hardware:墙纸':'assets/items/icons/sys_hardware_墙纸.png',
     'sys_hardware:家装工具':'assets/items/icons/sys_hardware_家装工具.png',
-    'sys_hardware:开关插座':'assets/items/icons/sys_hardware_开关插座.png',
-    'sys_hardware:水槽':'assets/items/icons/sys_hardware_水槽.png',
-    'sys_hardware:水龙头':'assets/items/icons/sys_hardware_水龙头.png',
-    'sys_hardware:油漆':'assets/items/icons/sys_hardware_油漆.png',
-    'sys_hardware:瓷砖':'assets/items/icons/sys_hardware_瓷砖.png',
+    'sys_hardware:家装余料':'assets/items/icons/sys_hardware_家装余料.png',
+    'sys_hardware:下水多通':'assets/items/icons/sys_hardware_下水多通.png',
+    'sys_hardware:门锁':'assets/items/icons/sys_hardware_智能门锁.png',
     'sys_hardware:花洒':'assets/items/icons/sys_hardware_花洒.png',
-    'sys_hardware:门锁':'assets/items/icons/sys_hardware_门锁.png',
-    'sys_hardware:马桶':'assets/items/icons/sys_hardware_马桶.png',
+    'sys_hardware:进水三通':'assets/items/icons/sys_hardware_进水三通.png',
     'sys_home:其他':'assets/items/icons/sys_home_其他.png',
     'sys_home:厨具':'assets/items/icons/sys_home_厨具.png',
     'sys_home:家纺':'assets/items/icons/sys_home_家纺.png',
@@ -711,7 +706,7 @@
       '药品':'💊','急救用品':'🩹','温度计':'🌡','血压计':'🩺','血糖仪':'🩸','体重秤':'⚖','按摩器械':'💆','助听器':'🦻','美容':'💉','手术':'🏥',
       '手办盲盒':'🧸','卡牌':'🃏','邮票':'💌','纪念币':'🪙','吧唧':'🏅','微缩模型':'🎁','唱片':'💿','艺术品':'🖼','棉花娃娃':'🐻','娃衣':'👗','冰箱贴':'🧲',
       '宠物粮':'🍖','饭盆水盆':'🥣','猫砂':'🧹','背包':'🎒','牵引绳':'🦮','玩具':'🎾','洗护用品':'🧴','宠物窝':'🏠','宠物服饰':'🎀','宠物零食':'🦴','冻干':'🍖','罐头':'🥫','航空箱':'🧳','垃圾袋':'🗑','美容用品':'✂','驱虫用品':'💊','洗护记录':'📅','消毒除臭':'🧼','自动喂食(水)器':'🚰','补剂药品':'💊','洗护设备':'🌀',
-      '油漆':'🎨','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧',
+      '家装余料':'🪣','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧','下水多通':'🔩','进水三通':'🔩',
       '行车记录仪':'📹','车载支架':'📱','车载充电器':'🔌','车载吸尘器':'🧹','车载香薰':'🌸','座套':'💺','脚垫':'🟫','轮胎':'🛞','机油':'🛢','雨刮器':'🌧','电瓶':'🔋','洗车用品':'🧼',
       '车辆':'🚗','住宅':'🏠','公寓':'🏢','商铺':'🏪','车位':'🅿','其他资产':'📦',
       '课程培训':'📖','保险服务':'🛡','其他服务':'🤝',
