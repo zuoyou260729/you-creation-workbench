@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v70';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v71';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -44,6 +44,8 @@
     { id:'sys_asset', name:'固定资产', icon:'🏠' },
     { id:'sys_service', name:'服务项目', icon:'🛎' },
     { id:'sys_virtual', name:'虚拟产品', icon:'🎫' },
+    { id:'sys_snack', name:'零食饮料', icon:'🍿' },
+    { id:'sys_tea', name:'酒咖品茗', icon:'🍵' },
     { id:'sys_other', name:'其他', icon:'📦' }
   ];
 
@@ -58,13 +60,15 @@
     sys_outdoor: ['帐篷',null,'睡袋垫子','徒步登山','电器照明','钓鱼用品','球类用品','健身用品','滑雪用品','游泳用品','攀岩用品','救生用品','其他','露营用品','骑行用品','冰上运动','极限运动'],
     sys_baby: ['婴儿车','安全座椅','婴儿床','奶瓶','奶粉','纸尿裤','纸巾湿巾','童装','童鞋','玩具','绘本','孕妇用品','其他','儿童补剂','儿童餐具','平衡车','辅食'],
     sys_transport: ['自行车','电动车','摩托车','头盔','行李箱',null,null,'其他','便携用品','汽车'],
-    sys_medical: ['药品','急救用品','温度计','血压计','血糖仪','体重秤','按摩器械',null,null,'助听器','美容','手术','其他'],
+    sys_medical: ['药品','急救用品','温度计','血压计','血糖仪','体重秤','按摩器械',null,null,'助听器',null,'手术','其他'], // 下标10=美容 已移至服务项目(null占位，保持其余下标不变)
     sys_collection: ['手办盲盒','卡牌','邮票','纪念币','吧唧','微缩模型',null,'唱片','艺术品','其他','棉花娃娃','娃衣','冰箱贴'],
     sys_pet: ['宠物粮','饭盆水盆','猫砂','背包','牵引绳','玩具','洗护用品','宠物窝','宠物服饰','其他','宠物零食','冻干','罐头','航空箱','垃圾袋','美容用品','驱虫用品','洗护记录','消毒除臭','自动喂食(水)器','补剂药品','洗护设备'],
     sys_hardware: ['家装余料',null,null,null,null,'花洒',null,null,null,'门锁','家装工具','其他','下水多通','进水三通'],
     sys_asset: ['车辆','房屋',null,'商铺','车位','其他'], // 下标2=公寓 已删除(null占位，保持其余下标不变)；住宅→房屋、其他资产→其他 为原地改名
-    sys_service: ['课程培训','保险服务','其他服务'],
-    sys_virtual: ['游戏点卡','会员订阅','其他虚拟'],
+    sys_service: ['课程培训','保险服务','其他服务','家政服务','体检健康','美容'], // v71 追加 家政服务/体检健康/美容（美容自健康医疗移入）；显示层「其他服务」置底
+    sys_virtual: [null,'会员订阅','其他虚拟'], // 下标0=游戏点卡 已删除(null占位，保持其余下标不变)
+    sys_snack: ['干果','面包零食','乳制品','饮料','其他'], // v71 新增一级分类
+    sys_tea: ['茶叶','酒水','咖啡','其他'], // v71 新增一级分类
     sys_other: ['礼品','票券','其他物品']
   };
 
@@ -260,7 +264,7 @@
     'sys_medical:体重秤':'assets/items/icons/sys_medical_体重秤.png',
     'sys_medical:其他':'assets/items/icons/sys_medical_其他.png',
     'sys_medical:助听器':'assets/items/icons/sys_medical_助听器.png',
-    'sys_medical:美容':'assets/items/icons/sys_medical_美容.png',
+    'sys_service:美容':'assets/items/icons/sys_service_美容.png',
     'sys_medical:急救用品':'assets/items/icons/sys_medical_急救用品.png',
     'sys_medical:手术':'assets/items/icons/sys_medical_手术.png',
     'sys_medical:按摩器械':'assets/items/icons/sys_medical_按摩器械.png',
@@ -318,7 +322,6 @@
     'sys_pet:饭盆水盆':'assets/items/icons/sys_pet_饭盆水盆.png',
     'sys_pet:冻干':'assets/items/icons/sys_pet_冻干.png',
     'sys_service:课程培训':'assets/items/icons/sys_service_课程培训.png',
-    'sys_virtual:游戏点卡':'assets/items/icons/sys_virtual_游戏点卡.png',
     // —— 补齐此前因相对高度阈值被漏提的二级图标 ——
     'sys_transport:自行车':'assets/items/icons/sys_transport_自行车.png',
     'sys_transport:电动车':'assets/items/icons/sys_transport_电动车.png',
@@ -330,8 +333,19 @@
     'sys_transport:汽车':'assets/items/icons/sys_transport_汽车.png',
     'sys_service:保险服务':'assets/items/icons/sys_service_保险服务.png',
     'sys_service:其他服务':'assets/items/icons/sys_service_其他服务.png',
+    'sys_service:家政服务':'assets/items/icons/sys_service_家政服务.png',
+    'sys_service:体检健康':'assets/items/icons/sys_service_体检健康.png',
     'sys_virtual:会员订阅':'assets/items/icons/sys_virtual_会员订阅.png',
-    'sys_virtual:其他虚拟':'assets/items/icons/sys_virtual_其他虚拟.png'
+    'sys_virtual:其他虚拟':'assets/items/icons/sys_virtual_其他虚拟.png',
+    'sys_snack:干果':'assets/items/icons/sys_snack_干果.png',
+    'sys_snack:面包零食':'assets/items/icons/sys_snack_面包零食.png',
+    'sys_snack:乳制品':'assets/items/icons/sys_snack_乳制品.png',
+    'sys_snack:饮料':'assets/items/icons/sys_snack_饮料.png',
+    'sys_snack:其他':'assets/items/icons/sys_snack_其他.png',
+    'sys_tea:茶叶':'assets/items/icons/sys_tea_茶叶.png',
+    'sys_tea:酒水':'assets/items/icons/sys_tea_酒水.png',
+    'sys_tea:咖啡':'assets/items/icons/sys_tea_咖啡.png',
+    'sys_tea:其他':'assets/items/icons/sys_tea_其他.png'
   };
 
   const SORT_FIELDS = [
@@ -684,7 +698,7 @@
     })).filter(c=>c.name);
     // 显示顺序：把「其他」始终排在最后。仅调整展示顺序，id 仍按原数组下标生成，
     // 因此已有物品的分类关联不受影响（避免下标位移导致串类）。
-    const oi=list.findIndex(c=>c.name==='其他');
+    const oi=list.findIndex(c=>c.name==='其他'||c.name.indexOf('其他')===0);
     if(oi>=0 && oi<list.length-1) list.push(list.splice(oi,1)[0]);
     return list;
   }
@@ -705,8 +719,9 @@
       '宠物粮':'🍖','饭盆水盆':'🥣','猫砂':'🧹','背包':'🎒','牵引绳':'🦮','玩具':'🎾','洗护用品':'🧴','宠物窝':'🏠','宠物服饰':'🎀','宠物零食':'🦴','冻干':'🍖','罐头':'🥫','航空箱':'🧳','垃圾袋':'🗑','美容用品':'✂','驱虫用品':'💊','洗护记录':'📅','消毒除臭':'🧼','自动喂食(水)器':'🚰','补剂药品':'💊','洗护设备':'🌀',
       '家装余料':'🪣','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧','下水多通':'🔩','进水三通':'🔩',
       '车辆':'🚗','房屋':'🏠','商铺':'🏪','车位':'🅿','其他':'📦',
-      '课程培训':'📖','保险服务':'🛡','其他服务':'🤝',
-      '游戏点卡':'🎮','会员订阅':'🎟','其他虚拟':'💾',
+      '课程培训':'📖','保险服务':'🛡','其他服务':'🤝','家政服务':'🧹','体检健康':'🩺',
+      '会员订阅':'🎟','其他虚拟':'💾',
+      '干果':'🥜','面包零食':'🥐','乳制品':'🥛','饮料':'🧃','茶叶':'🍵','酒水':'🍷','咖啡':'☕',
       '礼品':'🎁','票券':'🎫','其他物品':'📦'
     };
     return map[name]||'📦';
