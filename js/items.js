@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v76';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v77';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -404,6 +404,13 @@
   function $(sel, ctx=document){ return ctx.querySelector(sel); }
   function $$(sel, ctx=document){ return [...ctx.querySelectorAll(sel)]; }
   function uuid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+  // 稳定短哈希：用于给缺失 id 的旧数据补一个【确定性】id（两端算出同一个，避免重复）
+  function hash32(str){
+    let h=2166136261>>>0;
+    str=String(str||'');
+    for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); }
+    return (h>>>0).toString(36);
+  }
   function todayStr(){
     const d=new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -567,6 +574,8 @@
     migrateItemsToBatches();
     // 同一天多次入库合并为一条批次（修复旧数据里每条入库都独立成行的问题）
     consolidateAllBatches();
+    // 回填缺失的 id/updatedAt（旧数据），并落盘，避免同步时整条被丢弃
+    if(ensureSyncMeta()){ try{ save(); }catch(e){} }
   }
   function save(){
     localStorage.setItem(ITEMS_KEY, JSON.stringify(state.items));
@@ -2404,11 +2413,35 @@
     throw lastErr||new Error('连接失败');
   }
 
-  // 回填缺失的 updatedAt（legacy 数据），避免合并时被误判为"更旧"而丢失
+  // 回填缺失的 id / updatedAt（legacy 数据）。
+  // ⚠️ 关键：旧数据的物品/分类若没有 id，会在同步合并时被当作无效项【整条丢弃】，
+  // 表现为"本地有 N 件、同步到云端却是 0 件"。这里补一个确定性 id（两端一致，不会重复）。
   function ensureSyncMeta(){
     const t=new Date().toISOString();
-    state.items.forEach(it=>{ if(it && !it.updatedAt) it.updatedAt=t; });
-    state.customCategories.forEach(c=>{ if(c && !c.updatedAt) c.updatedAt=t; });
+    let changed=false;
+    const seenItems=new Set();
+    state.items.forEach(it=>{
+      if(!it) return;
+      if(it.id){ seenItems.add(it.id); }
+      else {
+        const base='it_'+hash32((it.createdAt||'')+'|'+(it.purchaseDate||'')+'|'+(it.name||'')+'|'+(it.categoryId||''));
+        let id=base, n=1; while(seenItems.has(id)){ id=base+'_'+(n++); }
+        it.id=id; seenItems.add(id); changed=true;
+      }
+      if(!it.updatedAt){ it.updatedAt=t; changed=true; }
+    });
+    const seenCats=new Set();
+    state.customCategories.forEach(c=>{
+      if(!c) return;
+      if(c.id){ seenCats.add(c.id); }
+      else {
+        const base='cat_'+hash32((c.name||'')+'|'+(c.parentId||''));
+        let id=base, n=1; while(seenCats.has(id)){ id=base+'_'+(n++); }
+        c.id=id; seenCats.add(id); changed=true;
+      }
+      if(!c.updatedAt){ c.updatedAt=t; changed=true; }
+    });
+    return changed;
   }
   // 按 updatedAt 做 last-write-wins 合并（同 id 取较新的一方）
   function mergeByUpdatedAt(localArr, cloudArr){
@@ -2502,7 +2535,8 @@
       } else if(api.status!==404){
         throw new Error('读取云端失败 HTTP '+api.status);
       }
-      ensureSyncMeta();
+      // 回填缺失的 id（旧数据）——这是同步能上传成功的关键；仅做"补全"，不删除/覆盖任何数据
+      if(ensureSyncMeta()){ try{ save(); }catch(e){} }
       // ⚠️ 关键修复：同步到云端【绝不】改动本地数据。
       // 仅在计算【上传内容】时把云端较新的数据合并进来（避免覆盖另一端新数据），
       // 该结果【只用于上传】；本地 state.items / TOMB 一律不改写，也绝不 applyTombstones，
@@ -2524,7 +2558,9 @@
       if(!pu.ok){ const er=await pu.json().catch(()=>({})); throw new Error('上传失败 HTTP '+pu.status+(er&&er.message?(' '+er.message):'')); }
       showToast('已同步到云端（'+uploadItems.length+' 件）');
       setSyncStatus('云端更新于 '+fmtSyncTime(payload.syncedAt));
-      setSyncErr('✅ 已成功上传到 '+syncBackendLabel()+' 云端');
+      setSyncErr((uploadItems.length===0 && state.items.length>0)
+        ? '⚠️ 本地有 '+state.items.length+' 件但上传 0 件（数据缺少 id，已自动修复）。请再点一次「同步到云端」。'
+        : '✅ 已成功上传到 '+syncBackendLabel()+' 云端');
       renderOverview(); renderCategoriesPage();
     }catch(err){
       console.error(err);
