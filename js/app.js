@@ -94,6 +94,7 @@
     const isMobile = () => mq.matches;
 
     let currentSection = null;   // null = 根层级；否则为 'xhs' | 'en' | 'items'
+    let lastRootKey = 'daily';    // 进入分区前所在的根栏项（用于「返回」高亮）
 
     /* ---- 显示某个页面（复用已有的 .page 切换机制） ---- */
     function showPage(pageId) {
@@ -144,6 +145,19 @@
       else history.replaceState(st, '', '#/' + sectionKey + '/' + tab.key);
     }
 
+    /* ---- 退出分区，确定性回到根层级（不依赖 history.back()，规避部分手机 PWA 不触发 popstate 而卡死） ---- */
+    function exitToRoot() {
+      currentSection = null;
+      rootBar.classList.remove('is-hidden');
+      subBar.classList.add('is-hidden');
+      const rk = lastRootKey || 'daily';
+      $$('#tabbarRoot .tabbar-item').forEach(b => {
+        b.classList.toggle('active', (b.dataset.root || b.dataset.section) === rk);
+      });
+      showPage('page-daily-plan'); // 根层级背景页
+      history.replaceState({ lvl: 0, root: rk, page: 'page-daily-plan' }, '', '#/' + rk);
+    }
+
     /* ---- 复用侧边栏现有图标，保持「图标+文字」观感一致 ---- */
     function iconForTab(page, subpage) {
       let nav = null;
@@ -174,9 +188,9 @@
           '</button>'
         ).join('');
 
-      // 返回：走 history.back()，与系统边缘滑动返回完全同一套历史
+      // 返回：直接回到根层级（不依赖 history.back()，规避部分手机 PWA 不触发 popstate 而卡死）
       const backBtn = subBar.querySelector('[data-back]');
-      if (backBtn) backBtn.addEventListener('click', () => { history.back(); });
+      if (backBtn) backBtn.addEventListener('click', () => { exitToRoot(); });
 
       subBar.querySelectorAll('[data-sub]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -191,6 +205,7 @@
     $$('#tabbarRoot .tabbar-item').forEach(btn => {
       btn.addEventListener('click', () => {
         if (!isMobile()) return;
+        lastRootKey = btn.dataset.section || btn.dataset.root || 'daily';
         if (btn.dataset.section) goSection(btn.dataset.section, null, true);
         else goRoot(btn.dataset.root, btn.dataset.page, false);
       });
@@ -202,11 +217,9 @@
       const st = history.state;
       if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
         goSection(st.section, st.sub, false);
-      } else if (st && st.lvl === 0) {
-        goRoot(st.root, st.page, false);
       } else {
-        // 没有状态信息 -> 回到根层级的每日计划
-        goRoot('daily', 'page-daily-plan', false);
+        // 根层级或没有状态信息 -> 确定性回到根栏（与「返回」键同一逻辑）
+        exitToRoot();
       }
     });
 
