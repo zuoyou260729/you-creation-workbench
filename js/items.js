@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v74';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v75';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -2447,11 +2447,13 @@
           return r.json();
         })
         .then(data=>{
+          // Gitee 文件不存在时 GET 返回 []（数组），视为云端暂无数据
+          if(Array.isArray(data)){ resolve({items:[],customCategories:[],deletedIds:[],empty:true}); return; }
           // Gitee 经 API 返回 base64 content；GitHub 经 raw 返回纯 JSON
           if(syncIsGitee() && data && data.content){
             try{ data=JSON.parse(unb64utf8(data.content)); }catch(e){ data={items:[],customCategories:[],deletedIds:[]}; }
           }
-          resolve((data && Array.isArray(data.items))?data:{items:[],customCategories:[],deletedIds:[]});
+          resolve((data && Array.isArray(data.items))?data:{items:[],customCategories:[],deletedIds:[],empty:true});
         })
         .catch(err=> reject(err));
     });
@@ -2491,11 +2493,12 @@
     try{
       // 1) 先拉取云端，做 last-write-wins 合并，避免覆盖另一端的新数据
       const api=await retryFetch(syncApiUrl(), {headers:syncHeaders()}, 3, 18000);
-      let cloudSha=null, cloudData={items:[], customCategories:[], deletedIds:[]};
+      let cloudSha=null, cloudData={items:[], customCategories:[], deletedIds:[]}, cloudExists=false;
       if(api.ok){
         const j=await api.json();
-        cloudSha=j.sha||null;
-        if(j.content){ try{ cloudData=JSON.parse(unb64utf8(j.content)); }catch(e){} }
+        // Gitee 文件不存在时 GET 返回 []（数组）或 404；GitHub 返回 404。
+        // 仅当返回带 content 的对象才表示文件已存在。
+        if(j && !Array.isArray(j) && j.content){ cloudExists=true; cloudSha=j.sha||null; try{ cloudData=JSON.parse(unb64utf8(j.content)); }catch(e){} }
       } else if(api.status!==404){
         throw new Error('读取云端失败 HTTP '+api.status);
       }
@@ -2511,8 +2514,10 @@
       const payload={ version:3, syncedAt:new Date().toISOString(), items:uploadItems, customCategories:uploadCats, deletedIds:uploadTomb };
       const body={ message:'物品数据同步 '+payload.syncedAt, content:b64utf8(JSON.stringify(payload,null,2)), branch: syncBranch() };
       if(cloudSha) body.sha=cloudSha;
+      // Gitee 新建文件用 POST，更新已有文件用 PUT；GitHub 统一 PUT（无 sha 即新建）
+      const syncMethod=(syncIsGitee() && !cloudExists) ? 'POST' : 'PUT';
       const pu=await retryFetch(syncApiUrl(), {
-        method:'PUT',
+        method:syncMethod,
         headers:syncHeaders({'Content-Type':'application/json'}),
         body: JSON.stringify(body)
       }, 3, 18000);
