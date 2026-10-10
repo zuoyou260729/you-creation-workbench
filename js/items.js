@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v77';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v78';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -54,7 +54,7 @@
     sys_smarthome: ['传感器','电动窗帘','电动晾衣架','摄像头','智能插座','智能开关','智能音箱','中控屏','中枢网关','其他'], // v68 新增一级分类
     sys_clothing: [null,'衬衫','毛衣','卫衣','外套','羽绒服','西装','裤子',null,'半身裙','连衣裙','内衣','袜子','运动鞋','靴子','拖鞋','双肩包','手提包','钱包','帽子','围巾','手套','腰带','其他','半袖','长袖','短裤','高跟鞋','皮鞋','领带','睡衣','眼镜墨镜'], // 下标0=T恤、下标8=牛仔裤 已删除(null占位，保持其余下标不变)
     sys_beauty: ['洁面','爽肤水','精华','乳液','面霜','防晒','面膜','眼霜',null,'香水','剃须刀','洗发护发','身体护理','女性护理','口腔护理','饰品','其他','梳子','香氛','卸妆油','修容','眼妆','定妆用品','粉底液','口红','腮红','上妆产品','化妆刷','隐形眼镜','美发用品','护肤工具','发圈'], // 下标8=彩妆 已删除(null占位，保持其余下标不变)
-    sys_appliance: ['冰箱','洗衣机','烘干机','空调','电视','热水器','油烟机','洗碗机','微波炉','电磁炉','烤箱','电饭煲','空气炸锅','咖啡机','破壁机','吸尘器','扫地机器人','空气净化器','加湿器','电风扇','吹风机','洗地机','其他','电动打蛋器','绞肉机','搅面机','烤面包机'],
+    sys_appliance: ['冰箱','洗衣机','烘干机','空调','电视','热水器','油烟机','洗碗机','微波炉','电磁炉','烤箱','电饭煲','空气炸锅','咖啡机','破壁机','吸尘器','扫地机器人','空气净化器','加湿器','电风扇','吹风机','洗地机','其他','电动打蛋器','绞肉机','搅面机','烤面包机','净水机','前置净水器','软水机','洗烘套装','饮水机','烧水壶'],
     sys_home: ['沙发','床','床垫','桌子','椅子','柜子','收纳','衣架','雨伞','厨具','餐具','清洁用品','洗衣用品','茶几','灯具','家纺','其他','地毯','洗护用品','四件套','坐垫靠垫'],
     sys_office: ['书籍','计算器','书写用品','绘画工具','办公用品',null,null,'收纳用品','其他','裁切粘贴','电脑包','书包','学习仪器'],
     sys_outdoor: ['帐篷',null,'睡袋垫子','徒步登山','电器照明','钓鱼用品','球类用品','健身用品','滑雪用品','游泳用品','攀岩用品','救生用品','其他','露营用品','骑行用品','冰上运动','极限运动'],
@@ -101,6 +101,12 @@
     'sys_appliance:绞肉机':'assets/items/icons/sys_appliance_绞肉机.png',
     'sys_appliance:搅面机':'assets/items/icons/sys_appliance_搅面机.png',
     'sys_appliance:烤面包机':'assets/items/icons/sys_appliance_烤面包机.png',
+    'sys_appliance:净水机':'assets/items/icons/sys_appliance_净水机.png',
+    'sys_appliance:前置净水器':'assets/items/icons/sys_appliance_前置净水器.png',
+    'sys_appliance:软水机':'assets/items/icons/sys_appliance_软水机.png',
+    'sys_appliance:洗烘套装':'assets/items/icons/sys_appliance_洗烘套装.png',
+    'sys_appliance:饮水机':'assets/items/icons/sys_appliance_饮水机.png',
+    'sys_appliance:烧水壶':'assets/items/icons/sys_appliance_烧水壶.png',
     'sys_asset:房屋':'assets/items/icons/sys_asset_房屋.png',
     'sys_asset:其他':'assets/items/icons/sys_asset_其他.png',
     'sys_asset:商铺':'assets/items/icons/sys_asset_商铺.png',
