@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v78';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v79';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -3026,12 +3026,28 @@
     closeModal('iDateModal');
   }
 
+  // 解析「有效期」的基准日期：永远以【生产日期】为基准（各页面取对应的生产日期字段）
+  function resolveExpiryBase(targetId, productionDate){
+    let d='';
+    if(targetId==='#iExpiryDate') d=$('#iProductionDate').value;
+    else if(targetId==='#iRestockExpiry') d=$('#iRestockProductionDate').value;
+    else if(targetId==='#iEditBatchExpiryDate') d=temp.editBatchExpiryProd||$('#iProductionDate').value;
+    else d=$('#iBatchProductionDate').value;
+    return d||productionDate||'';
+  }
   function openExpiryPicker(targetId, productionDate){
     temp.dateTarget=targetId;
     temp.expiryValue='';
     temp.expiryUnit='day';
     $('#iExpiryInput').value='';
     $$('#iExpiryUnits button').forEach(b=>b.classList.toggle('active', b.dataset.unit==='day'));
+    // 每次打开都重新取【生产日期】作为基准：无论这一行之前填过几次有效期，都从生产日期重算，不会在旧有效期上叠加
+    let base=resolveExpiryBase(targetId, productionDate);
+    const fallback=!base;
+    if(fallback) base=todayStr();
+    temp.expiryBaseDate=base;
+    const hint=$('#iExpiryBaseText');
+    if(hint) hint.textContent='基准日期：'+formatDateDot(base)+(fallback?'（未填生产日期，暂按今天）':'（生产日期）');
     openModal('iExpiryModal');
   }
   function setExpiryUnit(unit){
@@ -3061,13 +3077,12 @@
   function confirmExpiryPicker(){
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
-    // 根据不同上下文选取基准日期
-    let pd;
-    if(temp.dateTarget==='#iExpiryDate') pd=$('#iProductionDate').value;
-    else if(temp.dateTarget==='#iRestockExpiry') pd=$('#iRestockProductionDate').value;
-    else if(temp.dateTarget==='#iEditBatchExpiryDate') pd=temp.editBatchExpiryProd||$('#iProductionDate').value||todayStr();
-    else pd=$('#iBatchProductionDate').value;
-    if(!pd){ showToast('请先设置基准日期'); return; }
+    // 基准日期 = 打开弹窗时解析好的【生产日期】（每次打开都重新取，不在旧有效期上叠加）
+    let pd=temp.expiryBaseDate||resolveExpiryBase(temp.dateTarget,'');
+    if(!pd){
+      if(temp.dateTarget==='#iEditBatchExpiryDate') pd=todayStr();
+      else { showToast('请先设置生产日期'); return; }
+    }
     const res=computeExpiryDate(pd, v, temp.expiryUnit);
     // 记住本次选择的时长，供之后修改生产日期时自动重算有效期
     if(!temp.expirySpec) temp.expirySpec={};
