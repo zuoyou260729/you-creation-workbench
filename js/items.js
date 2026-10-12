@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v83';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v84';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -13,6 +13,16 @@
     const el = document.getElementById('i-subpage-detail');
     return !!(el && el.classList.contains('active'));
   }
+
+  // 弹窗栈：记录当前打开的弹窗 id（栈顶 = 最近打开）。移动端下每打开一个弹窗压一层 history，
+  // 使系统边缘滑动返回能「逐级关闭弹窗 → 返回详情/列表」，而非直接穿透到上一级页面。
+  const modalNav = {
+    stack: [],
+    hasOpen(){ return this.stack.length > 0; },
+    closeTop(){ const id=this.stack.pop(); if(id){ const el=document.getElementById(id); if(el) el.classList.remove('show'); } },
+    remove(id){ const i=this.stack.indexOf(id); if(i>=0) this.stack.splice(i,1); }
+  };
+  window.ItemsModal = modalNav;
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1652,9 +1662,9 @@
           <button class="i-btn-primary" data-close-modal="iShareModal" style="width:100%">我知道了</button>
         </div>`;
       document.body.appendChild(modal);
-      modal.addEventListener('click',e=>{ if(e.target===modal || e.target.closest('[data-close-modal]')) modal.classList.remove('show'); });
+      modal.addEventListener('click',e=>{ if(e.target===modal || e.target.closest('[data-close-modal]')) closeModal('iShareModal'); });
     }
-    modal.classList.add('show');
+    openModal('iShareModal');
   }
   function changeStatus(g, type){
     if(type==='stock'){
@@ -2767,8 +2777,26 @@
   }
 
   /* ===== 弹层 ===== */
-  function openModal(id){ $('#'+id).classList.add('show'); }
-  function closeModal(id){ $('#'+id).classList.remove('show'); }
+  function openModal(id){
+    const el=$('#'+id);
+    if(!el) return;
+    el.classList.add('show');
+    // 移动端：把弹窗压入 history 一层，让系统滑动返回可逐级关闭弹窗
+    if(isMobileView() && modalNav.stack.indexOf(id)===-1){
+      modalNav.stack.push(id);
+      history.pushState({ modal:true, id:id }, '');
+    }
+  }
+  function closeModal(id){
+    const el=$('#'+id);
+    if(el) el.classList.remove('show');
+    modalNav.remove(id);
+    // 移动端：若当前 history 顶层正是该弹窗，则弹回上一层（不穿透到页面）
+    if(isMobileView() && history.state && history.state.modal && history.state.id===id){
+      window.__suppressModalPop = true;
+      history.back();
+    }
+  }
 
   function openTextModal(title, value, onSave){
     const modal=$('#iTextModal');
@@ -3404,7 +3432,7 @@
 
     // modal closes
     $$('.i-modal').forEach(modal=>{
-      modal.addEventListener('click', e=>{ if(e.target===modal) modal.classList.remove('show'); });
+      modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(modal.id); });
     });
     $$('[data-close-modal]').forEach(btn=>{
       btn.addEventListener('click',()=>{ const id=btn.dataset.closeModal; if(id) closeModal(id); });
