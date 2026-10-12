@@ -190,6 +190,14 @@
   color: var(--i-text);
 }
 
+/* v80：平均每日成本卡片下的口径说明小字 */
+.i-stat-sub {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--i-text-sec);
+}
+
 .i-progress-bar {
   height: 6px;
   background: #EAEAEA;
@@ -1444,6 +1452,30 @@ button.i-action-pin.active {
 .i-detail-btns:active { opacity: .7; }
 .i-detail-btns svg { width: 22px; height: 22px; }
 .i-detail-btns-danger { color: var(--i-danger); }
+
+/* v80：每批次档案「删除本批次数据」按钮 —— 未选批次=灰色不可点，选中后变亮 */
+.i-detail-batch-del-row {
+  justify-content: flex-end;
+  padding-top: 14px;
+}
+.i-detail-batch-del-btn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--i-border-light);
+  background: #F2F3F0;
+  color: #A8AEA2;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: not-allowed;
+  -webkit-tap-highlight-color: transparent;
+}
+.i-detail-batch-del-btn.i-batch-del-on {
+  background: #FDEDED;
+  border-color: var(--i-danger);
+  color: var(--i-danger);
+  cursor: pointer;
+}
+.i-detail-batch-del-btn.i-batch-del-on:active { opacity: .75; }
 
 /* ===== 响应式 ===== */
 @media (max-width: 767px) {
