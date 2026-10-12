@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v81';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v82';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1450,19 +1450,34 @@
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
-    // 每批次档案（v81 改）：进入物品档案时「选择批次」一律为空，需用户主动点击选择；
-    // 单件物品也不再自动带出唯一批次（此前会自动选中，用户反馈不应如此）。
+    // 每批次档案：批量物品默认全部为空（需先选择批次）；单件物品自动选中唯一批次并带出数据
     currentDetailItem=item;
-    $('#iDetailBatchSel').textContent='请选择批次';
-    $('#iDetailBatchSel').dataset.bid='';
-    $('#iDetailAddTime').textContent='--';
-    $('#iDetailInDate').textContent='--';
-    $('#iDetailProdDate').textContent='--';
-    $('#iDetailExpiry').textContent='--';
-    $('#iDetailBatchRetired').textContent='--';
-    $('#iDetailBatchWarranty').textContent='--';
-    $('#iDetailBatchQty').textContent='--';
-    setBatchDelBtn(false);  // 未选择批次 → 按钮灰色不可点
+    const baBatches=getItemBatches(item);
+    const baIsSingle = baBatches.length<=1 && totalIn<=1;
+    if(baIsSingle && baBatches[0]){
+      const b=baBatches[0];
+      $('#iDetailBatchSel').textContent=b.id;
+      $('#iDetailBatchSel').dataset.bid=b.id;
+      $('#iDetailAddTime').textContent=formatDateDot(b.date);
+      $('#iDetailInDate').textContent=formatDateDot(b.date);
+      $('#iDetailProdDate').textContent=b.productionDate?formatDateDot(b.productionDate):(item.productionDate?formatDateDot(item.productionDate):'--');
+      $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
+      $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
+      $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
+      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      setBatchDelBtn(true);   // 批次已选中且数据已加载 → 按钮可用
+    }else{
+      $('#iDetailBatchSel').textContent='请选择批次';
+      $('#iDetailBatchSel').dataset.bid='';
+      $('#iDetailAddTime').textContent='--';
+      $('#iDetailInDate').textContent='--';
+      $('#iDetailProdDate').textContent='--';
+      $('#iDetailExpiry').textContent='--';
+      $('#iDetailBatchRetired').textContent='--';
+      $('#iDetailBatchWarranty').textContent='--';
+      $('#iDetailBatchQty').textContent='--';
+      setBatchDelBtn(false);  // 未选择批次 → 按钮灰色不可点
+    }
     bindBatchDateRow('#iDetailBatchSelRow', 'batch');
 
     // 底部操作栏 → 接入新弹窗
