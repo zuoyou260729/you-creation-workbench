@@ -215,8 +215,13 @@
     window.addEventListener('popstate', () => {
       if (!isMobile()) return;
       const st = history.state;
-      if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
-        goSection(st.section, st.sub, false);
+      if (st && st.lvl === 2 && st.section === 'items') {
+        // 目标是详情页：重新打开对应物品（通常由「列表 → 详情」后再前进触发；极少见但需兜底）
+        const ok = window.ItemsNav && window.ItemsNav.openDetailById(st.detailId, false);
+        if (!ok) goSection('items', st.sub || 'overview', false);
+      } else if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
+        // 从详情返回列表 / 分区内子页切换：恢复分区当前子页（会顺带关闭详情）
+        goSection(st.section, st.sub || 'overview', false);
       } else {
         // 根层级或没有状态信息 -> 确定性回到根栏（与「返回」键同一逻辑）
         exitToRoot();
@@ -234,7 +239,11 @@
         const m = /^#\/([a-z]+)(?:\/([a-z]+))?/.exec(location.hash || '');
         if (m && TAB_SECTIONS[m[1]]) st = { lvl: 1, section: m[1], sub: m[2] };
       }
-      if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
+      if (st && st.lvl === 2 && st.section === 'items') {
+        // 直达详情链接（刷新/分享）：先建立分区层（lvl:1），再打开对应物品详情（push lvl:2）
+        goSection('items', st.sub || 'overview', false);
+        if (window.ItemsNav) window.ItemsNav.openDetailById(st.detailId, false);
+      } else if (st && st.lvl === 1 && st.section && TAB_SECTIONS[st.section]) {
         goSection(st.section, st.sub, false);
       } else if (st && st.lvl === 0 && st.page) {
         goRoot(st.root, st.page, false);
