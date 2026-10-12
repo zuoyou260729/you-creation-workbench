@@ -3,7 +3,16 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v82';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v83';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+
+  // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
+  const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
+  // 当前物品模块所在子页（overview/categories/expiring），供详情页压入 history 时记录层级
+  let currentItemsSub = 'overview';
+  function isDetailOpen(){
+    const el = document.getElementById('i-subpage-detail');
+    return !!(el && el.classList.contains('active'));
+  }
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -1179,6 +1188,7 @@
     const target=$('#i-subpage-'+name);
     if(target) target.classList.add('active');
     $('.main').scrollTop=0;
+    if(['overview','categories','expiring'].includes(name)) currentItemsSub=name;
     if(name==='overview') renderOverview();
     if(name==='categories') renderCategoriesPage();
     if(name==='expiring') renderExpiringPage();
@@ -1492,9 +1502,33 @@
       };
     });
 
+    const wasDetailOpen = isDetailOpen();
     showSubpage('detail');
     $('.main').scrollTop=0;
+    // 进入详情时把这一层压入 history，使系统边缘滑动返回手势能「逐级」回退：
+    // 详情(lvl2) → 列表(lvl1) → 主界面(lvl0)。桌面端不压栈，避免污染浏览器历史。
+    const detailItemId = (g.items && g.items[0]) ? g.items[0].id : null;
+    if(detailItemId && !wasDetailOpen && isMobileView()){
+      const hs = history.state;
+      const inHist = hs && hs.lvl===2 && hs.detailId===detailItemId;
+      if(!inHist){
+        history.pushState({ lvl:2, section:'items', sub:currentItemsSub, detailId:detailItemId }, '', '#/items/'+currentItemsSub+'/detail/'+detailItemId);
+      }
+    }
   }
+  /* ===== 由 id 重新打开物品详情（供 app.js 的 popstate / 直达链接调用） ===== */
+  function openDetailById(id, push){
+    if(!id) return false;
+    const groups = groupItems(state.items).groups;
+    const g = groups.find(x => x.items && x.items[0] && x.items[0].id === id);
+    if(!g) return false;
+    showDetail(g);   // 内部已按「非详情进入时」自动压入 history（移动端）
+    return true;
+  }
+
+  // 暴露给 app.js 的导航钩子（popstate 处理详情层级）
+  window.ItemsNav = { openDetailById: openDetailById };
+
   // ===== 任务4/6：库存档案卡片“添加时间/退库日期”→ 选择批次 =====
   let batchDateTargetRow=null, batchDateSelectedId=null, batchDateMode='created';
   function bindBatchDateRow(sel, mode){
@@ -3295,7 +3329,7 @@
     $('#iCatBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     // 到期清单页的「返回」按钮已按要求删除（通过左侧导航/底部栏返回）
     $('#iBatchArchiveBackBtn')?.addEventListener('click',()=>showSubpage('expiring'));
-    $('#iDetailBack')?.addEventListener('click',()=>showSubpage('overview'));
+    $('#iDetailBack')?.addEventListener('click',()=>{ const st=history.state; if(st && st.lvl===2) history.back(); else showSubpage('overview'); });
 
     // add form tabs
     $('#iFormTabSingle')?.addEventListener('click',()=>{ temp.formTab='single'; toggleFormTab(); });
