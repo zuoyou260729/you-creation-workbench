@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v79';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v80';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   const ITEMS_KEY = 'wb_items_v2';
   const CATS_KEY = 'wb_item_categories_v2';
@@ -708,7 +708,18 @@
     const d=Math.floor((db-da)/86400000);
     return Math.max(1, d+1);  // 维护当天为第 1 天
   }
-  // 取所有有效批次（未退库）的并集有效期，得到日均成本（取最早批次与最近到期日的差距）
+  // 批次实际单价：优先 unitPrice；旧数据常只填了总价（unitPrice=0），此时用 总价/数量 回推
+  function batchUnitPrice(b){
+    if(!b) return 0;
+    const up=Number(b.unitPrice)||0;
+    if(up>0) return up;
+    const q=Number(b.quantity)||0;
+    if(q>0) return (Number(b.totalPrice)||0)/q;
+    return 0;
+  }
+  // 平均每日成本（v80 改）：只按【已取用】物品的价值计算 ——
+  // 单个物品：无取用记录不计；批量物品：Σ(批次单价 × 该批次已取用数量)，
+  // 例：10件×¥2、已取用3件 → 分子为 ¥6，再除以有效天数
   function getItemDailyCost(item){
     const all=getActiveBatches(item);
     const bs=all.filter(b=>b.expiryDate);
@@ -718,8 +729,13 @@
     if(!firstDate || !minExp) return 0;
     const days=daysDiffInclusive(firstDate, minExp);
     if(days<=0) return 0;
-    const total=all.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
-    return total/days;
+    const usings=getItemUsings(item);
+    const usedValue=all.reduce((s,b)=>{
+      const used=usings.filter(u=>u.batchId===b.id).reduce((x,u)=>x+(Number(u.quantity)||0),0);
+      return s+batchUnitPrice(b)*used;
+    },0);
+    if(usedValue<=0) return 0;   // 没有已取用的物品 → 日均成本为 0
+    return usedValue/days;
   }
 
   /* ===== 分类相关 ===== */
@@ -1287,8 +1303,16 @@
     if(isBatch){
       qty=Math.max(0, parseInt($('#iQty').value)||0);
       if(qty<=0){ showToast('请输入入库数量'); return; }   // 编辑/批量均需有效数量
-      price=Number($('#iBatchUnitPrice').value)||0;
-      totalPrice=Number($('#iBatchTotalPrice').value)||(qty*price);
+      // 物品单价未手动填写、但填了物品总价时：单价 = 总价/数量（自动算出并保存，v80）
+      const unitPriceStr=$('#iBatchUnitPrice').value.trim();
+      const totalPriceStr=$('#iBatchTotalPrice').value.trim();
+      if(!unitPriceStr && totalPriceStr && qty>0){
+        price=Math.round((Number(totalPriceStr)/qty)*100)/100;
+        $('#iBatchUnitPrice').value=price.toFixed(2);   // 回显，保证保存值可见
+      }else{
+        price=Number(unitPriceStr)||0;
+      }
+      totalPrice=Number(totalPriceStr)||(qty*price);
       expiryDate=$('#iBatchExpiryDate').value;
       if(!expiryDate){ showToast('请填写有效期'); return; }
     }else{
@@ -1440,6 +1464,8 @@
       $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
+      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      setBatchDelBtn(true);   // 批次已选中且数据已加载 → 按钮可用
     }else{
       $('#iDetailBatchSel').textContent='请选择批次';
       $('#iDetailBatchSel').dataset.bid='';
@@ -1449,6 +1475,8 @@
       $('#iDetailExpiry').textContent='--';
       $('#iDetailBatchRetired').textContent='--';
       $('#iDetailBatchWarranty').textContent='--';
+      $('#iDetailBatchQty').textContent='--';
+      setBatchDelBtn(false);  // 未选择批次 → 按钮灰色不可点
     }
     bindBatchDateRow('#iDetailBatchSelRow', 'batch');
 
@@ -1501,6 +1529,8 @@
   }
   function bindBatchDateEvents(){
     $('#iBatchDateCancel')?.addEventListener('click',()=>{ closeModal('iBatchDateModal'); hideTabbar(false); });
+    // v80：「删除本批次数据」按钮（初始禁用，由 setBatchDelBtn 控制亮/灰）
+    $('#iDetailBatchDelBtn')?.addEventListener('click', deleteDetailBatch);
     $('#iBatchDateConfirm')?.addEventListener('click',()=>{
       if(!batchDateSelectedId || !batchDateTargetRow) return;
       const all=[];
@@ -1517,8 +1547,55 @@
       $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
+      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      setBatchDelBtn(true);   // 批次已选中且数据已加载 → 「删除本批次数据」按钮变亮
       closeModal('iBatchDateModal'); hideTabbar(false);
     });
+  }
+  // ===== v80：每批次档案「入库数量」行 + 「删除本批次数据」按钮 =====
+  // 按钮状态：未选择批次=灰色不可点；选中批次且数据加载后=可点
+  function setBatchDelBtn(enabled){
+    const btn=$('#iDetailBatchDelBtn');
+    if(!btn) return;
+    btn.disabled=!enabled;
+    btn.classList.toggle('i-batch-del-on', !!enabled);
+  }
+  function deleteDetailBatch(){
+    const btn=$('#iDetailBatchDelBtn');
+    if(btn && btn.disabled) return;
+    const batchId=($('#iDetailBatchSel').dataset.bid)||'';
+    if(!batchId || !currentDetailGroup){ showToast('请先选择批次'); return; }
+    // 定位该批次所属的物品（同一分组可能含多条物品记录）
+    const owner=currentDetailGroup.items.find(it=>getItemBatches(it).some(b=>b.id===batchId));
+    if(!owner){ showToast('批次数据已更新，请返回后重新进入'); return; }
+    const isLastBatch=getItemBatches(owner).length<=1;
+    const msg=isLastBatch
+      ? `「${owner.name}」仅剩这一个批次，删除后整个物品都将被移除（含其全部取用记录），确定删除？`
+      : `确定删除「${owner.name}」的批次 ${batchId} 吗？\n该批次的取用记录会一并删除，其他批次不受影响。`;
+    if(!confirm(msg)) return;
+    // 删除该批次 + 其取用记录（保证 总入库-已取用 口径一致）
+    owner.batches=getItemBatches(owner).filter(b=>b.id!==batchId);
+    owner.usings=getItemUsings(owner).filter(u=>u.batchId!==batchId);
+    if(!owner.batches.length){
+      // 批次清空 → 整物品移除，并写入墓碑，防止云端同步复活
+      if(owner.id && !TOMB.includes(owner.id)) TOMB.push(owner.id);
+      state.items=state.items.filter(it=>it.id!==owner.id);
+    }else{
+      owner.updatedAt=new Date().toISOString();
+      // 重算兼容字段（单价/总价/库存）
+      const totalQty=getItemTotalIn(owner);
+      owner.qty=totalQty;
+      owner.stockQty=Math.max(0,totalQty-getItemTotalUsed(owner));
+      owner.totalPrice=owner.batches.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
+    }
+    save();
+    showToast(isLastBatch?'已删除该物品':'已删除该批次');
+    // 刷新：分组仍在则重进详情（批次选择重置），组已空则回总览
+    const { groups }=groupItems(state.items);
+    const g=groups.find(gg=>gg.key===currentDetailGroup.key);
+    if(g) showDetail(g);
+    else { showSubpage('overview'); }
+    renderOverview();
   }
   function confirmDeleteItem(item, g){
     if(!confirm(`确定删除「${item.name}」？该操作会从数据库中彻底删除该物品的所有批次和取用记录，手机端和电脑端的数据都会同步删除。`)) return;
@@ -1887,9 +1964,12 @@
     $('#iRestockProductionDate').textContent=formatDateDot(temp.restockProdDate);
     $('#iRestockProductionDate').value=temp.restockProdDate;
     $('#iRestockExpiry').textContent='请选择';
+    $('#iRestockExpiry').value='';          // span 用 expando 存值，重开时必须清空，避免残留上次日期
     $('#iRestockRetiredDate').textContent='请选择';
+    $('#iRestockRetiredDate').value='';
     temp.restockRetiredDate='';
     $('#iRestockWarrantyDate').textContent='请选择';
+    $('#iRestockWarrantyDate').value='';
     temp.restockWarrantyDate='';
     $('#iRestockQty').value='';
     $('#iRestockUnitPrice').value='';
@@ -1938,8 +2018,17 @@
     if(qty<=0){ showToast('请输入入库数量'); return; }
     const expiry=$('#iRestockExpiry').value;
     if(!expiry || expiry==='请选择'){ showToast('请选择有效期'); return; }
-    const price=Number($('#iRestockUnitPrice').value)||0;
-    const total=Number($('#iRestockTotalPrice').value)||(qty*price);
+    // 单价未填而已填总价时：单价 = 总价/数量（与批量添加页一致，v80）
+    const restockUnitStr=$('#iRestockUnitPrice').value.trim();
+    const restockTotalStr=$('#iRestockTotalPrice').value.trim();
+    let price;
+    if(!restockUnitStr && restockTotalStr && qty>0){
+      price=Math.round((Number(restockTotalStr)/qty)*100)/100;
+      $('#iRestockUnitPrice').value=price.toFixed(2);
+    }else{
+      price=Number(restockUnitStr)||0;
+    }
+    const total=Number(restockTotalStr)||(qty*price);
     const date=temp.restockDate||todayStr();
     const item=restockTargetItem;
     if(!Array.isArray(item.batches)) item.batches=[];
@@ -3077,8 +3166,9 @@
   function confirmExpiryPicker(){
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
-    // 基准日期 = 打开弹窗时解析好的【生产日期】（每次打开都重新取，不在旧有效期上叠加）
-    let pd=temp.expiryBaseDate||resolveExpiryBase(temp.dateTarget,'');
+    // 基准日期：每次确认都【重新】从对应的生产日期字段实时解析（v80 加固）——
+    // 绝不以「当前有效期字段的值」为基准，避免 6年→2031、再填10年→2043 这类叠加错误
+    let pd=resolveExpiryBase(temp.dateTarget,'')||temp.expiryBaseDate;
     if(!pd){
       if(temp.dateTarget==='#iEditBatchExpiryDate') pd=todayStr();
       else { showToast('请先设置生产日期'); return; }
@@ -3238,12 +3328,32 @@
     $('#iCancelItemBtn2')?.addEventListener('click',()=>showSubpage('overview'));
 
     // batch total auto
+    // 单价 × 数量 → 总价；若【单价未填】而已填总价，则反算 单价 = 总价/数量（v80）
     function updateBatchTotal(){
       const qty=Math.max(0, parseInt($('#iQty').value)||0);
       const price=Number($('#iBatchUnitPrice').value)||0;
       const totalEl=$('#iBatchTotalPrice');
-      if(document.activeElement!==totalEl) totalEl.value=(qty*price).toFixed(2);
+      if(document.activeElement===totalEl) return;              // 正在编辑总价，不覆盖
+      if(price>0){
+        totalEl.value=(qty*price).toFixed(2);
+      }else{
+        const t=Number(totalEl.value)||0;
+        if(t>0 && qty>0){
+          const unit=Math.round((t/qty)*100)/100;
+          $('#iBatchUnitPrice').value=unit.toFixed(2);          // 总价/数量，回填单价
+        }else{
+          totalEl.value='';
+        }
+      }
     }
+    // 总价输入时：单价为空则实时反算单价（总价/数量）
+    $('#iBatchTotalPrice')?.addEventListener('input', ()=>{
+      const qty=Math.max(0, parseInt($('#iQty').value)||0);
+      const t=Number($('#iBatchTotalPrice').value)||0;
+      if(!$('#iBatchUnitPrice').value.trim() && t>0 && qty>0){
+        $('#iBatchUnitPrice').value=(Math.round((t/qty)*100)/100).toFixed(2);
+      }
+    });
     $('#iQty')?.addEventListener('input', updateBatchTotal);
     $('#iBatchUnitPrice')?.addEventListener('input', updateBatchTotal);
     $('#iQtyMinus')?.addEventListener('click',()=>{ $('#iQty').value=Math.max(0,(parseInt($('#iQty').value)||1)-1); updateBatchTotal(); });
