@@ -214,6 +214,13 @@
     /* ---- 系统返回手势 / 浏览器后退 ---- */
     window.addEventListener('popstate', () => {
       if (!isMobile()) return;
+      // 移动端：程序化关闭弹窗（点关闭按钮）触发的 history.back()，跳过本次导航
+      if (window.__suppressModalPop) { window.__suppressModalPop = false; return; }
+      // 当前有打开的弹窗 → 系统滑动返回 = 关闭最上层弹窗（不导航页面）
+      if (window.ItemsModal && window.ItemsModal.hasOpen()) {
+        window.ItemsModal.closeTop();
+        return;
+      }
       const st = history.state;
       if (st && st.lvl === 2 && st.section === 'items') {
         // 目标是详情页：重新打开对应物品（通常由「列表 → 详情」后再前进触发；极少见但需兜底）
