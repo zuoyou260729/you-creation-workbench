@@ -2667,7 +2667,7 @@ button.i-action-pin.active {
   padding: 10px 14px;
 }
 
-/* ===== v92 累计维护支出：框内叠层提示（灰色斜体、可折行显示完整文案；聚焦/有内容即消失）+ 历史累计小字 ===== */
+/* ===== v92 累计维护支出：框内提示（文案与「备注说明」提示词同字号/同色/非斜体；聚焦或有内容即消失）+ 历史累计数值 ===== */
 .i-maint-wrap { position: relative; flex: 1; min-width: 0; }
 .i-maint-wrap .i-maintenance-input { width: 100%; }
 .i-maint-ph {
@@ -2675,15 +2675,9 @@ button.i-action-pin.active {
   left: 0; right: 0; top: 0; bottom: 0;
   display: flex;
   align-items: center;
-  font-size: 12px;
-  font-style: italic;
-  color: #BFBFBF;
-  line-height: 1.28;
-  pointer-events: none;      /* 点击穿透到输入框，点击后提示消失 */
-}
-.i-maintenance-hint {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--i-text-sec);
-  line-height: 1.4;
+  font-size: 15px;         /* 与「备注说明」提示词同大小 */
+  font-style: normal;      /* 与「备注说明」一致：不用斜体 */
+  color: #757575;          /* 与「备注说明」提示词同色 */
+  line-height: 1.24;
+  pointer-events: none;    /* 点击穿透到输入框，点击后提示消失 */
 }
