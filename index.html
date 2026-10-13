@@ -537,17 +537,29 @@
             </div>
 
             <div class="i-form-card" data-page-node-id="ne85X8A152aQIDJcrJlJmE">
-              <div class="i-field-label" style="margin-bottom:12px" data-page-node-id="RjUHaxI5QxmzxaAJwOVMb2">库存信息</div>
+              <div class="i-field-label i-stock-title" style="margin-bottom:12px" data-page-node-id="RjUHaxI5QxmzxaAJwOVMb2">库存信息</div>
               <div class="i-field i-switch-row" data-page-node-id="xFqTCcFuodhzWl7huKivDE">
-                <span data-page-node-id="c4IyoB53IDVNdNBeQEWopy">物品数量</span>
+                <span class="i-stock-label" data-page-node-id="c4IyoB53IDVNdNBeQEWopy">物品数量</span>
                 <div class="i-stepper" data-page-node-id="ktlVYdlo7TESEH6LEUFHmE"><button type="button" id="iQtyMinus" data-page-node-id="mApcnujBzTLDeBT03LtNPB">-</button><input type="number" id="iQty" value="1" data-page-node-id="FfPC8m0nEHDsjH3QF1b83j"><button type="button" id="iQtyPlus" data-page-node-id="lmvPE6ugHNIyVoapn5DdxR">+</button></div>
               </div>
+              <div class="i-field i-switch-row" data-page-node-id="iBatchUnitRow">
+                <span class="i-stock-label" data-page-node-id="iBatchUnitLabel">物品单位</span>
+                <div class="i-unit-select-wrap" data-page-node-id="iBatchUnitWrap">
+                  <select id="iBatchUnit" class="i-unit-select" data-page-node-id="iBatchUnitSel">
+                    <optgroup label="计件单位"><option value="件" selected>件</option><option value="个">个</option><option value="套">套</option><option value="组">组</option><option value="张">张</option></optgroup>
+                    <optgroup label="容量单位"><option value="ml">ml</option><option value="l">l</option></optgroup>
+                    <optgroup label="重量单位"><option value="mg">mg</option><option value="g">g</option><option value="kg">kg</option></optgroup>
+                    <optgroup label="包装单位"><option value="瓶">瓶</option><option value="罐">罐</option><option value="桶">桶</option><option value="箱">箱</option><option value="盒">盒</option><option value="包">包</option><option value="袋">袋</option><option value="卷">卷</option><option value="捆">捆</option></optgroup>
+                    <optgroup label="车辆单位"><option value="辆">辆</option></optgroup>
+                  </select>
+                </div>
+              </div>
               <div class="i-field" data-page-node-id="Ylsj8LfxLigYExWt6moMje">
-                <label class="i-field-label" data-page-node-id="EOJ3vV7bQS9EGDpmlwOQ2P">物品单价</label>
+                <label class="i-field-label i-stock-label" data-page-node-id="EOJ3vV7bQS9EGDpmlwOQ2P">物品单价</label>
                 <div class="i-input-group" data-page-node-id="SbfX1DeejNXPLJ9LfrpHfQ"><span class="i-prefix" data-page-node-id="xyDjoVGSc92iWsbtt0De4R">¥</span><input type="number" id="iBatchUnitPrice" placeholder="0.00" step="0.01" data-page-node-id="tW9refMB4LQrX92mf5zEMm"></div>
               </div>
               <div class="i-field" data-page-node-id="f649DaagmCeNzM12bsFGRK">
-                <label class="i-field-label" data-page-node-id="8uxFtzeF7Il31yGLdzkXNx">物品总价</label>
+                <label class="i-field-label i-stock-label" data-page-node-id="8uxFtzeF7Il31yGLdzkXNx">物品总价</label>
                 <div class="i-input-group" data-page-node-id="lDPRYVWuDvqKDUL3qt60pb"><span class="i-prefix" data-page-node-id="ScbrQq5nawch2LJ3QUVgen">¥</span><input type="number" id="iBatchTotalPrice" placeholder="0.00" step="0.01" data-page-node-id="iWfQjshsBHjqOtT7MyWDB8"></div>
               </div>
               <div class="i-date-row" data-target="#iBatchPurchaseDate" data-page-node-id="U3bXD5mDsFgdP04b97f4h1">
@@ -735,13 +747,16 @@
 
         <!-- 分类选择器（滚轮式，仅一级分类） -->
         <div class="i-modal" id="iCategoryModal" data-page-node-id="hrwxLRhk897BGlm1eDXDUF">
-          <div class="i-modal-card i-wheel-modal" data-page-node-id="CBZ8Oxhq50axRv6ByY8tTP">
-            <div class="i-wheel" id="iCatWheel" data-page-node-id="gFZ15LdbwLiSnWGb5xKWXB"></div>
-            <div class="i-wheel-actions" data-page-node-id="sYZ1hK2gxGTuKDjTDaiENz">
-              <button class="i-wheel-btn i-wheel-cancel" id="iCatWheelCancel" data-page-node-id="encGOxGBB0yMNzJTzQ0yAZ">取消</button>
-              <button class="i-wheel-btn i-wheel-confirm" id="iCatWheelConfirm" data-page-node-id="HzJKYVzDB7AtGVf1eJPsL7">确定</button>
+            <div class="i-modal-card i-wheel-modal" data-page-node-id="CBZ8Oxhq50axRv6ByY8tTP">
+              <div class="i-cat-wheels" data-page-node-id="gFZ15LdbwLiSnWGb5xKWXB_wrap">
+                <div class="i-wheel" id="iCatWheel" data-page-node-id="gFZ15LdbwLiSnWGb5xKWXB"></div>
+                <div class="i-wheel" id="iCatWheel2" data-page-node-id="gFZ15LdbwLiSnWGb5xKWXB_sub"></div>
+              </div>
+              <div class="i-wheel-actions" data-page-node-id="sYZ1hK2gxGTuKDjTDaiENz">
+                <button class="i-wheel-btn i-wheel-cancel" id="iCatWheelCancel" data-page-node-id="encGOxGBB0yMNzJTzQ0yAZ">取消</button>
+                <button class="i-wheel-btn i-wheel-confirm" id="iCatWheelConfirm" data-page-node-id="HzJKYVzDB7AtGVf1eJPsL7">确定</button>
+              </div>
             </div>
-          </div>
         </div>
 
         <!-- 日期选择器 -->
