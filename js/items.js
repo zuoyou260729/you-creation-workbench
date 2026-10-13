@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v90';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v91';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1525,6 +1525,7 @@
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
       $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      setBatchNoteText(b.note);   // v91：带出该批次的备注说明
       setBatchDelBtn(true);   // 批次已选中且数据已加载 → 按钮可用
     }else{
       $('#iDetailBatchSel').textContent='请选择批次';
@@ -1536,6 +1537,7 @@
       $('#iDetailBatchRetired').textContent='--';
       $('#iDetailBatchWarranty').textContent='--';
       $('#iDetailBatchQty').textContent='--';
+      setBatchNoteText('');   // v91：未选批次 → 备注说明置空
       setBatchDelBtn(false);  // 未选择批次 → 按钮灰色不可点
     }
     bindBatchDateRow('#iDetailBatchSelRow', 'batch');
@@ -1632,11 +1634,19 @@
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
       $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      setBatchNoteText(b.note);   // v91：带出所选批次的备注说明
       setBatchDelBtn(true);   // 批次已选中且数据已加载 → 「删除本批次数据」按钮变亮
       closeModal('iBatchDateModal'); hideTabbar(false);
     });
   }
   // ===== v80：每批次档案「入库数量」行 + 「删除本批次数据」按钮 =====
+  // v91：每批次档案「备注说明」行 —— 显示所选批次的备注内容（无备注显示 --）
+  function setBatchNoteText(note){
+    const el=$('#iDetailBatchNote');
+    if(!el) return;
+    const t=(note||'').toString().trim();
+    el.textContent=t||'--';
+  }
   // 按钮状态：未选择批次=灰色不可点；选中批次且数据加载后=可点
   function setBatchDelBtn(enabled){
     const btn=$('#iDetailBatchDelBtn');
@@ -2294,6 +2304,7 @@
     const batches=getItemBatches(item);
     $('#iEditBatchCount').textContent=batches.length;
     $('#iEditLocation').value=item.location||'';
+    if($('#iEditMemo')) $('#iEditMemo').value=item.memo||'';   // v91：备注说明（与物品维护页一致）
     // 每批次档案：以每个批次为单位维护 单价 / 总价 / 退库日期
     temp.editBatchMap={};
     batches.forEach(b=>{
@@ -2443,6 +2454,7 @@
     item.icon=temp.selectedIcon||'📦';
     item.categoryId=temp.selectedCategory;
     item.location=$('#iEditLocation').value.trim().slice(0,100);
+    item.memo=$('#iEditMemo')?$('#iEditMemo').value.trim().slice(0,300):(item.memo||'');   // v91：备注说明（与物品维护页一致）
     // 每批次档案：将每个批次编辑后的 单价 / 总价 / 退库日期 写回对应批次对象
     const sbatches=getItemBatches(item);
     sbatches.forEach(b=>{
