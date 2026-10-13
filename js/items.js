@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v92';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v93';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1312,7 +1312,12 @@
      判定：不跟随批次保存。批次承载「入库」语义（数量/单价/有效期/日均成本），
      维护支出是跨批次的支出流水，故存物品级 maintenanceTotal（累计值）+ maintenanceLog（流水，便于日后展示）。
      累计维护支出不参与平均每日成本计算。 */
-  // 框内叠层提示：未聚焦且无内容时显示；点击（聚焦）或已有内容即消失
+  // 框内提示：文案 = 「历史维护的总金额 <数值>，本次填写的金额将累加保存」（无维护记录时数值为 0）
+  function maintPhText(item){
+    const total=Number((item && item.maintenanceTotal)||0);
+    const val=total>0?total.toFixed(2):'0';
+    return '历史维护的总金额 '+val+'，本次填写的金额将累加保存';
+  }
   function syncMaintPh(input, ph){
     if(!input || !ph) return;
     const show=(document.activeElement!==input) && !input.value.trim();
@@ -1328,7 +1333,7 @@
     input.addEventListener('input', sync);
     sync();
   }
-  // 未填=不变更；非法=返回 NaN（由调用方提示「请输入金额」）；合法=累加并记流水
+  // 未填=不变更；非法=返回 NaN（由调用方提示「累计维护支出中请输入金额」）；合法=累加并记流水
   function applyMaintenanceAmount(item, raw){
     const s=(raw||'').trim();
     if(s==='') return 0;
@@ -1339,29 +1344,20 @@
     item.maintenanceLog.push({ date:todayStr(), amount:amt });
     return amt;
   }
-  function updateMaintenanceHint(hintEl, item){
-    if(!hintEl) return;
-    const total=Number((item && item.maintenanceTotal)||0);
-    if(total>0){
-      hintEl.style.display='block';
-      hintEl.textContent='历史累计维护 '+formatMoney(total)+'，本次填写的金额将累加保存';
-    }else{
-      hintEl.style.display='none';
-      hintEl.textContent='';
-    }
-  }
   function resetMaintenanceInput(item){
     const el=$('#iMaintenance');
     if(el) el.value='';
-    bindMaintenanceInput(el, $('#iMaintenancePh'));
-    updateMaintenanceHint($('#iMaintenanceHint'), item);
+    const ph=$('#iMaintenancePh');
+    if(ph) ph.textContent=maintPhText(item);
+    bindMaintenanceInput(el, ph);
   }
   // 编辑页（编辑库存品）的同类输入
   function resetEditMaintenanceInput(item){
     const el=$('#iEditMaintenance');
     if(el) el.value='';
-    bindMaintenanceInput(el, $('#iEditMaintenancePh'));
-    updateMaintenanceHint($('#iEditMaintenanceHint'), item);
+    const ph=$('#iEditMaintenancePh');
+    if(ph) ph.textContent=maintPhText(item);
+    bindMaintenanceInput(el, ph);
   }
 
   function updateCategoryTrigger(){
@@ -1392,9 +1388,9 @@
     const name=isBatch?$('#iBatchName').value.trim():$('#iName').value.trim();
     if(!name){ showToast('请输入物品名称'); return; }
     if(!temp.selectedCategory){ showToast('请选择分类'); return; }
-    // v92：本次维护金额（选填）—— 非数字则提示「请输入金额」（先校验，避免中途改坏已有数据）
+    // v92：本次维护金额（选填）—— 非数字则提示「累计维护支出中请输入金额」（先校验，避免中途改坏已有数据）
     const maintRaw=($('#iMaintenance')?$('#iMaintenance').value:'').trim();
-    if(maintRaw!=='' && !isFinite(Number(maintRaw))){ showToast('请输入金额'); return; }
+    if(maintRaw!=='' && !isFinite(Number(maintRaw))){ showToast('累计维护支出中请输入金额'); return; }
 
     let item={};
     if(temp.editId) item=state.items.find(it=>it.id===temp.editId);
@@ -2515,9 +2511,9 @@
     const name=$('#iEditName').value.trim();
     if(!name){ showToast('请输入物品名称'); return; }
     if(!temp.selectedCategory){ showToast('请选择分类'); return; }
-    // v92：本次维护金额（选填）—— 非数字则提示「请输入金额」
+    // v92：本次维护金额（选填）—— 非数字则提示「累计维护支出中请输入金额」
     const maintRaw=($('#iEditMaintenance')?$('#iEditMaintenance').value:'').trim();
-    if(maintRaw!=='' && !isFinite(Number(maintRaw))){ showToast('请输入金额'); return; }
+    if(maintRaw!=='' && !isFinite(Number(maintRaw))){ showToast('累计维护支出中请输入金额'); return; }
     const item=editTargetItem;
     item.name=name;
     item.icon=temp.selectedIcon||'📦';
