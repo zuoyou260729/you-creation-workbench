@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v91';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v92';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -916,6 +916,7 @@
           retiredQty:0,
           dailyCost:0,
           usageCount:0,
+          maintenanceTotal:0,   // v92：累计维护支出（物品级累加）
           purchaseDates:[],
           holdingDays:0,
           starred:false,
@@ -936,6 +937,7 @@
       g.retiredQty+=0;   // 新模型无 retired
       g.dailyCost+=dailyCost;
       g.usageCount+=getItemUsings(item).length;
+      g.maintenanceTotal+=Number(item.maintenanceTotal||0);   // v92：本组各物品累计维护支出之和
       if(batches.length){
         batches.forEach(b=>g.purchaseDates.push(b.date));
       } else if(item.purchaseDate){
@@ -1285,12 +1287,9 @@
     if(editItem){
       // 物品级字段：编辑时保留并可修改（分类/图标已在外部设置）
       $('#iName').value=editItem.name;
-      $('#iExpectedDaily').value=editItem.expectedDaily||'';
       $('#iRetireDate').value=editItem.retireDate||'';
       $('#iWarrantyDate').value=editItem.warrantyDate||'';
       $('#iBatchWarrantyDate').value=editItem.warrantyDate||'';
-      $('#iUsageCount').value=editItem.usageCount||'';
-      $('#iMaintenance').value=editItem.maintenanceTotal||'';
       $('#iLocation').value=editItem.location||'';
       $('#iMemo').value=editItem.memo||'';
       $('#iBatchName').value=editItem.name;
@@ -1304,7 +1303,65 @@
     }
     updateCategoryTrigger();
     updateIconBtn();
+    // v92：累计维护支出 —— 输入框只填「本次维护金额」，历史累计由系统累加
+    resetMaintenanceInput(editItem);
     showSubpage('add');
+  }
+
+  /* ===== v92：累计维护支出（本次金额 → 累加到物品级累计值） =====
+     判定：不跟随批次保存。批次承载「入库」语义（数量/单价/有效期/日均成本），
+     维护支出是跨批次的支出流水，故存物品级 maintenanceTotal（累计值）+ maintenanceLog（流水，便于日后展示）。
+     累计维护支出不参与平均每日成本计算。 */
+  // 框内叠层提示：未聚焦且无内容时显示；点击（聚焦）或已有内容即消失
+  function syncMaintPh(input, ph){
+    if(!input || !ph) return;
+    const show=(document.activeElement!==input) && !input.value.trim();
+    ph.style.display=show?'flex':'none';
+  }
+  function bindMaintenanceInput(input, ph){
+    if(!input || input._bound) return;
+    input._bound=true;
+    input.setAttribute('placeholder','');
+    const sync=()=>syncMaintPh(input, ph);
+    input.addEventListener('focus', sync);
+    input.addEventListener('blur', sync);
+    input.addEventListener('input', sync);
+    sync();
+  }
+  // 未填=不变更；非法=返回 NaN（由调用方提示「请输入金额」）；合法=累加并记流水
+  function applyMaintenanceAmount(item, raw){
+    const s=(raw||'').trim();
+    if(s==='') return 0;
+    const amt=Number(s);
+    if(!isFinite(amt)) return NaN;
+    item.maintenanceTotal=Math.round((Number(item.maintenanceTotal||0)+amt)*100)/100;
+    if(!Array.isArray(item.maintenanceLog)) item.maintenanceLog=[];
+    item.maintenanceLog.push({ date:todayStr(), amount:amt });
+    return amt;
+  }
+  function updateMaintenanceHint(hintEl, item){
+    if(!hintEl) return;
+    const total=Number((item && item.maintenanceTotal)||0);
+    if(total>0){
+      hintEl.style.display='block';
+      hintEl.textContent='历史累计维护 '+formatMoney(total)+'，本次填写的金额将累加保存';
+    }else{
+      hintEl.style.display='none';
+      hintEl.textContent='';
+    }
+  }
+  function resetMaintenanceInput(item){
+    const el=$('#iMaintenance');
+    if(el) el.value='';
+    bindMaintenanceInput(el, $('#iMaintenancePh'));
+    updateMaintenanceHint($('#iMaintenanceHint'), item);
+  }
+  // 编辑页（编辑库存品）的同类输入
+  function resetEditMaintenanceInput(item){
+    const el=$('#iEditMaintenance');
+    if(el) el.value='';
+    bindMaintenanceInput(el, $('#iEditMaintenancePh'));
+    updateMaintenanceHint($('#iEditMaintenanceHint'), item);
   }
 
   function updateCategoryTrigger(){
@@ -1335,6 +1392,9 @@
     const name=isBatch?$('#iBatchName').value.trim():$('#iName').value.trim();
     if(!name){ showToast('请输入物品名称'); return; }
     if(!temp.selectedCategory){ showToast('请选择分类'); return; }
+    // v92：本次维护金额（选填）—— 非数字则提示「请输入金额」（先校验，避免中途改坏已有数据）
+    const maintRaw=($('#iMaintenance')?$('#iMaintenance').value:'').trim();
+    if(maintRaw!=='' && !isFinite(Number(maintRaw))){ showToast('请输入金额'); return; }
 
     let item={};
     if(temp.editId) item=state.items.find(it=>it.id===temp.editId);
@@ -1433,6 +1493,8 @@
       state.items.push(item);
     }
     item.updatedAt=new Date().toISOString();
+    // v92：累计维护支出 = 历史累计 + 本次填写金额（物品级累加；不参与平均每日成本计算）
+    if(maintRaw!=='') applyMaintenanceAmount(item, maintRaw);
     save();
     showToast(temp.editId?'已保存':'已添加');
     showSubpage('overview');
@@ -1510,6 +1572,9 @@
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
+    // v92：累计维护支出（汇总该物品/该组各物品的累计金额；不参与平均每日成本计算）
+    const maintTotal=Number(g.maintenanceTotal||0);
+    $('#iDetailMaintenance').textContent=formatMoney(maintTotal);
     // 每批次档案：批量物品默认全部为空（需先选择批次）；单件物品自动选中唯一批次并带出数据
     currentDetailItem=item;
     const baBatches=getItemBatches(item);
@@ -2305,6 +2370,7 @@
     $('#iEditBatchCount').textContent=batches.length;
     $('#iEditLocation').value=item.location||'';
     if($('#iEditMemo')) $('#iEditMemo').value=item.memo||'';   // v91：备注说明（与物品维护页一致）
+    resetEditMaintenanceInput(item);   // v92：累计维护支出（本次金额输入 + 历史累计提示）
     // 每批次档案：以每个批次为单位维护 单价 / 总价 / 退库日期
     temp.editBatchMap={};
     batches.forEach(b=>{
@@ -2449,6 +2515,9 @@
     const name=$('#iEditName').value.trim();
     if(!name){ showToast('请输入物品名称'); return; }
     if(!temp.selectedCategory){ showToast('请选择分类'); return; }
+    // v92：本次维护金额（选填）—— 非数字则提示「请输入金额」
+    const maintRaw=($('#iEditMaintenance')?$('#iEditMaintenance').value:'').trim();
+    if(maintRaw!=='' && !isFinite(Number(maintRaw))){ showToast('请输入金额'); return; }
     const item=editTargetItem;
     item.name=name;
     item.icon=temp.selectedIcon||'📦';
@@ -2473,6 +2542,8 @@
     item.totalPrice=sbatches.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
     item.price=getItemTotalIn(item)>0?item.totalPrice/getItemTotalIn(item):0;
     item.avgPrice=sbatches.length?Number(sbatches[sbatches.length-1].unitPrice||0):0;
+    // v92：累计维护支出累加（不参与平均每日成本计算）
+    if(maintRaw!=='') applyMaintenanceAmount(item, maintRaw);
     item.updatedAt=new Date().toISOString();
     save();
     showToast('已保存修改');
