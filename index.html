@@ -544,15 +544,10 @@
               </div>
               <div class="i-field i-switch-row" data-page-node-id="iBatchUnitRow">
                 <span class="i-stock-label" data-page-node-id="iBatchUnitLabel">物品单位</span>
-                <div class="i-unit-select-wrap" data-page-node-id="iBatchUnitWrap">
-                  <select id="iBatchUnit" class="i-unit-select" data-page-node-id="iBatchUnitSel">
-                    <optgroup label="计件单位"><option value="件" selected>件</option><option value="个">个</option><option value="套">套</option><option value="组">组</option><option value="张">张</option></optgroup>
-                    <optgroup label="容量单位"><option value="ml">ml</option><option value="l">l</option></optgroup>
-                    <optgroup label="重量单位"><option value="mg">mg</option><option value="g">g</option><option value="kg">kg</option></optgroup>
-                    <optgroup label="包装单位"><option value="瓶">瓶</option><option value="罐">罐</option><option value="桶">桶</option><option value="箱">箱</option><option value="盒">盒</option><option value="包">包</option><option value="袋">袋</option><option value="卷">卷</option><option value="捆">捆</option></optgroup>
-                    <optgroup label="车辆单位"><option value="辆">辆</option></optgroup>
-                  </select>
-                </div>
+                <button type="button" class="i-unit-trigger" id="iBatchUnitTrigger" data-page-node-id="iBatchUnitBtn">
+                  <span id="iBatchUnitText">件</span><span class="i-unit-caret">▾</span>
+                </button>
+                <input type="hidden" id="iBatchUnit" value="件" data-page-node-id="iBatchUnitSel">
               </div>
               <div class="i-field" data-page-node-id="Ylsj8LfxLigYExWt6moMje">
                 <label class="i-field-label i-stock-label" data-page-node-id="EOJ3vV7bQS9EGDpmlwOQ2P">物品单价</label>
@@ -757,6 +752,14 @@
                 <button class="i-wheel-btn i-wheel-confirm" id="iCatWheelConfirm" data-page-node-id="HzJKYVzDB7AtGVf1eJPsL7">确定</button>
               </div>
             </div>
+        </div>
+
+        <!-- 单位选择（v88：与站内弹窗统一样式，直接列单位、按单位类型排序、不显示分组标题） -->
+        <div class="i-modal" id="iUnitModal" data-page-node-id="iUnitModal">
+          <div class="i-modal-card" data-page-node-id="iUnitModalCard">
+            <div class="i-modal-head" data-page-node-id="iUnitModalHead"><h3 id="iUnitModalTitle" data-page-node-id="iUnitModalTitle">选择单位</h3><button class="i-modal-close" data-close-modal="iUnitModal" data-page-node-id="iUnitModalClose">×</button></div>
+            <div class="i-options i-unit-options" id="iUnitOptions" data-page-node-id="iUnitOptions"></div>
+          </div>
         </div>
 
         <!-- 日期选择器 -->
