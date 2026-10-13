@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v88';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v89';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1282,8 +1282,7 @@
     $('#iBatchUnitPrice').value='';
     $('#iBatchTotalPrice').value='';
     // 物品单位（v88）：默认「件」；编辑时沿用物品已有单位
-    const unitSel=$('#iBatchUnit');
-    if(unitSel) unitSel.value=(editItem && editItem.unit)?editItem.unit:'件';
+    setBatchUnit((editItem && editItem.unit)||DEFAULT_UNIT);
 
     if(editItem){
       // 物品级字段：编辑时保留并可修改（分类/图标已在外部设置）
@@ -2918,6 +2917,33 @@
     });
   }
 
+  // 物品单位（v88）：允许值按「单位类型」排序（计件/容量/重量/包装/车辆），界面不显示分组标题
+  const UNIT_OPTIONS=['件','个','套','组','张','ml','l','mg','g','kg','瓶','罐','桶','箱','盒','包','袋','卷','捆','辆'];
+  const DEFAULT_UNIT='件';
+  function currentBatchUnit(){ return ($('#iBatchUnit')||{}).value||DEFAULT_UNIT; }
+  function setBatchUnit(unit){
+    const u=unit||DEFAULT_UNIT;
+    const el=$('#iBatchUnit');
+    if(el) el.value=u;
+    const txt=$('#iBatchUnitText');
+    if(txt) txt.textContent=u;
+  }
+  function renderUnitOptions(){
+    const cur=currentBatchUnit();
+    const box=$('#iUnitOptions');
+    if(!box) return;
+    box.innerHTML=UNIT_OPTIONS.map(u=>
+      `<button type="button" class="i-option ${u===cur?'active':''}" data-unit="${escapeHtml(u)}">${escapeHtml(u)}</button>`
+    ).join('');
+    $$('#iUnitOptions .i-option').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ setBatchUnit(btn.dataset.unit); closeModal('iUnitModal'); });
+    });
+  }
+  function openUnitModal(){
+    renderUnitOptions();
+    openModal('iUnitModal');
+  }
+
   function openCategoryPicker(){
     // 滚轮式分类选择器：左侧一级（自定义一级 + 系统一级），右侧二级（随一级联动）
     const customs=customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID);
@@ -3486,6 +3512,7 @@
 
     // form actions
     $('#iCategoryTrigger')?.addEventListener('click', openCategoryPicker);
+    $('#iBatchUnitTrigger')?.addEventListener('click', openUnitModal);
     $('#iCatWheelCancel')?.addEventListener('click',()=>closeModal('iCategoryModal'));
     $('#iCatWheelConfirm')?.addEventListener('click',()=>{
       const p=(temp.wheelList||[])[temp.wheelIndex];
