@@ -2604,27 +2604,27 @@ button.i-action-pin.active {
   font-weight: 600;
   margin-bottom: 0;
 }
-/* 物品单位：下拉选择按钮 */
-.i-unit-select-wrap { position: relative; display: inline-flex; align-items: center; }
-.i-unit-select-wrap::after {
-  content: '▾';
-  position: absolute;
-  right: 11px;
-  font-size: 12px;
-  color: var(--i-text-sec);
-  pointer-events: none;
-}
-.i-unit-select {
-  -webkit-appearance: none;
-  appearance: none;
+/* 物品单位：与站内弹窗统一的「触发按钮 + 芯片选择」 */
+.i-unit-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-width: 96px;
-  padding: 8px 30px 8px 14px;
+  padding: 8px 12px;
   border: 1px solid var(--i-border);
   border-radius: var(--i-radius-sm);
   background: var(--i-surface);
   font-size: 15px;
   font-weight: 600;
   color: var(--i-text);
-  outline: none;
   cursor: pointer;
+}
+.i-unit-trigger .i-unit-caret { font-size: 12px; color: var(--i-text-sec); }
+.i-unit-options { gap: 10px; }
+.i-unit-options .i-option {
+  min-width: 58px;
+  text-align: center;
+  font-size: 14px;
+  padding: 10px 14px;
 }
