@@ -884,6 +884,10 @@
                 <div class="i-detail-row" data-page-node-id="ol7i6uQgczP7WuVBMe6wxx"><span class="i-detail-row-label" data-page-node-id="TjkH1URot14uYJol3MmUoe">退库日期</span><span class="i-detail-row-value" id="iDetailBatchRetired" data-page-node-id="idOgYrBcqhsvPPYEZjwpPz">--</span></div>
                 <div class="i-detail-row" data-page-node-id="c4KDxXg2yqJE8LaZJyP9Ub"><span class="i-detail-row-label" data-page-node-id="WeRBV0gI3ZsE7Ay1fH5rbC">质保期</span><span class="i-detail-row-value" id="iDetailBatchWarranty" data-page-node-id="m7bxZ6QsMtH4xNLxkhdFQM">--</span></div>
                 <div class="i-detail-row" data-page-node-id="v80BatchQtyRow"><span class="i-detail-row-label" data-page-node-id="v80BatchQtyLabel">入库数量</span><span class="i-detail-row-value" id="iDetailBatchQty" data-page-node-id="v80BatchQtyValue">--</span></div>
+                <div class="i-detail-row i-detail-row-stack" id="iDetailBatchNoteRow" data-page-node-id="v91BatchNoteRow">
+                  <span class="i-detail-row-label" data-page-node-id="v91BatchNoteLabel">备注说明</span>
+                  <span class="i-detail-row-value" id="iDetailBatchNote" data-page-node-id="v91BatchNoteValue">--</span>
+                </div>
                 <div class="i-detail-row i-detail-batch-del-row" data-page-node-id="v80BatchDelRow">
                   <button type="button" class="i-detail-batch-del-btn" id="iDetailBatchDelBtn" disabled data-page-node-id="v80BatchDelBtn">删除本批次数据</button>
                 </div>
@@ -1053,17 +1057,17 @@
           </div>
 
           <div class="i-edit-body" data-page-node-id="AE6GHaPZpPUHnENhyvmkjS">
-            <!-- 卡片1：名称+图标+分类 -->
+            <!-- 卡片1：名称（图标在左，可点击更换）+ 分类 -->
+            <div class="i-edit-section-title" data-page-node-id="v91EditNameTitle">库存品名称</div>
             <div class="i-edit-card" data-page-node-id="IFtfxjTQgVovD0GATa2F85">
               <div class="i-edit-row i-edit-name-row" data-page-node-id="hiskvKoZxabNpbFuQE6NSt">
-                <div class="i-edit-name-block" data-page-node-id="yQStoIC2E9j8pKlit9Fspn">
-                  <div class="i-edit-label" data-page-node-id="NTJqhMnbXMblAnX88SHZN0">库存品名称</div>
-                  <input type="text" class="i-edit-name-input" id="iEditName" placeholder="请输入名称" data-page-node-id="r7GjRTKWRO5SiQIaLFhVdS">
-                </div>
                 <button class="i-edit-icon-btn" id="iEditIconBtn" data-page-node-id="pL0DKwqN1ktfARLUSJMseu">
                   <div class="i-edit-icon-preview" id="iEditIconPreview" data-page-node-id="bH94uT1Jz3X4PzAsSwqS5H">📦</div>
                   <span class="i-edit-icon-hint" data-page-node-id="Jas1OgtMwRSSJFafK8rZk6">选择图标</span>
                 </button>
+                <div class="i-edit-name-block" data-page-node-id="yQStoIC2E9j8pKlit9Fspn">
+                  <input type="text" class="i-edit-name-input" id="iEditName" placeholder="请输入名称" data-page-node-id="r7GjRTKWRO5SiQIaLFhVdS">
+                </div>
               </div>
               <div class="i-edit-row i-edit-cat-row" id="iEditCatTrigger" data-page-node-id="55I2qB5oCHJSzmuWvPxoX5">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="okbPot3vadf5obJXRsevdn"><rect x="3" y="3" width="7" height="7" data-page-node-id="j3umdRhD0zMVQgrHgq9nRH"/><rect x="14" y="3" width="7" height="7" data-page-node-id="rtquVtX82G1DXLieo81CLi"/><rect x="3" y="14" width="7" height="7" data-page-node-id="7HWrQpWV6NcPP8pUfWP7OP"/><rect x="14" y="14" width="7" height="7" data-page-node-id="319AA3GS2cvK9ouj9I046Q"/></svg>
@@ -1142,13 +1146,19 @@
               </div>
             </div>
 
-            <!-- 存放位置 -->
+            <!-- 存放位置 + 备注说明 -->
             <div class="i-edit-card" data-page-node-id="BVURFdkj5kMAbZVLI6l2PR">
               <div class="i-edit-info-row i-edit-stack" data-page-node-id="AUdi5IAxXFsqkxNA0j3qIT">
                 <div class="i-edit-label-block" data-page-node-id="zxATAq7NYl7xUa8ukVqvqa">
                   <div class="i-edit-row-label" data-page-node-id="Avjn4R3gXgzNgb2nEqwyEz">存放位置<span class="i-edit-optional" data-page-node-id="0zqoWbpAOCIoOLzn13vj3Y">（选填）</span></div>
                 </div>
                 <input type="text" class="i-edit-input i-edit-input-block" id="iEditLocation" placeholder="请输入存放位置" maxlength="100" data-page-node-id="OAJlGfDVE5DWBV0BLOrMzT">
+              </div>
+              <div class="i-edit-info-row i-edit-stack" data-page-node-id="v91EditMemoRow">
+                <div class="i-edit-label-block" data-page-node-id="v91EditMemoLabelBlock">
+                  <div class="i-edit-row-label" data-page-node-id="v91EditMemoLabel">备注说明<span class="i-edit-optional" data-page-node-id="v91EditMemoOptional">（选填）</span></div>
+                </div>
+                <textarea class="i-edit-input i-edit-input-block i-edit-textarea" id="iEditMemo" rows="2" maxlength="300" placeholder="关于此物品的特别记忆" data-page-node-id="v91EditMemoInput"></textarea>
               </div>
             </div>
           </div>
