@@ -1451,6 +1451,8 @@ button.i-action-pin.active {
   overflow-wrap: anywhere;
   color: var(--i-text);
 }
+/* v95：详情行通用隐藏（如「累计维护支出」仅单个物品的档案页显示） */
+.i-detail-row.i-hide { display: none; }
 
 /* 底部固定操作栏 */
 .i-detail-bottom-actions {
