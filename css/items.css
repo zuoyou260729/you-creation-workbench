@@ -336,18 +336,34 @@
   color: var(--i-primary);
 }
 
-.i-grid-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--i-border-light);
-}
-.i-grid-actions button {
-  width: 32px; height: 32px;
+/* v90：置顶按钮移到卡片左上角（与右上角收藏星标对称），底部操作行整行移除以降低卡片高度 */
+.i-grid-card .i-grid-pin {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
   border-radius: 50%;
-  color: var(--i-text-sec);
-  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: var(--i-text-ter);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.i-grid-card .i-grid-pin svg { width: 18px; height: 18px; }
+.i-grid-card .i-grid-pin.active {
+  background: var(--i-primary-light);
+  color: var(--i-primary-dark);
+}
+
+/* 批量角标：左上角已让给置顶按钮 → 改为右上角（收藏星标左侧）的小胶囊，规则同列表卡片的「已过期」角标 */
+.i-grid-card .i-batch-badge {
+  top: 8px;
+  right: 42px;
+  left: auto;
+  border-radius: 8px;
+  padding: 2px 7px;
 }
 
 .i-batch-badge {
