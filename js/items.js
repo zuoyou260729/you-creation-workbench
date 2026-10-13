@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v87';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v88';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1281,6 +1281,9 @@
     $('#iQty').value='1';
     $('#iBatchUnitPrice').value='';
     $('#iBatchTotalPrice').value='';
+    // 物品单位（v88）：默认「件」；编辑时沿用物品已有单位
+    const unitSel=$('#iBatchUnit');
+    if(unitSel) unitSel.value=(editItem && editItem.unit)?editItem.unit:'件';
 
     if(editItem){
       // 物品级字段：编辑时保留并可修改（分类/图标已在外部设置）
@@ -1309,10 +1312,12 @@
 
   function updateCategoryTrigger(){
     const cat=getCategory(temp.selectedCategory);
-    // 未选择时显示占位文案，选择后显示一级分类名（单个/批量两处同步）
-    const html=cat
-      ? escapeHtml(getCategoryPath(cat.id).primaryName)
-      : '<span class="i-placeholder">请选择分类</span>';
+    // 未选择时显示占位文案；选择后显示「一级-二级」（只选一级时只显示一级名）——单个/批量两处同步
+    let html='<span class="i-placeholder">请选择分类</span>';
+    if(cat){
+      const path=getCategoryPath(cat.id);
+      html=escapeHtml(path.secondaryName ? `${path.primaryName}-${path.secondaryName}` : path.primaryName);
+    }
     const single=$('#iCategoryTrigger .i-value');
     const batch=$('#iBatchCategoryTrigger .i-value');
     if(single) single.innerHTML=html;
@@ -1354,6 +1359,9 @@
     const isEdit=!!temp.editId;
     // 新批次模型：构造本次入库批次
     let qty=1, price=0, totalPrice=0, expiryDate='', note=item.memo||'';
+    // 物品单位（v88）：批量表单可下拉选择；单个表单沿用物品原有单位（默认「件」）
+    const unit=isBatch?(($('#iBatchUnit')||{}).value||'件'):(item.unit||'件');
+    item.unit=unit;
     if(isBatch){
       qty=Math.max(0, parseInt($('#iQty').value)||0);
       if(qty<=0){ showToast('请输入入库数量'); return; }   // 编辑/批量均需有效数量
@@ -1382,6 +1390,7 @@
       id: batchId,
       date: item.purchaseDate,
       quantity: qty,
+      unit: unit,                                    // v88 物品单位（件/ml/g/瓶…）
       unitPrice: price,
       totalPrice: totalPrice,
       validity: { value:365, unit:'day' },
@@ -2114,6 +2123,7 @@
       id: dateToBatchId(date),
       date: date,
       quantity: Math.round(qty*10)/10,
+      unit: item.unit||'件',                          // v88 沿用物品单位，保证批次数据结构一致
       unitPrice: price,
       totalPrice: total,
       validity: { value:365, unit:'day' },
@@ -2355,7 +2365,7 @@
     const tag=$('#iEditCatTag');
     if(!cat){ display.innerHTML='<span class="i-placeholder">请选择分类</span>'; tag.style.display='none'; return; }
     const path=getCategoryPath(cat.id);
-    display.textContent=path.primaryName;
+    display.textContent=path.secondaryName ? `${path.primaryName}-${path.secondaryName}` : path.primaryName;
     tag.style.display=cat.system? 'none':'inline-block';
   }
   function updateEditIconBtn(){
@@ -2909,30 +2919,61 @@
   }
 
   function openCategoryPicker(){
-    // 滚轮式分类选择器（截图1）：仅一级分类 = 自定义一级 + 系统一级
+    // 滚轮式分类选择器：左侧一级（自定义一级 + 系统一级），右侧二级（随一级联动）
     const customs=customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID);
     temp.wheelList=[
       ...customs.map(c=>({id:c.id,name:c.name})),
       ...SYSTEM_PRIMARY.map(p=>({id:p.id,name:p.name}))
     ];
-    // 当前选中可能是二级分类，映射回其一级
-    let curId=temp.selectedCategory;
+    // 当前选中可能是二级分类，映射回其一级 + 记住二级
+    let curId=temp.selectedCategory, curSubId=null;
     if(curId){
       const path=getCategoryPath(curId);
+      curSubId=path.secondaryId||null;
       curId=path.primaryId;
     }
     const idx=temp.wheelList.findIndex(c=>c.id===curId);
     temp.wheelIndex=idx>=0?idx:0;
+    const cur=temp.wheelList[temp.wheelIndex];
+    temp.wheelSubList=cur?buildSubWheelList(cur.id):[];
+    const si=curSubId?temp.wheelSubList.findIndex(s=>s.id===curSubId):0;
+    temp.wheelSubIndex=si>=0?si:0;
     renderCatWheel();
+    renderSubWheel();
     openModal('iCategoryModal');
     // 隐藏态(display:none)下设置 scrollTop 无效，等弹层可见后再滚动到选中项
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       const wheel=$('#iCatWheel');
       if(wheel) wheel.scrollTop=temp.wheelIndex*WHEEL_ITEM_H;
+      const wheel2=$('#iCatWheel2');
+      if(wheel2 && !wheel2.hidden) wheel2.scrollTop=temp.wheelSubIndex*WHEEL_ITEM_H;
     }));
   }
 
   const WHEEL_ITEM_H=48;
+  const SUB_ONLY_PRIMARY='__primary_only__';   // 二级滚轮首项：只选一级（显示为「全部」）
+
+  // 二级候选：系统一级取其系统二级；自定义一级取其自定义子分类
+  function buildSubWheelList(primaryId){
+    let subs=[];
+    if(SYSTEM_SECONDARY[primaryId]){
+      subs=getSystemSecondary(primaryId).map(c=>({id:c.id,name:c.name}));
+    }else{
+      subs=customChildren(primaryId).map(c=>({id:c.id,name:c.name}));
+    }
+    return [{id:SUB_ONLY_PRIMARY,name:'全部'}].concat(subs);
+  }
+
+  // 一级变化后重建二级滚轮（keepSub=保持已选二级，找不到则回落到首项）
+  function resetSubWheelForPrimary(keepSub){
+    const keepId=keepSub?((temp.wheelSubList||[])[temp.wheelSubIndex]||{}).id:null;
+    const p=(temp.wheelList||[])[temp.wheelIndex];
+    temp.wheelSubList=p?buildSubWheelList(p.id):[];
+    const i=keepId?temp.wheelSubList.findIndex(s=>s.id===keepId):0;
+    temp.wheelSubIndex=i>=0?i:0;
+    renderSubWheel();
+  }
+
   function renderCatWheel(scrollToSelected){
     const wheel=$('#iCatWheel');
     const list=temp.wheelList||[];
@@ -2945,6 +2986,7 @@
         temp.wheelIndex=Number(el.dataset.idx);
         $$('.i-wheel-item', wheel).forEach(x=>x.classList.toggle('active', Number(x.dataset.idx)===temp.wheelIndex));
         centerWheel(wheel, temp.wheelIndex);
+        resetSubWheelForPrimary(false);   // 换一级 → 二级回到「全部」
       });
     });
     if(scrollToSelected){
@@ -2959,6 +3001,45 @@
           const idx=Math.max(0, Math.min(max, Math.round(wheel.scrollTop/WHEEL_ITEM_H)));
           if(idx!==temp.wheelIndex){
             temp.wheelIndex=idx;
+            $$('.i-wheel-item', wheel).forEach(x=>x.classList.toggle('active', Number(x.dataset.idx)===idx));
+            resetSubWheelForPrimary(false);
+          }
+        }, 80);
+      });
+      wheel._bound=true;
+    }
+  }
+
+  function renderSubWheel(scrollToSelected){
+    const wheel=$('#iCatWheel2');
+    if(!wheel) return;
+    const list=temp.wheelSubList||[];
+    const hasSub=list.length>1;                  // 只有「全部」时隐藏该列
+    wheel.hidden=!hasSub;
+    if(!hasSub){ wheel.innerHTML=''; return; }
+    const pad=h=>`<div style="height:${h}px;flex:none"></div>`;
+    wheel.innerHTML=pad(WHEEL_ITEM_H*2)+list.map((c,i)=>
+      `<div class="i-wheel-item ${i===temp.wheelSubIndex?'active':''}" data-idx="${i}">${escapeHtml(c.name)}</div>`
+    ).join('')+pad(WHEEL_ITEM_H*2);
+    $$('.i-wheel-item', wheel).forEach(el=>{
+      el.addEventListener('click', ()=>{
+        temp.wheelSubIndex=Number(el.dataset.idx);
+        $$('.i-wheel-item', wheel).forEach(x=>x.classList.toggle('active', Number(x.dataset.idx)===temp.wheelSubIndex));
+        centerWheel(wheel, temp.wheelSubIndex);
+      });
+    });
+    if(scrollToSelected){
+      wheel.scrollTop=temp.wheelSubIndex*WHEEL_ITEM_H;
+    }
+    if(!wheel._bound){
+      let t;
+      wheel.addEventListener('scroll', ()=>{
+        clearTimeout(t);
+        t=setTimeout(()=>{
+          const max=(temp.wheelSubList||[]).length-1;
+          const idx=Math.max(0, Math.min(max, Math.round(wheel.scrollTop/WHEEL_ITEM_H)));
+          if(idx!==temp.wheelSubIndex){
+            temp.wheelSubIndex=idx;
             $$('.i-wheel-item', wheel).forEach(x=>x.classList.toggle('active', Number(x.dataset.idx)===idx));
           }
         }, 80);
@@ -3407,8 +3488,14 @@
     $('#iCategoryTrigger')?.addEventListener('click', openCategoryPicker);
     $('#iCatWheelCancel')?.addEventListener('click',()=>closeModal('iCategoryModal'));
     $('#iCatWheelConfirm')?.addEventListener('click',()=>{
-      const c=(temp.wheelList||[])[temp.wheelIndex];
-      if(c){ temp.selectedCategory=c.id; updateCategoryTrigger(); if(editTargetItem) updateEditCategoryUI(); }
+      const p=(temp.wheelList||[])[temp.wheelIndex];
+      const s=(temp.wheelSubList||[])[temp.wheelSubIndex];
+      if(p){
+        // 二级滚轮停在具体项 → 存二级分类 id；停留在「全部」→ 只存一级分类 id
+        temp.selectedCategory=(s && s.id!==SUB_ONLY_PRIMARY) ? s.id : p.id;
+        updateCategoryTrigger();
+        if(editTargetItem) updateEditCategoryUI();
+      }
       closeModal('iCategoryModal');
     });
     $('#iIconBtn')?.addEventListener('click', openIconPicker);
