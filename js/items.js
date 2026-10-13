@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v89';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v90';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1154,12 +1154,10 @@
     <div class="i-grid-card ${g.pinned?'pinned':''}" data-key="${g.key}">
       ${batch}
       <div class="i-star ${g.starred?'active':''}" data-key="${g.key}">${starSvg()}</div>
+      <button class="i-action-pin i-grid-pin ${g.pinned?'active':''}" data-key="${g.key}" aria-label="置顶">${pinSvg()}</button>
       <div class="i-grid-icon">${renderIcon(g.icon, g.name)}</div>
       <div class="i-grid-name">${escapeHtml(g.name)}</div>
       <div class="i-grid-daily"><span>¥</span><strong>${g.dailyCost.toFixed(2)}</strong><span>/日</span></div>
-      <div class="i-grid-actions">
-        <button class="i-action-pin ${g.pinned?'active':''}" data-key="${g.key}" aria-label="置顶">${pinSvg()}</button>
-      </div>
     </div>`;
   }
   function listCardHtml(g, forceExpired=false, days=0, expired=false){
