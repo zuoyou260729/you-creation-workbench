@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v93';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v94';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1312,11 +1312,11 @@
      判定：不跟随批次保存。批次承载「入库」语义（数量/单价/有效期/日均成本），
      维护支出是跨批次的支出流水，故存物品级 maintenanceTotal（累计值）+ maintenanceLog（流水，便于日后展示）。
      累计维护支出不参与平均每日成本计算。 */
-  // 框内提示：文案 = 「历史维护的总金额 <数值>，本次填写的金额将累加保存」（无维护记录时数值为 0）
+  // 框内提示：文案 = 「<累计维护数值>，本次填写的金额将累加保存」（无维护记录时为 0；不出现任何说明文字）
   function maintPhText(item){
     const total=Number((item && item.maintenanceTotal)||0);
-    const val=total>0?total.toFixed(2):'0';
-    return '历史维护的总金额 '+val+'，本次填写的金额将累加保存';
+    const val=total>0?(Math.round(total*100)/100).toString():'0';
+    return val+'，本次填写的金额将累加保存';
   }
   function syncMaintPh(input, ph){
     if(!input || !ph) return;
