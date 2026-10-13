@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v94';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v95';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1538,11 +1538,13 @@
     const usagePct=totalIn>0?((totalUsed/totalIn)*100).toFixed(1):'0.0';
 
     renderDetailHeroIcon(g);
+    // 单个物品判定：单批次且总入库量 ≤1（「批量」角标、「入库」按钮、「累计维护支出」共用同一判定）
+    const isSingleItem=getItemBatches(item).length<=1 && totalIn<=1;
     // "批量"角标：多个批次或总入库量 > 1 才显示
     $('#iDetailBatch').textContent='批量';
-    $('#iDetailBatch').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
-    // 底部「入库」按钮：与「批量」角标同条件 —— 单个物品(单批次且总入库≤1)隐藏，批量物品显示
-    $('#iDetailRestockBtn').classList.toggle('i-hide', getItemBatches(item).length<=1 && totalIn<=1);
+    $('#iDetailBatch').classList.toggle('i-hide', isSingleItem);
+    // 底部「入库」按钮：与「批量」角标同条件 —— 单个物品隐藏，批量物品显示
+    $('#iDetailRestockBtn').classList.toggle('i-hide', isSingleItem);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
     // 收藏功能暂未启用：点击仅做居中提示
@@ -1568,9 +1570,11 @@
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
-    // v92：累计维护支出（汇总该物品/该组各物品的累计金额；不参与平均每日成本计算）
+    // v92/v95：累计维护支出（汇总该物品/该组各物品的累计金额；不参与平均每日成本计算）
+    // v95：仅「单个物品」的档案页显示，批量物品不显示（与「批量」角标、「入库」按钮同一判定）
     const maintTotal=Number(g.maintenanceTotal||0);
     $('#iDetailMaintenance').textContent=formatMoney(maintTotal);
+    $('#iDetailMaintenanceRow')?.classList.toggle('i-hide', !isSingleItem);
     // 每批次档案：批量物品默认全部为空（需先选择批次）；单件物品自动选中唯一批次并带出数据
     currentDetailItem=item;
     const baBatches=getItemBatches(item);
