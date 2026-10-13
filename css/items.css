@@ -1813,6 +1813,10 @@ button.i-action-pin.active {
 
 /* ===== 分类滚轮选择器（截图1） ===== */
 .i-wheel-modal { padding: 10px 0 20px; }
+/* v88：一级 / 二级 双滚轮（选完一级自动带出对应二级） */
+.i-cat-wheels { display: flex; align-items: stretch; }
+.i-cat-wheels .i-wheel { flex: 1; min-width: 0; }
+.i-cat-wheels .i-wheel + .i-wheel { border-left: 1px solid var(--i-border); }
 .i-wheel {
   position: relative;
   height: 240px;               /* 5 行 × 48px */
@@ -2588,4 +2592,39 @@ button.i-action-pin.active {
 #i-subpage-expiring,
 #i-subpage-batch {
   padding-bottom: calc(122px + env(safe-area-inset-bottom));
+}
+
+/* ===== v88 批量添加·库存信息卡片：标题字号 / 四个字段名统一 / 物品单位下拉 ===== */
+/* 库存信息标题：字号 12px→14px（大一号），颜色保持原色号 var(--i-text-sec) #7B8276 */
+#page-items .i-field-label.i-stock-title { font-size: 14px; }
+/* 物品数量 / 物品单位 / 物品单价 / 物品总价：字体大小与色号统一为 15px / var(--i-text) #1F2A1A */
+#page-items .i-stock-label {
+  font-size: 15px;
+  color: var(--i-text);
+  font-weight: 600;
+  margin-bottom: 0;
+}
+/* 物品单位：下拉选择按钮 */
+.i-unit-select-wrap { position: relative; display: inline-flex; align-items: center; }
+.i-unit-select-wrap::after {
+  content: '▾';
+  position: absolute;
+  right: 11px;
+  font-size: 12px;
+  color: var(--i-text-sec);
+  pointer-events: none;
+}
+.i-unit-select {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 96px;
+  padding: 8px 30px 8px 14px;
+  border: 1px solid var(--i-border);
+  border-radius: var(--i-radius-sm);
+  background: var(--i-surface);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--i-text);
+  outline: none;
+  cursor: pointer;
 }
