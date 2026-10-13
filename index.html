@@ -454,10 +454,6 @@
                 <label class="i-field-label" data-page-node-id="e0eJJW7iDqghpUWKLfg8u1">购入价格</label>
                 <div class="i-input-group" data-page-node-id="Imp2MMWLKuY3ixG14lKg4I"><span class="i-prefix" data-page-node-id="9NSekjIbX7hwXMiRpPEBl3">¥</span><input type="number" id="iPrice" placeholder="0.00" step="0.01" data-page-node-id="oIqGULpXdUFnPtgunoSbtM"></div>
               </div>
-              <div class="i-field" data-page-node-id="2rHq3FXrDWSpXGKA7Eo93i">
-                <label class="i-field-label" data-page-node-id="lSSmBTSWIPfaYwNAqY9n3v">预期日均/单次成本（选填）</label>
-                <div class="i-input-group" data-page-node-id="lcWI6YRXKIj1PYUPJiX2RD"><span class="i-prefix" data-page-node-id="HQdWn6XOP8k90ebNFfId5P">¥</span><input type="number" id="iExpectedDaily" placeholder="0.00" step="0.01" data-page-node-id="rimkukr73Xo8zdQnF0FOgR"></div>
-              </div>
             </div>
 
             <div class="i-form-card" data-page-node-id="kod6e8I78FdAvkFBJRKTUM">
@@ -500,13 +496,15 @@
             </div>
 
             <div class="i-form-card" data-page-node-id="tP8PCbVezZtgEuS1yZBOFk">
-              <div class="i-field" data-page-node-id="ddJmfPUJADUjaTD7acDhK1">
-                <label class="i-field-label" data-page-node-id="8nbMnHTn6z4Kr2vUQLFj8n">使用次数</label>
-                <input type="number" class="i-input" id="iUsageCount" placeholder="0" data-page-node-id="7eETIFbVUks3MdtUzTtxNy">
-              </div>
               <div class="i-field" data-page-node-id="2xDyH7I49ZxWHDfUzB4VHz">
                 <label class="i-field-label" data-page-node-id="dftoJ6ESKuGBXxCxanWNgw">累计维护支出</label>
-                <div class="i-input-group" data-page-node-id="uK5U1WbmEFEvbyKYPgwD6o"><span class="i-prefix" data-page-node-id="CYcLLWAcx5C2Zw7pWZvMVD">¥</span><input type="number" id="iMaintenance" placeholder="0.00" step="0.01" data-page-node-id="RBzrg2cAh4GbGpjYMfEZqd"></div>
+                <div class="i-input-group i-maint-group" data-page-node-id="uK5U1WbmEFEvbyKYPgwD6o"><span class="i-prefix" data-page-node-id="CYcLLWAcx5C2Zw7pWZvMVD">¥</span>
+                  <div class="i-maint-wrap" data-page-node-id="v92MaintWrap">
+                    <input type="text" inputmode="decimal" id="iMaintenance" class="i-maintenance-input" data-page-node-id="RBzrg2cAh4GbGpjYMfEZqd">
+                    <div class="i-maint-ph" id="iMaintenancePh" data-page-node-id="v92MaintPh">"历史维护的总金额"，请输入本次维护金额，系统累计计算</div>
+                  </div>
+                </div>
+                <div class="i-maintenance-hint" id="iMaintenanceHint" style="display:none" data-page-node-id="v92MaintHint">--</div>
               </div>
               <div class="i-field" data-page-node-id="Or28kT3Qf875kVDhbtge4y">
                 <label class="i-field-label" data-page-node-id="jWKrmsUTvwEGpfnKu7n47x">存放位置</label>
@@ -869,6 +867,7 @@
                 <div class="i-detail-row" data-page-node-id="z2AwGLEeBCODwBtWrlH8HU"><span class="i-detail-row-label" data-page-node-id="N9lVzfS59MiaDRCy84RmnW">所属分类</span><span class="i-detail-row-value i-detail-tag" id="iDetailCategory" data-page-node-id="dvjXfL2zMcf6hH4hZ45QQi">--</span></div>
                 <div class="i-detail-row" data-page-node-id="W0CwLrO4SBsT7DlTwPCWWT"><span class="i-detail-row-label" data-page-node-id="cWNVNKfQ9xsBFXKmSju7Kr">存放位置</span><span class="i-detail-row-value" id="iDetailLocation" data-page-node-id="jllkmzXwFsASvo4HCC7kYP">--</span></div>
                 <div class="i-detail-row" data-page-node-id="zpvoKYoSs3pwNHsj9O0u3c"><span class="i-detail-row-label" data-page-node-id="HTJ4d33VZUUNfEBGdxoL5B">最后更新</span><span class="i-detail-row-value" id="iDetailUpdated" data-page-node-id="8zP3V8mNvlwgdMFmkZrsFS">--</span></div>
+                <div class="i-detail-row" id="iDetailMaintenanceRow" data-page-node-id="v92MaintRow"><span class="i-detail-row-label" data-page-node-id="v92MaintLabel">累计维护支出</span><span class="i-detail-row-value" id="iDetailMaintenance" data-page-node-id="v92MaintValue">--</span></div>
               </div>
             </div>
 
@@ -1159,6 +1158,23 @@
                   <div class="i-edit-row-label" data-page-node-id="v91EditMemoLabel">备注说明<span class="i-edit-optional" data-page-node-id="v91EditMemoOptional">（选填）</span></div>
                 </div>
                 <textarea class="i-edit-input i-edit-input-block i-edit-textarea" id="iEditMemo" rows="2" maxlength="300" placeholder="关于此物品的特别记忆" data-page-node-id="v91EditMemoInput"></textarea>
+              </div>
+            </div>
+
+            <!-- 累计维护支出（v92）：填写“本次维护金额”，系统累加到物品累计值 -->
+            <div class="i-edit-section-title" data-page-node-id="v92EditMaintTitle">累计维护支出</div>
+            <div class="i-edit-card" data-page-node-id="v92EditMaintCard">
+              <div class="i-edit-info-row i-edit-stack" data-page-node-id="v92EditMaintRow">
+                <div class="i-edit-label-block" data-page-node-id="v92EditMaintLabelBlock">
+                  <div class="i-edit-row-label" data-page-node-id="v92EditMaintLabel">本次维护金额<span class="i-edit-optional" data-page-node-id="v92EditMaintOptional">（选填）</span></div>
+                </div>
+                <div class="i-input-group i-maint-group" data-page-node-id="v92EditMaintGroup"><span class="i-prefix" data-page-node-id="v92EditMaintPrefix">¥</span>
+                  <div class="i-maint-wrap" data-page-node-id="v92EditMaintWrap">
+                    <input type="text" inputmode="decimal" id="iEditMaintenance" class="i-maintenance-input" data-page-node-id="v92EditMaintInput">
+                    <div class="i-maint-ph" id="iEditMaintenancePh" data-page-node-id="v92EditMaintPh">"历史维护的总金额"，请输入本次维护金额，系统累计计算</div>
+                  </div>
+                </div>
+                <div class="i-maintenance-hint" id="iEditMaintenanceHint" style="display:none" data-page-node-id="v92EditMaintHint">--</div>
               </div>
             </div>
           </div>
