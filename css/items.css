@@ -2813,6 +2813,7 @@ button.i-action-pin.active {
 }
 .i-td-card:active { background: #FAFBF8; }
 .i-td-icon {
+  position: relative;   /* v102：批量角标锚点 */
   flex: 0 0 42px;
   width: 42px;
   height: 42px;
@@ -2914,19 +2915,14 @@ button.i-action-pin.active {
   cursor: pointer;
 }
 
-/* v101 今日页：标题行 + 批量标签（与物品统计页角标同色同文案，改成行内胶囊避免压住图标/按钮） */
-.i-td-titlerow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.i-td-titlerow .i-td-name { flex: 0 1 auto; min-width: 0; }
+/* v101/v102 今日页「批量」标签：压在图标左上角（同物品统计页的绿底白字角标观感） */
 .i-td-badge {
-  position: static;
-  flex: 0 0 auto;
-  padding: 1px 6px;
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  padding: 1px 5px;
   border-radius: 6px;
   font-size: 10px;
   line-height: 1.5;
+  box-shadow: 0 0 0 1.5px #fff;   /* 白色描边，压在图标上也看得清 */
 }
