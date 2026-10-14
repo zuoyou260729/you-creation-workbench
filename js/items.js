@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v105';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v106';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1281,14 +1281,14 @@
     sys_service:    { production:0, retire:1, expiry:1, warranty:0 },  // 服务项目
     sys_virtual:    { production:0, retire:1, expiry:1, warranty:0 },  // 虚拟产品
     sys_other:      { production:1, retire:1, expiry:1, warranty:1 },  // 其他
-    sys_home:       { production:1, retire:1, expiry:1, warranty:0 },  // 家居日用
+    sys_home:       { production:1, retire:1, expiry:1, warranty:1 },  // 家居日用（v106：质保期显示）
     sys_consumable: { production:1, retire:1, expiry:1, warranty:1 },  // 耗品配件
     sys_beauty:     { production:1, retire:1, expiry:1, warranty:0 },  // 个护美妆
-    sys_baby:       { production:1, retire:1, expiry:1, warranty:0 },  // 母婴儿童
+    sys_baby:       { production:1, retire:1, expiry:1, warranty:1 },  // 母婴儿童（v106：质保期显示）
     sys_snack:      { production:1, retire:1, expiry:1, warranty:0 },  // 零食饮料
     sys_tea:        { production:1, retire:1, expiry:1, warranty:0 },  // 酒咖品茗
     sys_pet:        { production:1, retire:1, expiry:1, warranty:0 },  // 宠物用品
-    sys_medical:    { production:1, retire:1, expiry:1, warranty:0 },  // 健康医疗
+    sys_medical:    { production:1, retire:1, expiry:1, warranty:1 },  // 健康医疗（v106：质保期显示）
     sys_office:     { production:1, retire:1, expiry:1, warranty:0 }   // 办公学习
   };
   const TIMELINE_ALL_VISIBLE = { production:1, retire:1, expiry:1, warranty:1 };
