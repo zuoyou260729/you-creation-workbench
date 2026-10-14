@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v101';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v102';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2274,12 +2274,9 @@
     }
     return `
     <div class="i-td-card ${entry.lowStock?'low':''}" data-key="${escapeHtml(g.key)}" onclick="__todayAct(${idx},'view')">
-      <div class="i-td-icon">${renderIcon(g.icon, g.name)}</div>
+      <div class="i-td-icon">${renderIcon(g.icon, g.name)}${todayBatchBadge(g)}</div>
       <div class="i-td-main">
-        <div class="i-td-titlerow">
-          <div class="i-td-name">${escapeHtml(g.name)}</div>
-          ${todayBatchBadge(g)}
-        </div>
+        <div class="i-td-name">${escapeHtml(g.name)}</div>
         <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta.join(' · '))}</span>${status.length?' · '+status.join(' · '):''}</div>
       </div>
       ${btn}
@@ -2309,19 +2306,24 @@
   function todayBatchBadge(g){
     return (g && g.qty>1) ? '<span class="i-batch-badge i-td-badge">批量</span>' : '';
   }
-  function todaySearchCardHtml(g, idx){
+  // v102：搜索结果里的库存状态文案
+  //   单个物品（非批量）：已取用过 → 「正在使用」；还没取用 → 「库存 N 单位」
+  //   批量物品：沿用物品统计页口径「现有 N 单位」
+  function todayStockText(g){
     const unit=groupUnit(g);
+    if(g.qty>1) return '现有 '+g.currentStock+unit;
+    if(g.totalUsed>0) return '正在使用';
+    return '库存 '+g.currentStock+unit;
+  }
+  function todaySearchCardHtml(g, idx){
     const cat=[g.primaryName, g.secondaryName].filter(Boolean).join('-');
     const meta=[cat, groupLocation(g)].filter(Boolean).join(' · ');
     return `
     <div class="i-td-card" data-key="${escapeHtml(g.key)}" onclick="__todayAct(${idx},'view')">
-      <div class="i-td-icon">${renderIcon(g.icon, g.name)}</div>
+      <div class="i-td-icon">${renderIcon(g.icon, g.name)}${todayBatchBadge(g)}</div>
       <div class="i-td-main">
-        <div class="i-td-titlerow">
-          <div class="i-td-name">${escapeHtml(g.name)}</div>
-          ${todayBatchBadge(g)}
-        </div>
-        <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta||'未分类')}</span> · <span class="i-td-stock">现有 ${g.currentStock}${escapeHtml(unit)}</span></div>
+        <div class="i-td-name">${escapeHtml(g.name)}</div>
+        <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta||'未分类')}</span> · <span class="i-td-stock">${escapeHtml(todayStockText(g))}</span></div>
       </div>
       <button class="i-td-btn i-td-btn-view" onclick="event.stopPropagation();__todayAct(${idx},'view')">查看</button>
     </div>`;
