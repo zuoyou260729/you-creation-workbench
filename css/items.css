@@ -2926,3 +2926,40 @@ button.i-action-pin.active {
   line-height: 1.5;
   box-shadow: 0 0 0 1.5px #fff;   /* 白色描边，压在图标上也看得清 */
 }
+
+/* v105 分类物品弹窗（我的分类 → 系统分类（只读）点击分类卡片） */
+.i-cat-items-list { max-height: 50vh; overflow-y: auto; margin-bottom: 14px; }
+.i-cat-item-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--i-border-light);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.i-cat-item-row:last-child { border-bottom: none; }
+.i-cat-item-row:active { background: #FAFBF8; }
+.i-cat-item-icon {
+  position: relative;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--i-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.i-cat-item-icon .i-icon-img { width: 68%; height: 68%; }
+.i-cat-item-main { flex: 1; min-width: 0; }
+.i-cat-item-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--i-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.i-cat-item-meta { margin-top: 2px; font-size: 12.5px; color: var(--i-text-sec); }
