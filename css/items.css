@@ -2640,11 +2640,11 @@ button.i-action-pin.active {
 /* ===== v88 批量添加·库存信息卡片：标题字号 / 四个字段名统一 / 物品单位下拉 ===== */
 /* 库存信息标题：字号 12px→14px（大一号），颜色保持原色号 var(--i-text-sec) #7B8276 */
 #page-items .i-field-label.i-stock-title { font-size: 14px; }
-/* 物品数量 / 物品单位 / 物品单价 / 物品总价：字体大小与色号统一为 15px / var(--i-text) #1F2A1A */
+/* 物品数量 / 物品单位 / 物品单价 / 物品总价：与「入库后立即取用」行一致 —— 15px / 常规字重 / #2d2a26（v97） */
 #page-items .i-stock-label {
   font-size: 15px;
-  color: var(--i-text);
-  font-weight: 600;
+  color: #2d2a26;
+  font-weight: 400;
   margin-bottom: 0;
 }
 /* 物品单位：与站内弹窗统一的「触发按钮 + 芯片选择」 */
