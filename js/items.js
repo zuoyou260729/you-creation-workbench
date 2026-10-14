@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v106';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v107';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1309,14 +1309,199 @@
   }
   // 按当前选中分类实时刷新时间线区域的显隐（隐藏仅作用于展示：输入框的值原样保留）
   function applyTimelineVisibility(categoryId){
+    const kind=virtualKindFor(categoryId);   // v107：会员订阅 / 账号密码 → 时间线整块换成专用字段
     const rule=timelineRuleFor(categoryId);
     Object.keys(TIMELINE_ROW_SELECTORS).forEach(field=>{
-      const show=!!rule[field];
+      const show = kind ? false : !!rule[field];
       TIMELINE_ROW_SELECTORS[field].forEach(sel=>{
         const el=document.querySelector(sel);
         if(el) el.style.display=show?'':'none';
       });
     });
+    // 入库日期：这两类不涉及「入库」，一并隐藏（普通分类照常显示）
+    ['[data-target="#iPurchaseDate"]','[data-target="#iBatchPurchaseDate"]'].forEach(sel=>{
+      const el=document.querySelector(sel);
+      if(el) el.style.display=kind?'none':'';
+    });
+    const src=temp.editId?state.items.find(it=>it.id===temp.editId):null;
+    renderVirtualTimeline(categoryId, src?{
+      account:src.account||'', memberStart:src.memberStart||'',
+      memberEnd:src.memberEnd||'', password:src.password||''
+    }:null);
+  }
+
+  /* ==================================================================
+     v107 虚拟产品-会员订阅 / 账号密码：时间线卡片换成专用字段
+     ------------------------------------------------------------------
+     · 会员订阅：账号 / 会员开始日期（选填）/ 会员结束日期
+     · 账号密码：账号 / 密码
+     · 数据存物品级：item.account / item.memberStart / item.memberEnd / item.password
+     · 会员结束日期同时写入批次有效期 → 「今日 / 到期清单」照旧能提醒会员到期
+     · 批次在内部仍保留（库存 / 取用 / 日均成本等计算依赖它），但这两类的界面
+       不再展示批次号（不涉及批次）
+     ================================================================== */
+  const VIRTUAL_KIND_BY_SECONDARY = { '会员订阅':'member', '账号密码':'account' };
+  const VIRTUAL_FIELDS = {
+    member: [
+      { key:'account',     label:'账号',                icon:'user',     type:'text', ph:'请输入账号' },
+      { key:'memberStart', label:'会员开始日期（选填）',  icon:'calendar', type:'date' },
+      { key:'memberEnd',   label:'会员结束日期',         icon:'calendar', type:'date' }
+    ],
+    account: [
+      { key:'account',  label:'账号', icon:'user', type:'text', ph:'请输入账号' },
+      { key:'password', label:'密码', icon:'lock', type:'text', ph:'请输入密码' }
+    ]
+  };
+  const VIRTUAL_VALUE_KEYS = ['account','memberStart','memberEnd','password'];
+  function virtualKindFor(categoryId){
+    const path=getCategoryPath(categoryId);
+    if(path.primaryId!=='sys_virtual') return null;
+    return VIRTUAL_KIND_BY_SECONDARY[path.secondaryName||'']||null;
+  }
+  function virtualFieldId(prefix, key){ return prefix+key.charAt(0).toUpperCase()+key.slice(1); }
+  function tlFieldIcon(kind){
+    if(kind==='calendar') return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+    if(kind==='lock') return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+    return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  }
+  // 时间线里的专用字段行（单个表单 prefix='i' / 批量表单 prefix='iBatch'）——沿用与日期行完全一致的样式
+  function virtualRowsHtml(kind, prefix){
+    return (VIRTUAL_FIELDS[kind]||[]).map(f=>{
+      const id=virtualFieldId(prefix, f.key);
+      if(f.type==='date'){
+        return `<div class="i-date-row i-tl-vrow" id="iTlRow_${id}">
+          <div class="i-label">${tlFieldIcon('calendar')}<span class="i-label-txt">${f.label}</span></div>
+          <div class="i-value empty"><input type="date" id="${id}" readonly placeholder="请选择"></div>
+        </div>`;
+      }
+      return `<div class="i-date-row i-tl-vrow i-tl-textrow">
+        <div class="i-label">${tlFieldIcon(f.icon)}<span class="i-label-txt">${f.label}</span></div>
+        <div class="i-value"><input type="text" class="i-tl-text" id="${id}" placeholder="${f.ph}" autocomplete="off"></div>
+      </div>`;
+    }).join('');
+  }
+  let tlVirtualKind={ single:null };
+  function renderVirtualTimeline(categoryId, values){
+    const kind=virtualKindFor(categoryId);
+    const boxS=$('#iTlCustomSingle'), boxB=$('#iTlCustomBatch');
+    if(!boxS && !boxB) return kind;
+    const vals={};
+    VIRTUAL_VALUE_KEYS.forEach(k=>{ if(values && values[k]) vals[k]=values[k]; });
+    if(kind!==tlVirtualKind.single){
+      // 重建前先收集界面已填内容（切换分类时不丢输入）
+      const keep={};
+      VIRTUAL_VALUE_KEYS.forEach(k=>{
+        const el=document.getElementById(virtualFieldId('i',k));
+        if(el && el.value) keep[k]=el.value;
+      });
+      tlVirtualKind.single=kind;
+      if(boxS) boxS.innerHTML=kind?virtualRowsHtml(kind,'i'):'';
+      if(boxB) boxB.innerHTML=kind?virtualRowsHtml(kind,'iBatch'):'';
+      ['i','iBatch'].forEach(p=>{
+        ['memberStart','memberEnd'].forEach(k=>{
+          const id=virtualFieldId(p,k);
+          const row=document.getElementById('iTlRow_'+id);
+          const input=document.getElementById(id);
+          if(row&&input) row.addEventListener('click',()=>openDatePicker('#'+id, input.value||todayStr()));
+        });
+      });
+      Object.keys(keep).forEach(k=>{ vals[k]=keep[k]; });
+    }
+    VIRTUAL_VALUE_KEYS.forEach(k=>{
+      if(!vals[k]) return;
+      ['i','iBatch'].forEach(p=>{
+        const el=document.getElementById(virtualFieldId(p,k));
+        if(el && !el.value) el.value=vals[k];
+      });
+    });
+    if(boxS) boxS.style.display=kind?'block':'none';
+    if(boxB) boxB.style.display=kind?'block':'none';
+    return kind;
+  }
+  // 当前表单里填的专用字段值（单个/批量各取一次）
+  function readVirtualFormValues(isBatch){
+    const p=isBatch?'iBatch':'i';
+    const out={};
+    VIRTUAL_VALUE_KEYS.forEach(k=>{
+      const el=document.getElementById(virtualFieldId(p,k));
+      out[k]=el?(el.value||'').trim():'';
+    });
+    return out;
+  }
+
+  // 物品档案页：这两类改为「会员信息 / 账号信息」区块，并隐藏「每批次档案」
+  function renderDetailVirtualSection(item){
+    const wrap=$('#iDetailVirtualSection');
+    if(!wrap) return null;
+    const sec=$('#iBatchArchiveSection');
+    const firstDateRow=$('#iDetailFirstDateRow');
+    const kind=virtualKindFor(item.categoryId);
+    if(!kind){
+      wrap.style.display='none'; wrap.innerHTML='';
+      if(sec) sec.style.display='';
+      if(firstDateRow) firstDateRow.style.display='';
+      return null;
+    }
+    const rows=(VIRTUAL_FIELDS[kind]||[]).map(f=>{
+      const v=item[f.key]||'';
+      const show=f.type==='date' ? (v?formatDateDot(v):'--') : (v||'--');
+      return `<div class="i-detail-row"><span class="i-detail-row-label">${escapeHtml(f.label)}</span><span class="i-detail-row-value">${escapeHtml(String(show))}</span></div>`;
+    }).join('');
+    wrap.innerHTML=`<h2 class="i-detail-section-title">${kind==='member'?'会员信息':'账号信息'}</h2><div class="i-detail-rows">${rows}</div>`;
+    wrap.style.display='block';
+    if(sec) sec.style.display='none';        // 不涉及批次 → 不展示每批次档案
+    if(firstDateRow) firstDateRow.style.display='none';
+    return kind;
+  }
+
+  // 编辑库存品页：这两类改为专用字段编辑区，并隐藏「每批次档案」卡片与「入库批次」行
+  function renderEditVirtualFields(item){
+    const wrap=$('#iEditVirtualCard');
+    if(!wrap) return null;
+    const title=$('#iEditBatchCardTitle'), card=$('#iEditBatchCard'), countRow=$('#iEditBatchCountRow');
+    const kind=item?virtualKindFor(item.categoryId):null;
+    const hideBatch=!!kind;
+    if(title) title.style.display=hideBatch?'none':'';
+    if(card) card.style.display=hideBatch?'none':'';
+    if(countRow) countRow.style.display=hideBatch?'none':'';
+    if(!kind){ wrap.style.display='none'; wrap.innerHTML=''; return null; }
+    const rows=(VIRTUAL_FIELDS[kind]||[]).map(f=>{
+      if(f.type==='date'){
+        return `<div class="i-edit-info-row i-edit-row-click" id="iEditVr_${f.key}">
+          <span class="i-edit-row-label">${f.label}</span>
+          <span class="i-edit-row-value i-edit-readonly" id="iEditVt_${f.key}">请选择</span>
+          <span class="i-bs-arrow">›</span>
+          <input type="date" id="iEditV_${f.key}" hidden>
+        </div>`;
+      }
+      return `<div class="i-edit-info-row i-edit-stack">
+        <div class="i-edit-label-block"><div class="i-edit-row-label">${f.label}</div></div>
+        <input type="text" class="i-edit-input i-edit-input-block" id="iEditV_${f.key}" placeholder="${f.ph}" autocomplete="off">
+      </div>`;
+    }).join('');
+    wrap.innerHTML=`<div class="i-edit-section-title">${kind==='member'?'会员信息':'账号信息'}</div><div class="i-edit-card">${rows}</div>`;
+    wrap.style.display='block';
+    VIRTUAL_VALUE_KEYS.forEach(k=>{
+      const el=document.getElementById('iEditV_'+k);
+      if(el) el.value=item[k]||'';
+      const t=document.getElementById('iEditVt_'+k);
+      if(t) t.textContent=item[k]&&f_isDateKey(k)?formatDateDot(item[k]):(item[k]||'请选择');
+    });
+    ['memberStart','memberEnd'].forEach(k=>{
+      const row=document.getElementById('iEditVr_'+k);
+      const input=document.getElementById('iEditV_'+k);
+      if(row&&input) row.addEventListener('click',()=>openDatePicker('#iEditV_'+k, input.value||todayStr()));
+    });
+    return kind;
+  }
+  function f_isDateKey(k){ return k==='memberStart'||k==='memberEnd'; }
+  function readEditVirtualValues(){
+    const out={};
+    VIRTUAL_VALUE_KEYS.forEach(k=>{
+      const el=document.getElementById('iEditV_'+k);
+      out[k]=el?(el.value||'').trim():'';
+    });
+    return out;
   }
 
   function openAddItem(tab='single', editItem=null, presetCategory=null){
@@ -1479,6 +1664,19 @@
     const unit=isBatch?(($('#iBatchUnit')||{}).value||'件'):(item.unit||'件');
     item.unit=unit;
     const tRule=timelineRuleFor(temp.selectedCategory);   // v105：被分类隐藏的字段不校验必填（值原样保存，不丢数据）
+    // v107：会员订阅 / 账号密码 —— 时间线专用字段（物品级存储）
+    const vKind=virtualKindFor(temp.selectedCategory);
+    if(vKind){
+      const vv=readVirtualFormValues(isBatch);
+      item.account=vv.account;
+      if(vKind==='member'){
+        if(!vv.memberEnd){ showToast('请填写会员结束日期'); return; }
+        item.memberStart=vv.memberStart;
+        item.memberEnd=vv.memberEnd;
+      }else{
+        item.password=vv.password;
+      }
+    }
     if(isBatch){
       qty=Math.max(0, parseInt($('#iQty').value)||0);
       if(qty<=0){ showToast('请输入入库数量'); return; }   // 编辑/批量均需有效数量
@@ -1493,14 +1691,17 @@
       }
       totalPrice=Number(totalPriceStr)||(qty*price);
       expiryDate=$('#iBatchExpiryDate').value;
-      if(tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }
+      if(!vKind && tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }   // v107：专用字段分类不校验有效期
     }else{
       qty=1;
       price=Number($('#iPrice').value)||0;
       totalPrice=price;
       expiryDate=$('#iExpiryDate').value;
-      if(tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }
+      if(!vKind && tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }   // v107：专用字段分类不校验有效期
     }
+
+    // v107：会员订阅 → 用「会员结束日期」作为有效期，保证今日/到期清单仍能提醒会员到期
+    if(vKind==='member') expiryDate=item.memberEnd||'';
 
     const batchId=dateToBatchId(item.purchaseDate);
     const newBatch={
@@ -1670,6 +1871,7 @@
       setBatchDelBtn(false);  // 未选择批次 → 按钮灰色不可点
     }
     bindBatchDateRow('#iDetailBatchSelRow', 'batch');
+    renderDetailVirtualSection(item);   // v107：会员订阅/账号密码 → 档案页改显示会员信息/账号信息
 
     // 底部操作栏 → 接入新弹窗
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
@@ -2822,6 +3024,7 @@
   let editTargetItem=null;
   function openEditItem(item){
     editTargetItem=item;
+    temp.editVirtualMemberEnd='';   // v107：清理上一次编辑的会员结束日期，避免串值
     temp.selectedCategory=item.categoryId;
     temp.selectedIcon=item.icon||'📦';
     $('#iEditName').value=item.name||'';
@@ -2899,6 +3102,7 @@
     const cat=getCategory(temp.selectedCategory);
     const display=$('#iEditCategory');
     applyTimelineVisibility(temp.selectedCategory);   // v105：编辑页每批次档案字段显隐同步
+    renderEditVirtualFields(editTargetItem);          // v107：会员订阅/账号密码 → 专用字段编辑区
     if(!cat){ display.innerHTML='<span class="i-placeholder">请选择分类</span>'; return; }
     const path=getCategoryPath(cat.id);
     // v96：分类名单行显示（不再显示「自定义」标签，避免挤压导致换行）
@@ -2986,6 +3190,20 @@
     item.categoryId=temp.selectedCategory;
     item.location=$('#iEditLocation').value.trim().slice(0,100);
     item.memo=$('#iEditMemo')?$('#iEditMemo').value.trim().slice(0,300):(item.memo||'');   // v91：备注说明（与物品维护页一致）
+    // v107：会员订阅 / 账号密码 → 写入专用字段（物品级）
+    const vKindEdit=virtualKindFor(item.categoryId);
+    if(vKindEdit){
+      const vv=readEditVirtualValues();
+      item.account=vv.account;
+      if(vKindEdit==='member'){
+        if(!vv.memberEnd){ showToast('请填写会员结束日期'); return; }
+        item.memberStart=vv.memberStart;
+        item.memberEnd=vv.memberEnd;
+        temp.editVirtualMemberEnd=vv.memberEnd;             // 会员结束日期即有效期：在批次写回之后再同步（见下方）
+      }else{
+        item.password=vv.password;
+      }
+    }
     // 每批次档案：将每个批次编辑后的 单价 / 总价 / 退库日期 写回对应批次对象
     const sbatches=getItemBatches(item);
     sbatches.forEach(b=>{
@@ -3000,6 +3218,11 @@
         if(m.expiryValue!=null && m.expiryValue!==''){ b.expiryValue=Number(m.expiryValue); b.expiryUnit=m.expiryUnit||'day'; }
       }
     });
+    // v107：会员订阅 → 会员结束日期同时作为物品/批次有效期（放在批次写回之后，避免被旧值覆盖）
+    if(vKindEdit==='member' && temp.editVirtualMemberEnd){
+      item.expiryDate=temp.editVirtualMemberEnd;
+      sbatches.forEach(b=>{ b.expiryDate=temp.editVirtualMemberEnd; });
+    }
     // 兼容字段：物品级 总价 = 各批次总价之和；均价 = 最新批次单价
     item.totalPrice=sbatches.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
     item.price=getItemTotalIn(item)>0?item.totalPrice/getItemTotalIn(item):0;
@@ -3805,6 +4028,12 @@
         if(temp.dateTarget==='#iRestockWarrantyDate'){
           el.textContent=formatDateDot(temp.dateValue);
           temp.restockWarrantyDate=temp.dateValue;
+        }
+        // v107：编辑页「会员开始日期 / 会员结束日期」→ 同步右侧展示文字
+        if(temp.dateTarget==='#iEditV_memberStart' || temp.dateTarget==='#iEditV_memberEnd'){
+          const key=temp.dateTarget.replace('#iEditV_','');
+          const t=$('#iEditVt_'+key);
+          if(t) t.textContent=formatDateDot(temp.dateValue);
         }
         // 编辑页「每批次档案 - 退库日期」：写入当前选中批次的退库日期
         if(temp.dateTarget==='#iEditBatchRetiredDate'){
