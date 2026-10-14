@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v103';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v104';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -46,6 +46,7 @@
   ];
 
   const SYSTEM_PRIMARY = [
+    { id:'sys_virtual', name:'虚拟产品', icon:'🎫' },
     { id:'sys_digital', name:'数码产品', icon:'📱' },
     { id:'sys_smarthome', name:'智能家居', icon:'🏡' },
     { id:'sys_clothing', name:'衣服鞋包', icon:'👕' },
@@ -63,7 +64,6 @@
     { id:'sys_hardware', name:'家装五金', icon:'🔧' },
     { id:'sys_asset', name:'固定资产', icon:'🏠' },
     { id:'sys_service', name:'服务项目', icon:'🛎' },
-    { id:'sys_virtual', name:'虚拟产品', icon:'🎫' },
     { id:'sys_snack', name:'零食饮料', icon:'🍿' },
     { id:'sys_tea', name:'酒咖品茗', icon:'🍵' },
     { id:'sys_other', name:'其他', icon:'📦' }
@@ -87,7 +87,7 @@
     sys_hardware: ['家装余料',null,null,null,null,'花洒',null,null,null,'门锁','家装工具','其他','下水多通','进水三通'],
     sys_asset: ['车辆','房屋',null,'商铺','车位','其他'], // 下标2=公寓 已删除(null占位，保持其余下标不变)；住宅→房屋、其他资产→其他 为原地改名
     sys_service: ['课程培训','保险服务','其他服务','家政服务','体检健康','美容'], // v71 追加 家政服务/体检健康/美容（美容自健康医疗移入）；显示层「其他服务」置底
-    sys_virtual: [null,'会员订阅','其他虚拟'], // 下标0=游戏点卡 已删除(null占位，保持其余下标不变)
+    sys_virtual: [null,'会员订阅','其他虚拟','账号密码'], // 下标0=游戏点卡 已删除(null占位，保持其余下标不变)；v104 末尾追加「账号密码」（「其他虚拟」显示层仍置底 → 界面顺序：会员订阅→账号密码→其他虚拟）
     sys_snack: ['干果','面包零食','乳制品','饮料','其他'], // v71 新增一级分类
     sys_tea: ['茶叶','酒水','咖啡','其他'], // v71 新增一级分类
     sys_other: ['礼品','票券','其他物品']
@@ -414,6 +414,7 @@
     'sys_service:体检健康':'assets/items/icons/sys_service_体检健康.png',
     'sys_virtual:会员订阅':'assets/items/icons/sys_virtual_会员订阅.png',
     'sys_virtual:其他虚拟':'assets/items/icons/sys_virtual_其他虚拟.png',
+    'sys_virtual:账号密码':'assets/items/icons/sys_virtual_账号密码.png',
     'sys_snack:干果':'assets/items/icons/sys_snack_干果.png',
     'sys_snack:面包零食':'assets/items/icons/sys_snack_面包零食.png',
     'sys_snack:乳制品':'assets/items/icons/sys_snack_乳制品.png',
@@ -825,7 +826,7 @@
       '家装余料':'🪣','墙纸':'🖼','瓷砖':'⬜','地板':'🪵','水龙头':'🚰','花洒':'🚿','马桶':'🚽','水槽':'🚰','开关插座':'🔌','门锁':'🔒','家装工具':'🔧','下水多通':'🔩','进水三通':'🔩',
       '车辆':'🚗','房屋':'🏠','商铺':'🏪','车位':'🅿','其他':'📦',
       '课程培训':'📖','保险服务':'🛡','其他服务':'🤝','家政服务':'🧹','体检健康':'🩺',
-      '会员订阅':'🎟','其他虚拟':'💾',
+      '会员订阅':'🎟','其他虚拟':'💾','账号密码':'🔑',
       '干果':'🥜','面包零食':'🥐','乳制品':'🥛','饮料':'🧃','茶叶':'🍵','酒水':'🍷','咖啡':'☕',
       '礼品':'🎁','票券':'🎫','其他物品':'📦'
     };
