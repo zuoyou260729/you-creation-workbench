@@ -1249,6 +1249,20 @@
           </div>
         </div>
 
+        <!-- 分类物品 弹窗（v105：我的分类→系统分类（只读）点击分类卡片弹出该分类下的物品） -->
+        <div class="i-modal i-bottom-sheet" id="iCatItemsModal" data-page-node-id="v105CatItemsModal">
+          <div class="i-bottom-sheet-card" data-page-node-id="v105CatItemsCard">
+            <div class="i-bs-handle" data-page-node-id="v105CatItemsHandle"></div>
+            <h3 class="i-bs-title" id="iCatItemsTitle" data-page-node-id="v105CatItemsTitle">分类</h3>
+            <p class="i-bs-sub" id="iCatItemsSub" data-page-node-id="v105CatItemsSub"></p>
+            <div class="i-cat-items-list" id="iCatItemsList" data-page-node-id="v105CatItemsList"></div>
+            <div class="i-bs-actions" data-page-node-id="v105CatItemsActions">
+              <button class="i-bs-btn i-bs-cancel" data-close-modal="iCatItemsModal" data-page-node-id="v105CatItemsClose">关闭</button>
+              <button class="i-bs-btn i-bs-confirm" id="iCatItemsAddBtn" data-page-node-id="v105CatItemsAdd">用此分类添加物品</button>
+            </div>
+          </div>
+        </div>
+
         <!-- 补货清单 弹窗（v99：今日页「加入清单」收集的物品） -->
         <div class="i-modal i-bottom-sheet" id="iShopModal" data-page-node-id="v99ShopModal">
           <div class="i-bottom-sheet-card" data-page-node-id="v99ShopCard">
