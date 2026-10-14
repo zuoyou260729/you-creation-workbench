@@ -2991,3 +2991,77 @@ button.i-action-pin.active {
   overflow: visible;
   text-overflow: clip;
 }
+
+/* ===== v108 物品照片（拍照/相册）===== */
+.i-photo-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-height: 64px;
+  margin-bottom: 10px;
+}
+.i-photo-empty { font-size: 13px; color: var(--i-text-ter); padding: 14px 0 14px 2px; }
+.i-photo-item {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--i-bg);
+  border: 1px solid var(--i-border);
+}
+.i-photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+.i-photo-del {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.i-photo-actions { display: flex; gap: 8px; }
+.i-photo-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px dashed #D8DED2;
+  border-radius: 12px;
+  background: #FAFBF8;
+  color: var(--i-text);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.i-photo-btn:active { background: #F1F4EE; }
+.i-photo-hint { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--i-text-ter); }
+
+/* 看图弹窗 */
+.i-photo-viewer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  max-height: 56vh;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: var(--i-bg);
+  overflow: hidden;
+}
+.i-photo-viewer img { max-width: 100%; max-height: 56vh; object-fit: contain; display: block; }
+.i-photo-viewer-actions { display: flex; gap: 8px; }
+.i-photo-viewer-actions .i-bs-btn { flex: 1; padding: 10px 8px; }
