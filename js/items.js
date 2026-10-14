@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v100';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v101';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2276,7 +2276,10 @@
     <div class="i-td-card ${entry.lowStock?'low':''}" data-key="${escapeHtml(g.key)}" onclick="__todayAct(${idx},'view')">
       <div class="i-td-icon">${renderIcon(g.icon, g.name)}</div>
       <div class="i-td-main">
-        <div class="i-td-name">${escapeHtml(g.name)}</div>
+        <div class="i-td-titlerow">
+          <div class="i-td-name">${escapeHtml(g.name)}</div>
+          ${todayBatchBadge(g)}
+        </div>
         <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta.join(' · '))}</span>${status.length?' · '+status.join(' · '):''}</div>
       </div>
       ${btn}
@@ -2302,6 +2305,10 @@
         return String(a.name).localeCompare(String(b.name));
       });
   }
+  // v101：批量物品（总入库 > 1）在今日页也显示「批量」标签，与物品统计页的角标同一口径（g.qty>1）
+  function todayBatchBadge(g){
+    return (g && g.qty>1) ? '<span class="i-batch-badge i-td-badge">批量</span>' : '';
+  }
   function todaySearchCardHtml(g, idx){
     const unit=groupUnit(g);
     const cat=[g.primaryName, g.secondaryName].filter(Boolean).join('-');
@@ -2310,7 +2317,10 @@
     <div class="i-td-card" data-key="${escapeHtml(g.key)}" onclick="__todayAct(${idx},'view')">
       <div class="i-td-icon">${renderIcon(g.icon, g.name)}</div>
       <div class="i-td-main">
-        <div class="i-td-name">${escapeHtml(g.name)}</div>
+        <div class="i-td-titlerow">
+          <div class="i-td-name">${escapeHtml(g.name)}</div>
+          ${todayBatchBadge(g)}
+        </div>
         <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta||'未分类')}</span> · <span class="i-td-stock">现有 ${g.currentStock}${escapeHtml(unit)}</span></div>
       </div>
       <button class="i-td-btn i-td-btn-view" onclick="event.stopPropagation();__todayAct(${idx},'view')">查看</button>
