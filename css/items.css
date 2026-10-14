@@ -2686,3 +2686,230 @@ button.i-action-pin.active {
   line-height: 1.24;
   pointer-events: none;    /* 点击穿透到输入框，点击后提示消失 */
 }
+
+/* ==========================================================================
+   v99 今日（Today）页：日期 + 大标题 + 搜索 + 今天要处理
+   ========================================================================== */
+.i-today-head {
+  padding: 2px 2px 0;
+  margin-bottom: 14px;
+}
+.i-today-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--i-text-sec);
+  letter-spacing: .2px;
+}
+.i-today-title {
+  margin-top: 2px;
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 2px;
+  color: var(--i-text);
+}
+
+/* 搜索框（提示词：家里有没有…） */
+.i-today-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 14px;
+  background: #F1F3EF;
+  border: 1px solid #E7EAE3;
+  border-radius: 14px;
+}
+.i-today-search-icon {
+  display: flex;
+  align-items: center;
+  color: #9AA096;
+  flex-shrink: 0;
+}
+.i-today-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--i-text);
+}
+.i-today-search input::placeholder { color: #A9AFA6; }
+.i-today-search-clear {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #D9DED4;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* 补货清单入口（有内容时才显示） */
+.i-today-shoprow { display: flex; margin-top: 12px; }
+.i-today-shop-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid #F6DFC4;
+  border-radius: 999px;
+  background: #FFF3E6;
+  color: #B4700F;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.i-today-shop-pill b {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #B4700F;
+  color: #fff;
+  font-size: 12px;
+  text-align: center;
+}
+
+/* 「今天要处理」+ 件数 */
+.i-today-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 18px 2px 10px;
+}
+.i-today-bar-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--i-text);
+}
+.i-today-bar-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--i-text-sec);
+}
+
+/* 待处理卡片：图标 + 名称/状态 + 右侧动作 */
+.i-td-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--i-surface);
+  border: 1px solid var(--i-border);
+  border-radius: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.i-td-card:active { background: #FAFBF8; }
+.i-td-icon {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--i-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.i-td-icon .i-icon-img { width: 68%; height: 68%; }
+.i-td-main { flex: 1; min-width: 0; }
+.i-td-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--i-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.i-td-sub {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--i-text-sec);
+}
+.i-td-meta { color: var(--i-text-sec); }
+.i-td-stock { color: #8A8F86; }
+/* 到期档位配色：≤5 天红 / 6~20 天黄 / 21~30 天蓝 */
+.i-td-st { font-weight: 700; }
+.i-td-st.i-td-red { color: #D2402F; }
+.i-td-st.i-td-amber { color: #C07A16; }
+.i-td-st.i-td-blue { color: #3F6BA8; }
+
+.i-td-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.i-td-btn-done { background: #E7F2E4; color: #4E7A43; }
+.i-td-btn-buy { background: #FBEBDA; color: #B4700F; }
+.i-td-btn-added { background: #F1F2EE; color: #8A8F86; }
+.i-td-btn-view { background: #E8EEF7; color: #3F6BA8; }
+
+/* 补货清单弹窗 */
+.i-shop-list { max-height: 52vh; overflow-y: auto; margin-bottom: 14px; }
+.i-shop-empty {
+  padding: 26px 10px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--i-text-ter);
+}
+.i-shop-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--i-border-light);
+}
+.i-shop-row:last-child { border-bottom: none; }
+.i-shop-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--i-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+.i-shop-icon .i-icon-img { width: 68%; height: 68%; }
+.i-shop-main { flex: 1; min-width: 0; }
+.i-shop-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--i-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.i-shop-meta { margin-top: 2px; font-size: 12.5px; color: var(--i-text-sec); }
+.i-shop-done {
+  flex-shrink: 0;
+  padding: 7px 13px;
+  border: none;
+  border-radius: 999px;
+  background: #E7F2E4;
+  color: #4E7A43;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
