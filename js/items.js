@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v98';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v99';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1232,7 +1232,8 @@
     const target=$('#i-subpage-'+name);
     if(target) target.classList.add('active');
     $('.main').scrollTop=0;
-    if(['overview','categories','expiring'].includes(name)) currentItemsSub=name;
+    if(['overview','categories','expiring','today'].includes(name)) currentItemsSub=name;
+    if(name==='today') renderTodayPage();
     if(name==='overview') renderOverview();
     if(name==='categories') renderCategoriesPage();
     if(name==='expiring') renderExpiringPage();
@@ -1250,10 +1251,12 @@
   // 侧边栏「到期清单」未读数量角标
   function updateExpiringBadge(){
     const el=$('#iNavExpiringBadge');
-    if(!el) return;
-    const n=getExpiringBatchEntries().length;   // 与到期清单页一致：按批次判定后的物品数
-    if(n>0){ el.textContent=n>99?'99+':String(n); el.style.display='inline-flex'; }
-    else el.style.display='none';
+    if(el){
+      const n=getExpiringBatchEntries().length;   // 与到期清单页一致：按批次判定后的物品数
+      if(n>0){ el.textContent=n>99?'99+':String(n); el.style.display='inline-flex'; }
+      else el.style.display='none';
+    }
+    updateTodayBadge();   // v99：今日待办角标一并刷新
   }
 
   /* ===== 添加物品 ===== */
@@ -2066,6 +2069,333 @@
     // 缓存本次渲染的数据，卡片内联 onclick 按下标取用
     expiringEntries=entries;
     list.innerHTML=entries.map((e,i)=>expiringCardHtml(e,i)).join('');
+  }
+
+  /* ==================================================================
+     v99 今日（Today）页
+     --------------------------------------------------------------
+     判定口径：
+       ① 到期：取该物品「未退库批次」中最早的有效期（批次没有则用物品级有效期），
+          与今天比较，剩余天数 ≤ 30 天 → 进入「今天要处理」（已过期 delta<0，排最前）
+       ② 补货：当前库存 ≤ 该分类的补货线（见下方 RESTOCK_LINE_* 配置）→ 标「低于补货线」
+     配色：≤5 天（含已过期/今天/明天）红字；6~20 天黄字；21~30 天蓝字
+     ================================================================== */
+
+  /* ---- 补货线配置 ----
+     语义：当前库存 ≤ 补货线 → 提示「低于补货线」。
+     未列出的分类默认「不做补货提醒」（耐用/大件/服务/虚拟类不需要囤货）。 */
+  const RESTOCK_LINE_PRIMARY = {   // 一级分类默认补货线
+    sys_home: 2,        // 家居日用
+    sys_consumable: 2,  // 耗品配件
+    sys_beauty: 2,      // 个护美妆
+    sys_baby: 3,        // 母婴儿童
+    sys_snack: 3,       // 零食饮料
+    sys_tea: 2,         // 酒咖品茗
+    sys_pet: 2,         // 宠物用品
+    sys_medical: 2,     // 健康医疗
+    sys_office: 1       // 办公学习
+  };
+  const RESTOCK_LINE_SECONDARY = { // 二级分类覆盖值（键 = 一级id:二级名）
+    // 家居日用
+    'sys_home:纸抽':3, 'sys_home:手帕纸':3, 'sys_home:厨房湿巾':3, 'sys_home:湿厕纸':3, 'sys_home:洗脸巾':3,
+    'sys_home:厨房用纸':2, 'sys_home:洗洁精':2, 'sys_home:洗衣用品':2, 'sys_home:清洁用品':2, 'sys_home:洗碗擦':2,
+    'sys_home:洗碗盐':2, 'sys_home:香皂肥皂':2, 'sys_home:手套':2, 'sys_home:净水机滤芯':2, 'sys_home:滤网套':2,
+    'sys_home:消毒液':1, 'sys_home:软水盐':1, 'sys_home:清洁膏':1, 'sys_home:油污净':1,
+    // 耗品配件
+    'sys_consumable:集尘袋':3, 'sys_consumable:滤网':2, 'sys_consumable:滤芯':2, 'sys_consumable:滚刷':2,
+    'sys_consumable:边刷':2, 'sys_consumable:拖布':2, 'sys_consumable:地板清洁液':2, 'sys_consumable:玻璃水':2,
+    'sys_consumable:车载香薰':1, 'sys_consumable:吸尘器替换头':1, 'sys_consumable:吸尘器延长杆':1, 'sys_consumable:毛发切割器':1,
+    // 个护美妆
+    'sys_beauty:面膜':3, 'sys_beauty:女性护理':3, 'sys_beauty:口腔护理':2, 'sys_beauty:洗发护发':2,
+    'sys_beauty:身体护理':2, 'sys_beauty:防晒':2, 'sys_beauty:洁面':2, 'sys_beauty:爽肤水':2, 'sys_beauty:卸妆油':2,
+    // 母婴儿童
+    'sys_baby:纸尿裤':3, 'sys_baby:奶粉':3, 'sys_baby:婴儿湿巾':3, 'sys_baby:纸巾湿巾':3, 'sys_baby:辅食':2,
+    // 零食饮料 / 酒咖品茗
+    'sys_snack:乳制品':3, 'sys_snack:饮料':3, 'sys_snack:干果':2, 'sys_snack:面包零食':2,
+    'sys_tea:茶叶':2, 'sys_tea:咖啡':2, 'sys_tea:酒水':1,
+    // 宠物用品
+    'sys_pet:猫砂':3, 'sys_pet:宠物粮':3, 'sys_pet:垃圾袋':2, 'sys_pet:冻干':2, 'sys_pet:宠物零食':2,
+    'sys_pet:罐头':2, 'sys_pet:驱虫用品':1, 'sys_pet:消毒除臭':1, 'sys_pet:洗护用品':1, 'sys_pet:补剂药品':1
+  };
+  function restockLineOf(g){
+    const key=(g.primaryId||'')+':'+(g.secondaryName||'');
+    if(RESTOCK_LINE_SECONDARY[key]!=null) return RESTOCK_LINE_SECONDARY[key];
+    const line=RESTOCK_LINE_PRIMARY[g.primaryId];
+    return (line==null)?null:line;
+  }
+  function restockLineOfCategory(primaryId, secondaryName){
+    const key=(primaryId||'')+':'+(secondaryName||'');
+    if(RESTOCK_LINE_SECONDARY[key]!=null) return RESTOCK_LINE_SECONDARY[key];
+    const line=RESTOCK_LINE_PRIMARY[primaryId];
+    return (line==null)?null:line;
+  }
+  function groupUnit(g){ const it=g&&g.items&&g.items[0]; return (it&&it.unit)||'件'; }
+  function groupLocation(g){ const it=g&&g.items&&g.items[0]; return (it&&it.location)||''; }
+
+  /* ---- 该组「未退库批次」中最早到期的剩余天数（无有效期 → null） ---- */
+  function groupExpiryDelta(g){
+    const today=todayStr();
+    let min=null;
+    (g.items||[]).forEach(item=>{
+      const actives=getActiveBatches(item);
+      if(actives.length){
+        actives.forEach(b=>{
+          const exp=b.expiryDate||item.expiryDate;
+          if(!exp) return;
+          const d=daysDiff(today, exp);
+          if(min===null||d<min) min=d;
+        });
+      }else if(item.expiryDate){
+        const d=daysDiff(today, item.expiryDate);
+        if(min===null||d<min) min=d;
+      }
+    });
+    return min;
+  }
+
+  const TODAY_WINDOW=30;   // 从今天起算的到期窗口（天）
+
+  function todayEntries(){
+    const { groups }=groupItems(state.items);
+    const out=[];
+    groups.forEach(g=>{
+      if(!g.items||!g.items.length) return;
+      const delta=groupExpiryDelta(g);
+      const line=restockLineOf(g);
+      const lowStock=line!=null && g.currentStock<=line;
+      const expiring=delta!==null && delta<=TODAY_WINDOW;
+      if(!expiring && !lowStock) return;
+      out.push({ g, delta, line, lowStock, expiring });
+    });
+    // 排序：已过期（越久越前）→ 今天/明天 → 剩余天数升序 → 仅低于补货线（库存越少越前）
+    out.sort((a,b)=>{
+      const ka=a.expiring?a.delta:9000+a.g.currentStock;
+      const kb=b.expiring?b.delta:9000+b.g.currentStock;
+      if(ka!==kb) return ka-kb;
+      return String(a.g.name).localeCompare(String(b.g.name));
+    });
+    return out;
+  }
+
+  function expiryStatusText(delta){
+    if(delta<0) return '已过期 '+Math.abs(delta)+' 天';
+    if(delta===0) return '今天到期';
+    if(delta===1) return '明天到期';
+    return '距离到期还有 '+delta+' 天';
+  }
+  function expiryStatusCls(delta){
+    if(delta<=5) return 'i-td-red';      // 含已过期 / 今天 / 明天
+    if(delta<=20) return 'i-td-amber';
+    return 'i-td-blue';
+  }
+
+  /* ---- 补货清单（本地存储 wb_items_shopping_v2，不参与云端同步） ---- */
+  const SHOP_KEY='wb_items_shopping_v2';
+  function shopList(){
+    try{ const a=JSON.parse(localStorage.getItem(SHOP_KEY)||'[]'); return Array.isArray(a)?a:[]; }
+    catch(e){ return []; }
+  }
+  function shopSave(arr){
+    try{ localStorage.setItem(SHOP_KEY, JSON.stringify(arr)); }catch(e){}
+    updateTodayShopUI();
+  }
+  function shopHas(g){ return shopList().some(x=>x.key===g.key); }
+  function shopAdd(g){
+    const list=shopList();
+    if(list.some(x=>x.key===g.key)){ showToast('已在补货清单中'); return false; }
+    list.push({
+      key:g.key, name:g.name, icon:g.icon||'📦', unit:groupUnit(g), stock:g.currentStock,
+      category:[g.primaryName, g.secondaryName].filter(Boolean).join('-'),
+      addedAt:todayStr(), updatedAt:new Date().toISOString()
+    });
+    shopSave(list);
+    showToast('已加入补货清单');
+    return true;
+  }
+  function shopRemove(key){ shopSave(shopList().filter(x=>x.key!==key)); }
+
+  function updateTodayShopUI(){
+    const n=shopList().length;
+    const row=$('#iTodayShopRow');
+    const cnt=$('#iTodayShopPillCount');
+    if(cnt) cnt.textContent=String(n);
+    if(row) row.style.display=n?'flex':'none';
+  }
+  function renderShopModal(){
+    const list=shopList();
+    const el=$('#iShopList');
+    if(!el) return;
+    if(!list.length){
+      el.innerHTML='<div class="i-shop-empty">清单还是空的 —— 在「今日」里点「加入清单」就会出现在这里</div>';
+      return;
+    }
+    el.innerHTML=list.map((x,i)=>`
+      <div class="i-shop-row">
+        <div class="i-shop-icon">${renderIcon(x.icon, x.name)}</div>
+        <div class="i-shop-main">
+          <div class="i-shop-name">${escapeHtml(x.name)}</div>
+          <div class="i-shop-meta">${escapeHtml([x.category, '现有 '+x.stock+(x.unit||'件')].filter(Boolean).join(' · '))}</div>
+        </div>
+        <button class="i-shop-done" onclick="__shopDone(${i})">已买</button>
+      </div>`).join('');
+  }
+  window.__shopDone=function(i){
+    const list=shopList();
+    const it=list[i];
+    if(!it) return;
+    shopRemove(it.key);
+    renderShopModal();
+    renderTodayPage();
+    showToast('已从清单划掉');
+  };
+  function openShopModal(){ renderShopModal(); openModal('iShopModal'); }
+
+  /* ---- 今日页渲染 ---- */
+  let todayRows=[];             // 渲染时缓存，卡片内联 onclick 按下标取用
+  let todaySearchTerm='';
+
+  function todayCardHtml(entry, idx){
+    const g=entry.g, unit=groupUnit(g);
+    const meta=[groupLocation(g)||g.primaryName||'未分类'];
+    if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
+    const status=[];
+    if(entry.expiring) status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
+    if(entry.lowStock) status.push(`<span class="i-td-st ${g.currentStock<=0?'i-td-red':'i-td-amber'}">低于补货线</span>`);
+    const inList=shopHas(g);
+    let btn;
+    if(entry.lowStock && !inList){
+      btn=`<button class="i-td-btn i-td-btn-buy" onclick="event.stopPropagation();__todayAct(${idx},'buy')">加入清单</button>`;
+    }else if(entry.lowStock && inList){
+      btn=`<button class="i-td-btn i-td-btn-added" onclick="event.stopPropagation();__todayAct(${idx},'buy')">已在清单</button>`;
+    }else if(entry.delta!==null && entry.delta<=20){
+      btn=`<button class="i-td-btn i-td-btn-done" onclick="event.stopPropagation();__todayAct(${idx},'use')">用完了</button>`;
+    }else{
+      btn=`<button class="i-td-btn i-td-btn-view" onclick="event.stopPropagation();__todayAct(${idx},'view')">查看</button>`;
+    }
+    return `
+    <div class="i-td-card ${entry.lowStock?'low':''}" data-key="${escapeHtml(g.key)}" onclick="__todayAct(${idx},'view')">
+      <div class="i-td-icon">${renderIcon(g.icon, g.name)}</div>
+      <div class="i-td-main">
+        <div class="i-td-name">${escapeHtml(g.name)}</div>
+        <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta.join(' · '))}</span>${status.length?' · '+status.join(' · '):''}</div>
+      </div>
+      ${btn}
+    </div>`;
+  }
+
+  /* ---- 搜索：模糊匹配「我的全部物品内容」 ---- */
+  function groupSearchText(g){
+    const parts=[g.name, g.primaryName, g.secondaryName, groupUnit(g)];
+    (g.items||[]).forEach(it=>{
+      parts.push(it.location||'', it.memo||'');
+      getItemBatches(it).forEach(b=>parts.push(b.note||''));
+      getItemUsings(it).forEach(u=>parts.push(u.note||''));
+    });
+    return parts.filter(Boolean).join(' ');
+  }
+  function todaySearchGroups(term){
+    const { groups }=groupItems(state.items);
+    return groups.filter(g=>fuzzyMatch(groupSearchText(g), term))
+      .sort((a,b)=>{
+        const p=(b.pinned?1:0)-(a.pinned?1:0);
+        if(p) return p;
+        return String(a.name).localeCompare(String(b.name));
+      });
+  }
+  function todaySearchCardHtml(g, idx){
+    const unit=groupUnit(g);
+    const cat=[g.primaryName, g.secondaryName].filter(Boolean).join('-');
+    const meta=[cat, groupLocation(g)].filter(Boolean).join(' · ');
+    return `
+    <div class="i-td-card" data-key="${escapeHtml(g.key)}" onclick="__todayAct(${idx},'view')">
+      <div class="i-td-icon">${renderIcon(g.icon, g.name)}</div>
+      <div class="i-td-main">
+        <div class="i-td-name">${escapeHtml(g.name)}</div>
+        <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta||'未分类')}</span> · <span class="i-td-stock">现有 ${g.currentStock}${escapeHtml(unit)}</span></div>
+      </div>
+      <button class="i-td-btn i-td-btn-view" onclick="event.stopPropagation();__todayAct(${idx},'view')">查看</button>
+    </div>`;
+  }
+
+  function renderTodayPage(){
+    const d=new Date();
+    const wd=['日','一','二','三','四','五','六'][d.getDay()];
+    const dateEl=$('#iTodayDate');
+    if(dateEl) dateEl.textContent=`${d.getMonth()+1}月${d.getDate()}日 星期${wd}`;
+
+    const input=$('#iTodaySearch');
+    if(input) input.value=todaySearchTerm;
+
+    const list=$('#iTodayList');
+    const titleEl=$('#iTodayBarTitle');
+    const countEl=$('#iTodayCount');
+
+    if(todaySearchTerm){
+      const hits=todaySearchGroups(todaySearchTerm);
+      todayRows=hits.map(g=>({ g, delta:groupExpiryDelta(g), expiring:false, lowStock:false, search:true }));
+      if(titleEl) titleEl.textContent='搜索结果';
+      if(countEl) countEl.textContent=hits.length+' 件';
+      if(list) list.innerHTML=hits.length
+        ? hits.map((g,i)=>todaySearchCardHtml(g,i)).join('')
+        : `<div class="i-empty"><p>没找到和「${escapeHtml(todaySearchTerm)}」相关的物品</p></div>`;
+      updateTodayShopUI();
+      return;
+    }
+
+    const entries=todayEntries();
+    todayRows=entries;
+    if(titleEl) titleEl.textContent='今天要处理';
+    if(countEl) countEl.textContent=entries.length+' 件';
+    if(list) list.innerHTML=entries.length
+      ? entries.map((e,i)=>todayCardHtml(e,i)).join('')
+      : `<div class="i-empty"><p>今天没有要处理的事，安心用吧</p></div>`;
+    updateTodayShopUI();
+    updateTodayBadge();
+  }
+
+  /* ---- 「用完了」：按最早到期且有可用库存的批次记 1 次取用 ---- */
+  function todayQuickUse(g){
+    const today=todayStr();
+    let bestBatch=null, bestItem=null, bestDelta=null;
+    (g.items||[]).forEach(item=>{
+      getActiveBatches(item).forEach(b=>{
+        if(getBatchAvailableQty(item, b.id)<1) return;
+        const exp=b.expiryDate||item.expiryDate;
+        const d=exp?daysDiff(today, exp):99999;
+        if(!bestBatch || bestDelta===null || d<bestDelta){ bestBatch=b; bestItem=item; bestDelta=d; }
+      });
+    });
+    if(!bestBatch||!bestItem){ showToast('该物品没有可用库存'); return; }
+    if(!Array.isArray(bestItem.usings)) bestItem.usings=[];
+    bestItem.usings.push({ batchId:bestBatch.id, date:today, quantity:1, note:'' });
+    bestItem.updatedAt=new Date().toISOString();
+    save();
+    showToast('已取用 1 '+(bestItem.unit||'件'));
+    renderTodayPage();
+    renderOverview();
+    updateExpiringBadge();
+  }
+
+  window.__todayAct=function(i, act){
+    const row=todayRows[i];
+    if(!row){ showToast('列表已更新，请重试'); return; }
+    const g=row.g;
+    if(act==='use'){ todayQuickUse(g); return; }
+    if(act==='buy'){
+      if(shopHas(g)){ showToast('已在补货清单中'); return; }
+      shopAdd(g);
+      renderTodayPage();
+      return;
+    }
+    showDetail(g);
+  };
+
+  function updateTodayBadge(){
+    const el=$('#iNavTodayBadge');
+    if(!el) return;
+    const n=todayEntries().length;
+    if(n>0){ el.textContent=n>99?'99+':String(n); el.style.display='inline-flex'; }
+    else el.style.display='none';
   }
 
   /* ===== 批次档案页（到期清单点击入库批次进入） ===== */
@@ -3584,6 +3914,30 @@
     $('#iGalleryBtn')?.addEventListener('click',()=>{ state.settings.viewMode=state.settings.viewMode==='grid'?'list':'grid'; save(); renderOverview(); });
     $('#iAddItemFab')?.addEventListener('click',()=>openAddItem('single'));
     $('#iExpiringMore')?.addEventListener('click',()=>showSubpage('expiring'));
+
+    // 今日页（v99）：搜索 + 补货清单
+    $('#iTodaySearch')?.addEventListener('input', e=>{
+      todaySearchTerm=(e.target.value||'').trim();
+      const clear=$('#iTodaySearchClear');
+      if(clear) clear.style.display=e.target.value?'flex':'none';
+      renderTodayPage();
+    });
+    $('#iTodaySearchClear')?.addEventListener('click', ()=>{
+      todaySearchTerm='';
+      const input=$('#iTodaySearch');
+      if(input) input.value='';
+      const clear=$('#iTodaySearchClear');
+      if(clear) clear.style.display='none';
+      renderTodayPage();
+      if(input) input.focus();
+    });
+    $('#iTodayShopPill')?.addEventListener('click', openShopModal);
+    $('#iShopClearBtn')?.addEventListener('click', ()=>{
+      shopSave([]);
+      renderShopModal();
+      renderTodayPage();
+      showToast('补货清单已清空');
+    });
     $('#iCatBackBtn')?.addEventListener('click',()=>showSubpage('overview'));
     // 到期清单页的「返回」按钮已按要求删除（通过左侧导航/底部栏返回）
     $('#iBatchArchiveBackBtn')?.addEventListener('click',()=>showSubpage('expiring'));
