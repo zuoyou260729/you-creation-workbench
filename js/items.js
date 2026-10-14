@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v104';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v105';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1261,6 +1261,64 @@
   }
 
   /* ===== 添加物品 ===== */
+  /* ==================================================================
+     v105 时间线字段显隐（按一级分类）
+     规则来源：用户表格（1=显示 / 0=隐藏），字段 = 生产日期 / 退库日期 / 有效期 / 质保期
+     （入库日期在所有分类均为显示，故不做控制）
+     ⚠️ 只控制「前端是否展示」：字段值一律保留、隐藏项不参与必填校验、
+        切换分类回来后已填内容仍在（不删数据、不清空输入框）。
+     ================================================================== */
+  const TIMELINE_RULES = {
+    sys_digital:    { production:1, retire:1, expiry:0, warranty:1 },  // 数码产品
+    sys_smarthome:  { production:1, retire:1, expiry:0, warranty:1 },  // 智能家居
+    sys_clothing:   { production:1, retire:1, expiry:0, warranty:0 },  // 衣服鞋包
+    sys_appliance:  { production:1, retire:1, expiry:0, warranty:1 },  // 家用电器
+    sys_outdoor:    { production:1, retire:1, expiry:0, warranty:1 },  // 户外运动
+    sys_transport:  { production:1, retire:1, expiry:0, warranty:1 },  // 交通出行
+    sys_collection: { production:1, retire:1, expiry:0, warranty:0 },  // 收藏爱好
+    sys_hardware:   { production:1, retire:1, expiry:1, warranty:1 },  // 家装五金
+    sys_asset:      { production:1, retire:1, expiry:0, warranty:1 },  // 固定资产
+    sys_service:    { production:0, retire:1, expiry:1, warranty:0 },  // 服务项目
+    sys_virtual:    { production:0, retire:1, expiry:1, warranty:0 },  // 虚拟产品
+    sys_other:      { production:1, retire:1, expiry:1, warranty:1 },  // 其他
+    sys_home:       { production:1, retire:1, expiry:1, warranty:0 },  // 家居日用
+    sys_consumable: { production:1, retire:1, expiry:1, warranty:1 },  // 耗品配件
+    sys_beauty:     { production:1, retire:1, expiry:1, warranty:0 },  // 个护美妆
+    sys_baby:       { production:1, retire:1, expiry:1, warranty:0 },  // 母婴儿童
+    sys_snack:      { production:1, retire:1, expiry:1, warranty:0 },  // 零食饮料
+    sys_tea:        { production:1, retire:1, expiry:1, warranty:0 },  // 酒咖品茗
+    sys_pet:        { production:1, retire:1, expiry:1, warranty:0 },  // 宠物用品
+    sys_medical:    { production:1, retire:1, expiry:1, warranty:0 },  // 健康医疗
+    sys_office:     { production:1, retire:1, expiry:1, warranty:0 }   // 办公学习
+  };
+  const TIMELINE_ALL_VISIBLE = { production:1, retire:1, expiry:1, warranty:1 };
+  // 每个逻辑字段对应：单个物品表单行 / 批量物品表单行 / 编辑库存品·每批次档案行
+  const TIMELINE_ROW_SELECTORS = {
+    production: ['[data-target="#iProductionDate"]', '[data-target="#iBatchProductionDate"]', '#iEditBatchProductionRow'],
+    retire:     ['[data-target="#iRetireDate"]',     '[data-target="#iBatchRetireDate"]',     '#iEditBatchRetiredRow'],
+    expiry:     ['#iExpiryDateTrigger',              '#iBatchExpiryDateTrigger',              '#iEditBatchExpiryRow'],
+    warranty:   ['[data-target="#iWarrantyDate"]',   '[data-target="#iBatchWarrantyDate"]',   '#iEditBatchWarrantyRow']
+  };
+  // 自定义分类 / 未分类 / 没有规则的分类 → 全部字段显示
+  function timelineRuleFor(categoryId){
+    const path=getCategoryPath(categoryId);
+    return TIMELINE_RULES[path.primaryId] || TIMELINE_ALL_VISIBLE;
+  }
+  function timelineFieldVisible(categoryId, field){
+    return !!timelineRuleFor(categoryId)[field];
+  }
+  // 按当前选中分类实时刷新时间线区域的显隐（隐藏仅作用于展示：输入框的值原样保留）
+  function applyTimelineVisibility(categoryId){
+    const rule=timelineRuleFor(categoryId);
+    Object.keys(TIMELINE_ROW_SELECTORS).forEach(field=>{
+      const show=!!rule[field];
+      TIMELINE_ROW_SELECTORS[field].forEach(sel=>{
+        const el=document.querySelector(sel);
+        if(el) el.style.display=show?'':'none';
+      });
+    });
+  }
+
   function openAddItem(tab='single', editItem=null, presetCategory=null){
     temp.formTab=tab;
     temp.editId=editItem?editItem.id:null;
@@ -1376,6 +1434,7 @@
     const batch=$('#iBatchCategoryTrigger .i-value');
     if(single) single.innerHTML=html;
     if(batch) batch.innerHTML=html;
+    applyTimelineVisibility(temp.selectedCategory);   // v105：分类变化 → 实时刷新时间线字段显隐
   }
   function updateIconBtn(){
     const ic=temp.selectedIcon||'📦';
@@ -1419,6 +1478,7 @@
     // 物品单位（v88）：批量表单可下拉选择；单个表单沿用物品原有单位（默认「件」）
     const unit=isBatch?(($('#iBatchUnit')||{}).value||'件'):(item.unit||'件');
     item.unit=unit;
+    const tRule=timelineRuleFor(temp.selectedCategory);   // v105：被分类隐藏的字段不校验必填（值原样保存，不丢数据）
     if(isBatch){
       qty=Math.max(0, parseInt($('#iQty').value)||0);
       if(qty<=0){ showToast('请输入入库数量'); return; }   // 编辑/批量均需有效数量
@@ -1433,13 +1493,13 @@
       }
       totalPrice=Number(totalPriceStr)||(qty*price);
       expiryDate=$('#iBatchExpiryDate').value;
-      if(!expiryDate){ showToast('请填写有效期'); return; }
+      if(tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }
     }else{
       qty=1;
       price=Number($('#iPrice').value)||0;
       totalPrice=price;
       expiryDate=$('#iExpiryDate').value;
-      if(!expiryDate){ showToast('请填写有效期'); return; }
+      if(tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }
     }
 
     const batchId=dateToBatchId(item.purchaseDate);
@@ -2005,9 +2065,70 @@
     `).join('');
     $$('#iSysGrid .i-sys-card').forEach(card=>{
       card.addEventListener('click',()=>{
-        openAddItem('single', null, card.dataset.id);
+        openCatItemsModal(card.dataset.id);   // v105：点击分类 → 弹窗展示该分类下的物品（不再直接跳添加页）
       });
     });
+  }
+
+  /* ==================================================================
+     v105：分类卡片 → 弹窗展示该分类下的物品 + 「用此分类添加物品」
+     ================================================================== */
+  let catItemsTargetId=null;
+  let catItemsGroups=[];
+  function catItemsOf(catId){
+    const cat=getCategory(catId);
+    if(!cat) return [];
+    const { groups }=groupItems(state.items);
+    const isPrimary=!cat.parentId;
+    return groups.filter(g=>isPrimary ? g.primaryId===catId : g.secondaryId===catId)
+      .sort((a,b)=>{
+        const p=(b.pinned?1:0)-(a.pinned?1:0);
+        return p || String(a.name).localeCompare(String(b.name));
+      });
+  }
+  function renderCatItemsList(){
+    const list=$('#iCatItemsList');
+    if(!list) return;
+    const groups=catItemsOf(catItemsTargetId);
+    const sub=$('#iCatItemsSub');
+    if(sub) sub.textContent=groups.length?('共 '+groups.length+' 件物品，点一行看档案'):'这个分类下还没有物品';
+    if(!groups.length){
+      list.innerHTML='<div class="i-shop-empty">还没有物品 —— 点右下角「用此分类添加物品」就能加进来</div>';
+      return;
+    }
+    list.innerHTML=groups.map((g,i)=>{
+      const unit=groupUnit(g);
+      const stock=g.qty<=1 && g.totalUsed>0 ? '正在使用' : ('库存 '+g.currentStock+unit);
+      const meta=[groupLocation(g), stock].filter(Boolean).join(' · ');
+      return `
+      <div class="i-cat-item-row" onclick="__catItemOpen(${i})">
+        <div class="i-cat-item-icon">${renderIcon(g.icon, g.name)}${todayBatchBadge(g)}</div>
+        <div class="i-cat-item-main">
+          <div class="i-cat-item-name">${escapeHtml(g.name)}</div>
+          <div class="i-cat-item-meta">${escapeHtml(meta)}</div>
+        </div>
+        <span class="i-bs-arrow">›</span>
+      </div>`;
+    }).join('');
+    catItemsGroups=groups;
+  }
+  window.__catItemOpen=function(i){
+    const g=catItemsGroups[i];
+    if(!g) return;
+    closeModal('iCatItemsModal');
+    showDetail(g);
+  };
+  function openCatItemsModal(catId){
+    const cat=getCategory(catId);
+    if(!cat) return;
+    catItemsTargetId=catId;
+    const title=$('#iCatItemsTitle');
+    if(title){
+      const path=getCategoryPath(catId);
+      title.textContent=path.secondaryName ? `${path.primaryName}-${path.secondaryName}` : path.primaryName;
+    }
+    renderCatItemsList();
+    openModal('iCatItemsModal');
   }
 
   function openChildModal(parentId){
@@ -2777,6 +2898,7 @@
   function updateEditCategoryUI(){
     const cat=getCategory(temp.selectedCategory);
     const display=$('#iEditCategory');
+    applyTimelineVisibility(temp.selectedCategory);   // v105：编辑页每批次档案字段显隐同步
     if(!cat){ display.innerHTML='<span class="i-placeholder">请选择分类</span>'; return; }
     const path=getCategoryPath(cat.id);
     // v96：分类名单行显示（不再显示「自定义」标签，避免挤压导致换行）
@@ -3943,6 +4065,12 @@
       if(input) input.focus();
     });
     $('#iTodayShopPill')?.addEventListener('click', openShopModal);
+    // v105：分类物品弹窗 →「用此分类添加物品」
+    $('#iCatItemsAddBtn')?.addEventListener('click', ()=>{
+      const catId=catItemsTargetId;
+      closeModal('iCatItemsModal');
+      openAddItem('single', null, catId);
+    });
     $('#iShopClearBtn')?.addEventListener('click', ()=>{
       shopSave([]);
       renderShopModal();
