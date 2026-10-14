@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v102';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v103';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2306,13 +2306,11 @@
   function todayBatchBadge(g){
     return (g && g.qty>1) ? '<span class="i-batch-badge i-td-badge">批量</span>' : '';
   }
-  // v102：搜索结果里的库存状态文案
-  //   单个物品（非批量）：已取用过 → 「正在使用」；还没取用 → 「库存 N 单位」
-  //   批量物品：沿用物品统计页口径「现有 N 单位」
+  // v102/v103：搜索结果里的库存状态文案
+  //   单个物品（非批量）已取用过 → 「正在使用」；其余（含批量物品）→ 「库存 N 单位」
   function todayStockText(g){
     const unit=groupUnit(g);
-    if(g.qty>1) return '现有 '+g.currentStock+unit;
-    if(g.totalUsed>0) return '正在使用';
+    if(g.qty<=1 && g.totalUsed>0) return '正在使用';
     return '库存 '+g.currentStock+unit;
   }
   function todaySearchCardHtml(g, idx){
