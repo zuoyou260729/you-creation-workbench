@@ -2913,3 +2913,20 @@ button.i-action-pin.active {
   font-weight: 700;
   cursor: pointer;
 }
+
+/* v101 今日页：标题行 + 批量标签（与物品统计页角标同色同文案，改成行内胶囊避免压住图标/按钮） */
+.i-td-titlerow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.i-td-titlerow .i-td-name { flex: 0 1 auto; min-width: 0; }
+.i-td-badge {
+  position: static;
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.5;
+}
