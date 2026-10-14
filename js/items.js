@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v95';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v96';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2436,11 +2436,10 @@
   function updateEditCategoryUI(){
     const cat=getCategory(temp.selectedCategory);
     const display=$('#iEditCategory');
-    const tag=$('#iEditCatTag');
-    if(!cat){ display.innerHTML='<span class="i-placeholder">请选择分类</span>'; tag.style.display='none'; return; }
+    if(!cat){ display.innerHTML='<span class="i-placeholder">请选择分类</span>'; return; }
     const path=getCategoryPath(cat.id);
+    // v96：分类名单行显示（不再显示「自定义」标签，避免挤压导致换行）
     display.textContent=path.secondaryName ? `${path.primaryName}-${path.secondaryName}` : path.primaryName;
-    tag.style.display=cat.system? 'none':'inline-block';
   }
   function updateEditIconBtn(){
     const ic=temp.selectedIcon||'📦';
