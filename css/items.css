@@ -106,14 +106,14 @@
   font-size: clamp(18px, 5.4vw, 24px);
 }
 
-/* 添加物品页：返回占一行，标题换行后居中 */
+/* 添加物品页/编辑库存品页：返回占一行，标题换行后居中（v96：收紧顶部间距） */
 .i-header-stacked {
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 4px;
+  margin-bottom: 8px;
 }
-.i-header-stacked .i-back { align-self: flex-start; }
+.i-header-stacked .i-back { align-self: flex-start; margin-bottom: 0; }
 .i-header-stacked h1 {
   width: 100%;
   text-align: center;
@@ -2235,7 +2235,7 @@ button.i-action-pin.active {
    编辑库存品 子页（截图6/7 样式）
    ========================================== */
 .i-edit-body {
-  padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
+  padding: 10px 16px calc(96px + env(safe-area-inset-bottom));
 }
 .i-edit-card {
   background: #fff;
@@ -2290,15 +2290,18 @@ button.i-action-pin.active {
 .i-edit-cat-row svg { color: #999; flex-shrink: 0; }
 .i-edit-row-label { font-size: 15px; color: #111; flex-shrink: 0; }
 .i-edit-row-value { flex: 1; min-width: 0; text-align: right; font-size: 15px; color: #111; overflow-wrap: anywhere; }
-.i-edit-cat-tag {
-  background: #F0F0F0; color: #666; font-size: 11px;
-  padding: 2px 6px; border-radius: 4px; margin-left: 6px;
+/* v96：分类行的分类名强制单行显示（字号略小 + 超长省略），不再换行 */
+.i-edit-cat-row .i-edit-row-value {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
 }
-
 .i-edit-section-title {
   font-size: 13px;
   color: #888;
-  margin: 4px 4px 8px;
+  margin: 0 4px 8px;
 }
 .i-edit-info-row {
   display: flex;
