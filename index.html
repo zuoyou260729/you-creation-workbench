@@ -486,6 +486,25 @@
               </div>
             </div>
 
+            <!-- 照片（v108）：拍照 / 从相册选择，最多 6 张 -->
+            <div class="i-form-card" id="iPhotoCard" data-page-node-id="v108PhotoCard">
+              <div class="i-field-label" style="margin-bottom:10px" data-page-node-id="v108PhotoTitle">照片</div>
+              <div class="i-photo-strip" id="iPhotoStrip" data-page-node-id="v108PhotoStrip"></div>
+              <div class="i-photo-actions" data-page-node-id="v108PhotoActions">
+                <button type="button" class="i-photo-btn" id="iPhotoCameraBtn" data-page-node-id="v108PhotoCamBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v108CamSvg"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" data-page-node-id="v108CamP1"/><circle cx="12" cy="13" r="4" data-page-node-id="v108CamC"/></svg>
+                  拍照
+                </button>
+                <button type="button" class="i-photo-btn" id="iPhotoAlbumBtn" data-page-node-id="v108PhotoAlbumBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v108AlbSvg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" data-page-node-id="v108AlbR"/><circle cx="8.5" cy="8.5" r="1.5" data-page-node-id="v108AlbC"/><polyline points="21 15 16 10 5 21" data-page-node-id="v108AlbP"/></svg>
+                  从相册选择
+                </button>
+              </div>
+              <input type="file" id="iPhotoCameraInput" accept="image/*" capture="environment" style="display:none" data-page-node-id="v108PhotoCamInput">
+              <input type="file" id="iPhotoAlbumInput" accept="image/*" multiple style="display:none" data-page-node-id="v108PhotoAlbumInput">
+              <div class="i-photo-hint" data-page-node-id="v108PhotoHint">最多 6 张。原图存在本机，缩略图随物品数据同步到云端</div>
+            </div>
+
             <div class="i-form-card" data-page-node-id="ThXD9x7YGglgxxwySpIggu">
               <div class="i-field" data-page-node-id="REFDAjdZmxW1hAFmN61vAB">
                 <label class="i-field-label" data-page-node-id="e0eJJW7iDqghpUWKLfg8u1">购入价格</label>
@@ -570,6 +589,25 @@
                   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="U3FmTEzy8tfRcThV8ezelE"><polyline points="9 18 15 12 9 6" data-page-node-id="AQz9aKrgEHoB6MjksCZBHm"/></svg>
                 </div>
               </div>
+            </div>
+
+            <!-- 照片（v108 批量表单） -->
+            <div class="i-form-card" id="iBatchPhotoCard" data-page-node-id="v108BatchPhotoCard">
+              <div class="i-field-label" style="margin-bottom:10px" data-page-node-id="v108BatchPhotoTitle">照片</div>
+              <div class="i-photo-strip" id="iBatchPhotoStrip" data-page-node-id="v108BatchPhotoStrip"></div>
+              <div class="i-photo-actions" data-page-node-id="v108BatchPhotoActions">
+                <button type="button" class="i-photo-btn" id="iBatchPhotoCameraBtn" data-page-node-id="v108BatchCamBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v108BCamSvg"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" data-page-node-id="v108BCamP1"/><circle cx="12" cy="13" r="4" data-page-node-id="v108BCamC"/></svg>
+                  拍照
+                </button>
+                <button type="button" class="i-photo-btn" id="iBatchPhotoAlbumBtn" data-page-node-id="v108BatchAlbumBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v108BAlbSvg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" data-page-node-id="v108BAlbR"/><circle cx="8.5" cy="8.5" r="1.5" data-page-node-id="v108BAlbC"/><polyline points="21 15 16 10 5 21" data-page-node-id="v108BAlbP"/></svg>
+                  从相册选择
+                </button>
+              </div>
+              <input type="file" id="iBatchPhotoCameraInput" accept="image/*" capture="environment" style="display:none" data-page-node-id="v108BatchCamInput">
+              <input type="file" id="iBatchPhotoAlbumInput" accept="image/*" multiple style="display:none" data-page-node-id="v108BatchAlbumInput">
+              <div class="i-photo-hint" data-page-node-id="v108BatchPhotoHint">最多 6 张。原图存在本机，缩略图随物品数据同步到云端</div>
             </div>
 
             <div class="i-form-card" data-page-node-id="ne85X8A152aQIDJcrJlJmE">
@@ -894,6 +932,12 @@
               </div>
             </div>
 
+            <!-- 照片（v108） -->
+            <div class="i-detail-section" id="iDetailPhotoSection" style="display:none" data-page-node-id="v108DetailPhoto">
+              <h2 class="i-detail-section-title" data-page-node-id="v108DetailPhotoTitle">照片</h2>
+              <div class="i-photo-strip" id="iDetailPhotoStrip" data-page-node-id="v108DetailPhotoStrip"></div>
+            </div>
+
             <!-- 库存档案 -->
             <div class="i-detail-section" data-page-node-id="uWKhJilLN2f2a9mAENn9J2">
               <h2 class="i-detail-section-title" data-page-node-id="7XxEOEvpEVICl1659DDqaP">库存档案</h2>
@@ -1119,6 +1163,25 @@
             </div>
 
             <!-- 入库信息 -->
+            <!-- 照片（v108 编辑页） -->
+            <div class="i-edit-section-title" data-page-node-id="v108EditPhotoTitle">照片</div>
+            <div class="i-edit-card" data-page-node-id="v108EditPhotoCard">
+              <div class="i-photo-strip" id="iEditPhotoStrip" data-page-node-id="v108EditPhotoStrip"></div>
+              <div class="i-photo-actions" data-page-node-id="v108EditPhotoActions">
+                <button type="button" class="i-photo-btn" id="iEditPhotoCameraBtn" data-page-node-id="v108EditCamBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v108ECamSvg"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" data-page-node-id="v108ECamP1"/><circle cx="12" cy="13" r="4" data-page-node-id="v108ECamC"/></svg>
+                  拍照
+                </button>
+                <button type="button" class="i-photo-btn" id="iEditPhotoAlbumBtn" data-page-node-id="v108EditAlbumBtn">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v108EAlbSvg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" data-page-node-id="v108EAlbR"/><circle cx="8.5" cy="8.5" r="1.5" data-page-node-id="v108EAlbC"/><polyline points="21 15 16 10 5 21" data-page-node-id="v108EAlbP"/></svg>
+                  从相册选择
+                </button>
+              </div>
+              <input type="file" id="iEditPhotoCameraInput" accept="image/*" capture="environment" style="display:none" data-page-node-id="v108EditCamInput">
+              <input type="file" id="iEditPhotoAlbumInput" accept="image/*" multiple style="display:none" data-page-node-id="v108EditAlbumInput">
+              <div class="i-photo-hint" data-page-node-id="v108EditPhotoHint">最多 6 张。原图存在本机，缩略图随物品数据同步到云端</div>
+            </div>
+
             <div class="i-edit-section-title" data-page-node-id="TCANuAPaiC2k3bZSwONJiK">入库信息</div>
             <div class="i-edit-card" data-page-node-id="OQh5EY8opNkHbwvlVbl8oG">
               <div class="i-edit-info-row" data-page-node-id="Vm8erhcUh510byy6tXEdNl">
@@ -1256,6 +1319,22 @@
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="d1moDC4WYxBdKZym6pX1nS"><polyline points="20 6 9 17 4 12" data-page-node-id="pbA5jXA3tWijQ8ZeJzSrUh"/></svg>
               保存修改
             </button>
+          </div>
+        </div>
+
+        <!-- 照片查看 弹窗（v108：档案页点照片看大图，可设为图标 / 删除） -->
+        <div class="i-modal i-bottom-sheet" id="iPhotoModal" data-page-node-id="v108PhotoModal">
+          <div class="i-bottom-sheet-card" data-page-node-id="v108PhotoModalCard">
+            <div class="i-bs-handle" data-page-node-id="v108PhotoModalHandle"></div>
+            <h3 class="i-bs-title" id="iPhotoModalTitle" data-page-node-id="v108PhotoModalTitle">照片</h3>
+            <div class="i-photo-viewer" data-page-node-id="v108PhotoViewer">
+              <img id="iPhotoViewerImg" alt="物品照片" data-page-node-id="v108PhotoViewerImg">
+            </div>
+            <div class="i-photo-viewer-actions" data-page-node-id="v108PhotoViewerActions">
+              <button class="i-bs-btn i-bs-cancel" id="iPhotoSetIconBtn" data-page-node-id="v108PhotoSetIcon">设为图标</button>
+              <button class="i-bs-btn i-bs-cancel" id="iPhotoDeleteBtn" data-page-node-id="v108PhotoDelete">删除照片</button>
+              <button class="i-bs-btn i-bs-confirm" data-close-modal="iPhotoModal" data-page-node-id="v108PhotoClose">关闭</button>
+            </div>
           </div>
         </div>
 
