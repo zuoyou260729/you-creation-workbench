@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v107';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v108';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1504,6 +1504,255 @@
     return out;
   }
 
+  /* ==================================================================
+     v108 物品照片（拍照 / 从相册选择）
+     ------------------------------------------------------------------
+     · 原图：压到最长边 1600px 的 JPEG → 存本机 IndexedDB（不受 localStorage 5MB 限制）
+     · 缩略图：最长边 260px 的 JPEG(dataURL) → 存 item.photos 里，随物品数据云端同步
+       （手机拍的，电脑上也能看到小图；原图只在本机）
+     · 每件最多 6 张；缩略图可直接「设为物品图标」
+     ================================================================== */
+  const PHOTO_MAX = 6;
+  const PHOTO_FULL_MAX = 1600;
+  const PHOTO_THUMB_MAX = 260;
+  const PHOTO_DB = 'you_items_photos';
+  const PHOTO_STORE = 'photos';
+  const PHOTO_SLOTS = {
+    single: { strip:'#iPhotoStrip',      cam:'#iPhotoCameraInput',      camBtn:'#iPhotoCameraBtn',      album:'#iPhotoAlbumInput',      albumBtn:'#iPhotoAlbumBtn' },
+    batch:  { strip:'#iBatchPhotoStrip', cam:'#iBatchPhotoCameraInput', camBtn:'#iBatchPhotoCameraBtn', album:'#iBatchPhotoAlbumInput', albumBtn:'#iBatchPhotoAlbumBtn' },
+    edit:   { strip:'#iEditPhotoStrip',  cam:'#iEditPhotoCameraInput',  camBtn:'#iEditPhotoCameraBtn',  album:'#iEditPhotoAlbumInput',  albumBtn:'#iEditPhotoAlbumBtn' }
+  };
+  const photoStaging = { single:[], batch:[], edit:[] };   // 各表单当前的照片（含缩略图）
+  let detailPhotoItem = null;                              // 档案页正在看照片的物品
+  let photoViewerCtx = null;                               // 看图弹窗上下文
+
+  function photoUid(){ return 'ph_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+  function getItemPhotos(item){ return item&&Array.isArray(item.photos)?item.photos:[]; }
+  function photosOfStaging(slot){ return Array.isArray(photoStaging[slot])?photoStaging[slot]:[]; }
+  // 表单照片 → 物品里的精简结构（只留缩略图，原图在 IndexedDB）
+  function photosForSave(slot){
+    return photosOfStaging(slot).map(p=>({ id:p.id, thumb:p.thumb, w:p.w||0, h:p.h||0, createdAt:p.createdAt||Date.now() }));
+  }
+
+  /* ---- IndexedDB：原图存取 ---- */
+  function photoDbOpen(){
+    return new Promise((resolve,reject)=>{
+      if(!('indexedDB' in window)){ reject(new Error('不支持 IndexedDB')); return; }
+      const req=indexedDB.open(PHOTO_DB,1);
+      req.onupgradeneeded=()=>{ const db=req.result; if(!db.objectStoreNames.contains(PHOTO_STORE)) db.createObjectStore(PHOTO_STORE,{ keyPath:'id' }); };
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error);
+    });
+  }
+  async function photoPut(id, blob){
+    try{
+      const db=await photoDbOpen();
+      await new Promise((res,rej)=>{
+        const tx=db.transaction(PHOTO_STORE,'readwrite');
+        tx.objectStore(PHOTO_STORE).put({ id, blob, createdAt:Date.now() });
+        tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error);
+      });
+      db.close(); return true;
+    }catch(e){ return false; }   // 隐私模式等：原图存不下也不影响缩略图
+  }
+  async function photoGet(id){
+    try{
+      const db=await photoDbOpen();
+      const rec=await new Promise((res,rej)=>{
+        const tx=db.transaction(PHOTO_STORE,'readonly');
+        const rq=tx.objectStore(PHOTO_STORE).get(id);
+        rq.onsuccess=()=>res(rq.result||null); rq.onerror=()=>rej(rq.error);
+      });
+      db.close();
+      return rec?rec.blob:null;
+    }catch(e){ return null; }
+  }
+  async function photoDel(id){
+    try{
+      const db=await photoDbOpen();
+      await new Promise(res=>{ const tx=db.transaction(PHOTO_STORE,'readwrite'); tx.objectStore(PHOTO_STORE).delete(id); tx.oncomplete=()=>res(); tx.onerror=()=>res(); });
+      db.close();
+    }catch(e){}
+  }
+
+  /* ---- 压缩：原图 1600px/q0.82 + 缩略图 260px/q0.7 ----
+     用 <img> + objectURL 解码（兼容性最好：安卓 Chrome / iOS Safari 都稳；
+     浏览器会按 EXIF 自动摆正方向），再画到 canvas 输出 JPEG。 */
+  function dataUrlToBlob(dataUrl){
+    const parts=String(dataUrl||'').split(',');
+    const mime=((parts[0]||'').match(/data:([^;]+)/)||[])[1]||'image/jpeg';
+    const bin=atob(parts[1]||'');
+    const arr=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    return new Blob([arr],{ type:mime });
+  }
+  function compressPhoto(file){
+    return new Promise((resolve,reject)=>{
+      const url=URL.createObjectURL(file);
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          const sw=img.naturalWidth||img.width, sh=img.naturalHeight||img.height;
+          if(!sw||!sh){ throw new Error('图片尺寸异常'); }
+          const drawTo=(maxSide)=>{
+            const scale=Math.min(1, maxSide/Math.max(sw,sh));
+            const w=Math.max(1,Math.round(sw*scale)), h=Math.max(1,Math.round(sh*scale));
+            const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+            cv.getContext('2d').drawImage(img,0,0,w,h);
+            return cv;
+          };
+          const cvFull=drawTo(PHOTO_FULL_MAX);
+          const cvThumb=drawTo(PHOTO_THUMB_MAX);
+          const thumb=cvThumb.toDataURL('image/jpeg',0.7);
+          cvFull.toBlob(b=>{
+            if(!b){
+              // 极少数浏览器 toBlob 失败 → 退回 dataURL 转 Blob
+              try{ resolve({ fullBlob:dataUrlToBlob(cvFull.toDataURL('image/jpeg',0.82)), thumb, w:cvFull.width, h:cvFull.height }); }
+              catch(e){ reject(new Error('压缩失败')); }
+              return;
+            }
+            resolve({ fullBlob:b, thumb, w:cvFull.width, h:cvFull.height });
+          },'image/jpeg',0.82);
+        }catch(e){ reject(e); }
+      };
+      img.onerror=()=>{ reject(new Error('图片无法读取')); };
+      img.onload=((orig)=>function(ev){ try{ orig.call(this,ev); }finally{ URL.revokeObjectURL(url); } })(img.onload);
+      img.src=url;
+    });
+  }
+
+  /* ---- 照片墙渲染 ---- */
+  function renderPhotoStrip(slot){
+    const cfg=PHOTO_SLOTS[slot]; if(!cfg) return;
+    const box=document.querySelector(cfg.strip); if(!box) return;
+    const list=photosOfStaging(slot);
+    box.innerHTML = list.length
+      ? list.map((p,i)=>`<div class="i-photo-item"><img src="${p.thumb}" alt="物品照片" onclick="__photoOpen('${slot}',${i})"><button type="button" class="i-photo-del" onclick="event.stopPropagation();__photoRemove('${slot}',${i})">×</button></div>`).join('')
+      : '<div class="i-photo-empty">还没有照片</div>';
+  }
+  async function addPhotoFiles(slot, files){
+    const list=photosOfStaging(slot);
+    const remain=PHOTO_MAX-list.length;
+    if(remain<=0){ showToast('最多 '+PHOTO_MAX+' 张照片'); return; }
+    const arr=[...files].filter(f=>f && /^image\//.test(f.type||'')).slice(0,remain);
+    if(!arr.length){ showToast('请选择图片文件'); return; }
+    let ok=0;
+    for(const f of arr){
+      try{
+        const r=await compressPhoto(f);
+        const id=photoUid();
+        list.push({ id, thumb:r.thumb, w:r.w, h:r.h, createdAt:Date.now() });
+        renderPhotoStrip(slot);                          // 先把缩略图显示出来（不阻塞界面）
+        photoPut(id, r.fullBlob);                        // 原图后台落 IndexedDB，失败也不影响缩略图
+        ok++;
+      }catch(e){ console.warn('照片处理失败', e); }
+    }
+    renderPhotoStrip(slot);
+    showToast(ok?('已添加 '+ok+' 张照片'):'照片读取失败，换个格式再试');
+  }
+  window.__photoRemove=function(slot, i){
+    const list=photosOfStaging(slot);
+    const p=list[i];
+    if(!p) return;
+    list.splice(i,1);
+    photoDel(p.id);                    // 原图一并删掉（未保存过的也不会留垃圾）
+    renderPhotoStrip(slot);
+    showToast('已删除照片');
+  };
+  window.__photoOpen=function(slot, i){
+    const p=photosOfStaging(slot)[i];
+    if(!p) return;
+    photoViewerCtx={ kind:'staging', slot, index:i };
+    openPhotoViewer(p.thumb);
+  };
+  window.__photoOpenItem=function(i){
+    if(!detailPhotoItem) return;
+    const p=getItemPhotos(detailPhotoItem)[i];
+    if(!p) return;
+    photoViewerCtx={ kind:'item', item:detailPhotoItem, index:i };
+    openPhotoViewer(p.thumb);          // 先用缩略图立即打开（不等本机原图）
+    photoGet(p.id).then(blob=>{        // 本机原图到位后再替换成大图
+      if(!blob) return;
+      const ctx=photoViewerCtx;
+      if(!ctx || ctx.kind!=='item' || ctx.index!==i) return;
+      const img=$('#iPhotoViewerImg');
+      if(img) img.src=URL.createObjectURL(blob);
+    });
+  };
+  function openPhotoViewer(src, fallback){
+    const img=$('#iPhotoViewerImg');
+    if(img){
+      img.onerror=()=>{ if(fallback && img.src!==fallback) img.src=fallback; };
+      img.src=src;
+    }
+    openModal('iPhotoModal');
+  }
+
+  /* ---- 档案页照片区 ---- */
+  function renderDetailPhotos(item){
+    const sec=$('#iDetailPhotoSection'), strip=$('#iDetailPhotoStrip');
+    if(!sec||!strip) return;
+    const list=getItemPhotos(item);
+    detailPhotoItem=item;
+    if(!list.length){ sec.style.display='none'; strip.innerHTML=''; return; }
+    sec.style.display='block';
+    strip.innerHTML=list.map((p,i)=>`<div class="i-photo-item"><img src="${p.thumb}" alt="物品照片" onclick="__photoOpenItem(${i})"></div>`).join('');
+  }
+
+  function bindPhotoEvents(){
+    Object.keys(PHOTO_SLOTS).forEach(slot=>{
+      const cfg=PHOTO_SLOTS[slot];
+      const cam=$(cfg.cam), album=$(cfg.album);
+      $(cfg.camBtn)?.addEventListener('click',()=>{ if(cam){ cam.value=''; cam.click(); } });
+      $(cfg.albumBtn)?.addEventListener('click',()=>{ if(album){ album.value=''; album.click(); } });
+      cam?.addEventListener('change',e=>{ addPhotoFiles(slot, e.target.files); e.target.value=''; });
+      album?.addEventListener('change',e=>{ addPhotoFiles(slot, e.target.files); e.target.value=''; });
+    });
+    // 看图弹窗：设为图标 / 删除
+    $('#iPhotoSetIconBtn')?.addEventListener('click',()=>{
+      const ctx=photoViewerCtx;
+      if(!ctx) return;
+      if(ctx.kind==='staging'){
+        const p=photosOfStaging(ctx.slot)[ctx.index];
+        if(!p) return;
+        temp.selectedIcon=p.thumb;
+        if(ctx.slot==='edit') updateEditIconBtn(); else updateIconBtn();
+      }else{
+        const item=ctx.item;
+        const p=getItemPhotos(item)[ctx.index];
+        if(!p) return;
+        item.icon=p.thumb;
+        item.updatedAt=new Date().toISOString();
+        save();
+        const g=groupItems(state.items).groups.find(gg=>gg.items.includes(item));
+        renderOverview();
+        if(g) showDetail(g);
+      }
+      closeModal('iPhotoModal');
+      showToast('已设为物品图标');
+    });
+    $('#iPhotoDeleteBtn')?.addEventListener('click',()=>{
+      const ctx=photoViewerCtx;
+      if(!ctx) return;
+      if(ctx.kind==='staging'){
+        window.__photoRemove(ctx.slot, ctx.index);
+      }else{
+        const item=ctx.item;
+        const p=getItemPhotos(item)[ctx.index];
+        if(!p) return;
+        item.photos.splice(ctx.index,1);
+        photoDel(p.id);
+        item.updatedAt=new Date().toISOString();
+        save();
+        const g=groupItems(state.items).groups.find(gg=>gg.items.includes(item));
+        renderOverview();
+        if(g) showDetail(g);
+        showToast('已删除照片');
+      }
+      closeModal('iPhotoModal');
+    });
+  }
+
   function openAddItem(tab='single', editItem=null, presetCategory=null){
     temp.formTab=tab;
     temp.editId=editItem?editItem.id:null;
@@ -1513,6 +1762,10 @@
     // reset form
     $$('#i-subpage-add input, #i-subpage-add textarea').forEach(el=>el.value='');
     $$('#i-subpage-add .i-switch').forEach(el=>el.classList.remove('on'));
+    // v108：照片暂存区（编辑已有物品时带出它的照片）
+    photoStaging.single=[]; photoStaging.batch=[];
+    if(editItem && getItemPhotos(editItem).length){ photoStaging[tab]=getItemPhotos(editItem).map(p=>({ ...p })); }
+    renderPhotoStrip('single'); renderPhotoStrip('batch');
     $('#iFormTabSingle').classList.toggle('active', tab==='single');
     $('#iFormTabBatch').classList.toggle('active', tab==='batch');
     $('#iSingleFields').style.display=tab==='single'?'block':'none';
@@ -1754,9 +2007,11 @@
       state.items.push(item);
     }
     item.updatedAt=new Date().toISOString();
+    item.photos=photosForSave(isBatch?'batch':'single');   // v108：照片（缩略图随物品数据同步，原图在本机）
     // v92：累计维护支出 = 历史累计 + 本次填写金额（物品级累加；不参与平均每日成本计算）
     if(maintRaw!=='') applyMaintenanceAmount(item, maintRaw);
     save();
+    photoStaging.single=[]; photoStaging.batch=[];        // v108：保存后清空照片暂存
     showToast(temp.editId?'已保存':'已添加');
     showSubpage('overview');
   }
@@ -1872,6 +2127,7 @@
     }
     bindBatchDateRow('#iDetailBatchSelRow', 'batch');
     renderDetailVirtualSection(item);   // v107：会员订阅/账号密码 → 档案页改显示会员信息/账号信息
+    renderDetailPhotos(item);           // v108：档案页照片区
 
     // 底部操作栏 → 接入新弹窗
     $$('#iDetailBottomActions .i-detail-btns').forEach(btn=>{
@@ -3025,6 +3281,8 @@
   function openEditItem(item){
     editTargetItem=item;
     temp.editVirtualMemberEnd='';   // v107：清理上一次编辑的会员结束日期，避免串值
+    photoStaging.edit=getItemPhotos(item).map(p=>({ ...p }));   // v108：带出已有照片
+    renderPhotoStrip('edit');
     temp.selectedCategory=item.categoryId;
     temp.selectedIcon=item.icon||'📦';
     $('#iEditName').value=item.name||'';
@@ -3230,7 +3488,9 @@
     // v92：累计维护支出累加（不参与平均每日成本计算）
     if(maintRaw!=='') applyMaintenanceAmount(item, maintRaw);
     item.updatedAt=new Date().toISOString();
+    item.photos=photosForSave('edit');   // v108：照片
     save();
+    photoStaging.edit=[];
     showToast('已保存修改');
     editTargetItem=null;
     hideTabbar(false);
@@ -4268,6 +4528,7 @@
     bindEditEvents();
     bindBatchDateEvents();
     bindSyncEvents();
+    bindPhotoEvents();   // v108：照片（拍照/相册）
 
     // overview
     $('#iEyeBtn')?.addEventListener('click',()=>{ state.settings.hideAmount=!state.settings.hideAmount; save(); renderOverview(); });
