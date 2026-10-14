@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v97';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v98';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2612,9 +2612,10 @@
         }
         save();
         showToast(`已导入，当前共 ${state.items.length} 件物品`);
-        closeModal('iSyncModal');
         renderOverview();
         renderCategoriesPage();
+        refreshSyncStats();
+        closeModal('iSyncModal');
       }catch(err){
         console.error(err);
         showToast('文件解析失败：'+err.message);
@@ -2767,9 +2768,10 @@
       applyTombstones();
       save();
       renderOverview(); renderCategoriesPage();
+      refreshSyncStats();
       showToast('已从云端同步（'+state.items.length+' 件）');
       setSyncStatus('云端更新于 '+fmtSyncTime(data.syncedAt));
-      setSyncErr('');
+      setSyncErr('✅ 云端已下载 '+(data.items||[]).length+' 件物品，合并后本地共 '+state.items.length+' 件');
     }catch(err){
       console.error(err);
       const msg='下载失败：'+(err&&err.message?err.message:err);
@@ -2824,6 +2826,7 @@
         ? '⚠️ 本地有 '+state.items.length+' 件但上传 0 件（数据缺少 id，已自动修复）。请再点一次「同步到云端」。'
         : '✅ 已成功上传到 '+syncBackendLabel()+' 云端');
       renderOverview(); renderCategoriesPage();
+      refreshSyncStats();
     }catch(err){
       console.error(err);
       const msg='同步失败：'+(err&&err.message?err.message:err);
@@ -2870,10 +2873,7 @@
     if(ver) ver.textContent=(window.APP_VERSION||'v?');
     setSyncErr('');
     setSyncStatus('');
-    const counts=countSyncStats();
-    const ic=document.getElementById('iSyncItemCount'); if(ic) ic.textContent=counts.items;
-    const bc=document.getElementById('iSyncBatchCount'); if(bc) bc.textContent=counts.batches;
-    const uc=document.getElementById('iSyncUsingCount'); if(uc) uc.textContent=counts.usings;
+    refreshSyncStats();
     // 后台探一下云端时间
     pullCloudData().then(d=>{ if(!d.empty) setSyncStatus('云端更新于 '+fmtSyncTime(d.syncedAt)); }).catch(()=>{});
     openModal('iSyncModal');
@@ -2882,6 +2882,15 @@
     let batches=0, usings=0;
     (state.items||[]).forEach(it=>{ batches+=(it.batches||[]).length; usings+=(it.usings||[]).length; });
     return {items:(state.items||[]).length, batches, usings};
+  }
+  // v98：同步弹窗里的「件物品 / 个批次 / 条取用记录」三行统计。
+  // 原先只在打开弹窗时写入一次，导致「从云端下载」成功后弹窗内仍显示 0，
+  // 看起来像"提示已下载但没有任何数据"。凡本地数据发生变化后都要刷新。
+  function refreshSyncStats(){
+    const counts=countSyncStats();
+    const ic=document.getElementById('iSyncItemCount'); if(ic) ic.textContent=counts.items;
+    const bc=document.getElementById('iSyncBatchCount'); if(bc) bc.textContent=counts.batches;
+    const uc=document.getElementById('iSyncUsingCount'); if(uc) uc.textContent=counts.usings;
   }
 
   function bindSyncEvents(){
