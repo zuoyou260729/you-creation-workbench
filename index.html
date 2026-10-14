@@ -63,6 +63,21 @@
           </svg>
           <span class="nav-label" data-page-node-id="LaGpZSL0gvyYr7qUmtrKct">内容复盘</span>
         </li>
+        <li class="nav-item" data-page="items" data-subpage="today" data-page-node-id="v99TodayNav">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v99TodayNavIcon">
+            <circle cx="12" cy="12" r="4" data-page-node-id="v99TodayNavIconC"/>
+            <path d="M12 2v2" data-page-node-id="v99TodayNavIcon1"/>
+            <path d="M12 20v2" data-page-node-id="v99TodayNavIcon2"/>
+            <path d="M4.93 4.93l1.41 1.41" data-page-node-id="v99TodayNavIcon3"/>
+            <path d="M17.66 17.66l1.41 1.41" data-page-node-id="v99TodayNavIcon4"/>
+            <path d="M2 12h2" data-page-node-id="v99TodayNavIcon5"/>
+            <path d="M20 12h2" data-page-node-id="v99TodayNavIcon6"/>
+            <path d="M6.34 17.66l-1.41 1.41" data-page-node-id="v99TodayNavIcon7"/>
+            <path d="M19.07 4.93l-1.41 1.41" data-page-node-id="v99TodayNavIcon8"/>
+          </svg>
+          <span class="nav-label" data-page-node-id="v99TodayNavLabel">今日</span>
+          <span class="nav-badge" id="iNavTodayBadge" style="display:none" data-page-node-id="v99TodayNavBadge">0</span>
+        </li>
         <li class="nav-item" data-page="items" data-subpage="overview" data-page-node-id="JryYcSpTXPNl168xesceOX">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="g3nNDO2R7t1bRuU4mG6WBE">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" data-page-node-id="VRY0j47wUhYnp0Y7TvAHUX"/>
@@ -358,6 +373,35 @@
 
       <!-- ===== 页面8: 物品统计模块 ===== -->
       <section class="page" id="page-items" data-page-node-id="FC10jYxbi0HOVKjDv7LNe8">
+
+        <!-- 今日（v99 新增）：日期 + 大标题 + 搜索 + 今天要处理 -->
+        <div class="i-subpage" id="i-subpage-today" data-page-node-id="v99TodayPage">
+          <div class="i-today-head" data-page-node-id="v99TodayHead">
+            <div class="i-today-date" id="iTodayDate" data-page-node-id="v99TodayDate">1月1日 星期一</div>
+            <h1 class="i-today-title" data-page-node-id="v99TodayTitle">今日</h1>
+          </div>
+
+          <div class="i-today-search" id="iTodaySearchWrap" data-page-node-id="v99TodaySearchWrap">
+            <span class="i-today-search-icon" data-page-node-id="v99TodaySearchIcon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v99TodaySearchIconSvg"><circle cx="11" cy="11" r="7" data-page-node-id="v99TodaySearchIconC"/><path d="m20 20-3.9-3.9" data-page-node-id="v99TodaySearchIconP"/></svg></span>
+            <input type="text" id="iTodaySearch" placeholder="家里有没有…" autocomplete="off" data-page-node-id="v99TodaySearchInput">
+            <button class="i-today-search-clear" id="iTodaySearchClear" aria-label="清空" style="display:none" data-page-node-id="v99TodaySearchClear">×</button>
+          </div>
+
+          <div class="i-today-shoprow" id="iTodayShopRow" style="display:none" data-page-node-id="v99TodayShopRow">
+            <button class="i-today-shop-pill" id="iTodayShopPill" data-page-node-id="v99TodayShopPill">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v99TodayShopSvg"><circle cx="9" cy="21" r="1" data-page-node-id="v99TodayShopSvgC1"/><circle cx="20" cy="21" r="1" data-page-node-id="v99TodayShopSvgC2"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" data-page-node-id="v99TodayShopSvgP"/></svg>
+              补货清单
+              <b id="iTodayShopPillCount" data-page-node-id="v99TodayShopPillCount">0</b>
+            </button>
+          </div>
+
+          <div class="i-today-bar" data-page-node-id="v99TodayBar">
+            <h2 class="i-today-bar-title" id="iTodayBarTitle" data-page-node-id="v99TodayBarTitle">今天要处理</h2>
+            <span class="i-today-bar-count" id="iTodayCount" data-page-node-id="v99TodayCount">0 件</span>
+          </div>
+
+          <div id="iTodayList" data-page-node-id="v99TodayList"></div>
+        </div>
 
         <!-- 总览 -->
         <div class="i-subpage active" id="i-subpage-overview" data-page-node-id="kBAlbHTKTGBVmF57Bav5tO">
@@ -1209,6 +1253,20 @@
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="d1moDC4WYxBdKZym6pX1nS"><polyline points="20 6 9 17 4 12" data-page-node-id="pbA5jXA3tWijQ8ZeJzSrUh"/></svg>
               保存修改
             </button>
+          </div>
+        </div>
+
+        <!-- 补货清单 弹窗（v99：今日页「加入清单」收集的物品） -->
+        <div class="i-modal i-bottom-sheet" id="iShopModal" data-page-node-id="v99ShopModal">
+          <div class="i-bottom-sheet-card" data-page-node-id="v99ShopCard">
+            <div class="i-bs-handle" data-page-node-id="v99ShopHandle"></div>
+            <h3 class="i-bs-title" data-page-node-id="v99ShopTitle">补货清单</h3>
+            <p class="i-bs-sub" data-page-node-id="v99ShopSub">照着清单买，买完点「已买」就划掉</p>
+            <div class="i-shop-list" id="iShopList" data-page-node-id="v99ShopList"></div>
+            <div class="i-bs-actions" data-page-node-id="v99ShopActions">
+              <button class="i-bs-btn i-bs-cancel" id="iShopClearBtn" data-page-node-id="v99ShopClear">清空清单</button>
+              <button class="i-bs-btn i-bs-confirm" data-close-modal="iShopModal" data-page-node-id="v99ShopClose">关闭</button>
+            </div>
           </div>
         </div>
 
