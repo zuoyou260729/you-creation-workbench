@@ -596,6 +596,7 @@ button.i-action-pin.active {
   border-radius: var(--i-radius-sm);
   padding: 12px;
   font-size: 15px;
+  font-family: inherit;    /* v113：textarea 默认不继承字体，会退回 monospace（看着比 input 大一号） */
   background: var(--i-surface);
   color: var(--i-text);
   outline: none;
@@ -3099,3 +3100,46 @@ button.i-action-pin.active {
 .i-dpa-btn:active { background: #F1F4EE; }
 .i-dpa-danger { color: #C25B5B; border-color: #F0D9D9; background: #FDF7F7; }
 .i-dpa-danger:active { background: #FAEDED; }
+
+/* ==========================================================================
+   v113：电脑端「编辑库存品」页排版 + 图标选择器重名提示
+   ========================================================================== */
+/* 图标选择器：同名分类（不同一级）补一行所属一级，避免「两个洗护用品」分不清 */
+.i-picker-icon-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--i-text-ter);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  /* 编辑库存品页：内容限宽居中，避免宽屏下卡片被拉得过长 */
+  #i-subpage-edit .i-page-header,
+  #i-subpage-edit .i-edit-body {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* 数值框不再被 flex 拉满整行（数量 / 入库批次 / 选择批次 / 单价 / 总价 / 日期值） */
+  .i-edit-info-row:not(.i-edit-stack) > .i-edit-readonly,
+  .i-edit-info-row:not(.i-edit-stack) > .i-edit-input {
+    max-width: 240px;
+  }
+  /* 本次维护金额输入框同样限宽 */
+  .i-edit-info-row.i-edit-stack .i-input-group { max-width: 320px; }
+  /* 拍照 / 从相册选择 两个按钮限宽，不再铺满整卡 */
+  .i-edit-card .i-photo-actions .i-photo-btn { max-width: 200px; }
+  .i-edit-card .i-photo-actions { justify-content: flex-start; }
+  /* 底部操作栏：避开左侧栏（桌面端固定 200px），两个按钮居中且不过宽 */
+  .i-edit-bottom-actions {
+    left: var(--sidebar-w-expanded);
+    justify-content: center;
+    gap: 16px;
+  }
+  .i-edit-btns { flex: 0 0 200px; }
+}
