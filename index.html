@@ -505,7 +505,7 @@
               <div class="i-photo-hint" data-page-node-id="v108PhotoHint">最多 6 张。原图存在本机，缩略图随物品数据同步到云端</div>
             </div>
 
-            <div class="i-form-card" data-page-node-id="ThXD9x7YGglgxxwySpIggu">
+            <div class="i-form-card" id="iSinglePriceCard" data-page-node-id="ThXD9x7YGglgxxwySpIggu">
               <div class="i-field" data-page-node-id="REFDAjdZmxW1hAFmN61vAB">
                 <label class="i-field-label" data-page-node-id="e0eJJW7iDqghpUWKLfg8u1">购入价格</label>
                 <div class="i-input-group" data-page-node-id="Imp2MMWLKuY3ixG14lKg4I"><span class="i-prefix" data-page-node-id="9NSekjIbX7hwXMiRpPEBl3">¥</span><input type="number" id="iPrice" placeholder="0.00" step="0.01" data-page-node-id="oIqGULpXdUFnPtgunoSbtM"></div>
@@ -623,11 +623,11 @@
                 </button>
                 <input type="hidden" id="iBatchUnit" value="件" data-page-node-id="iBatchUnitSel">
               </div>
-              <div class="i-field" data-page-node-id="Ylsj8LfxLigYExWt6moMje">
+              <div class="i-field" id="iBatchUnitPriceRow" data-page-node-id="Ylsj8LfxLigYExWt6moMje">
                 <label class="i-field-label i-stock-label" data-page-node-id="EOJ3vV7bQS9EGDpmlwOQ2P">物品单价</label>
                 <div class="i-input-group" data-page-node-id="SbfX1DeejNXPLJ9LfrpHfQ"><span class="i-prefix" data-page-node-id="xyDjoVGSc92iWsbtt0De4R">¥</span><input type="number" id="iBatchUnitPrice" placeholder="0.00" step="0.01" data-page-node-id="tW9refMB4LQrX92mf5zEMm"></div>
               </div>
-              <div class="i-field" data-page-node-id="f649DaagmCeNzM12bsFGRK">
+              <div class="i-field" id="iBatchTotalPriceRow" data-page-node-id="f649DaagmCeNzM12bsFGRK">
                 <label class="i-field-label i-stock-label" data-page-node-id="8uxFtzeF7Il31yGLdzkXNx">物品总价</label>
                 <div class="i-input-group" data-page-node-id="lDPRYVWuDvqKDUL3qt60pb"><span class="i-prefix" data-page-node-id="ScbrQq5nawch2LJ3QUVgen">¥</span><input type="number" id="iBatchTotalPrice" placeholder="0.00" step="0.01" data-page-node-id="iWfQjshsBHjqOtT7MyWDB8"></div>
               </div>
@@ -947,8 +947,8 @@
             <div class="i-detail-section" data-page-node-id="uWKhJilLN2f2a9mAENn9J2">
               <h2 class="i-detail-section-title" data-page-node-id="7XxEOEvpEVICl1659DDqaP">库存档案</h2>
               <div class="i-detail-rows" data-page-node-id="1pK3HzJOaktqotT5YAFFhE">
-                <div class="i-detail-row" data-page-node-id="Z3BqYmon8nwFOE7sNaR7IM"><span class="i-detail-row-label" data-page-node-id="AegSXrkpH8zQfn57I9u3EI">购买均价</span><span class="i-detail-row-value" id="iDetailAvgPrice" data-page-node-id="HjIQ4f6gQZz5JQ4fXD7PAv">--</span></div>
-                <div class="i-detail-row" data-page-node-id="ge7igknbnGTI0Y7LlpbRnz"><span class="i-detail-row-label" data-page-node-id="mY3KlgSQj3v1ohH2plSmas">购买总价</span><span class="i-detail-row-value" id="iDetailTotalPrice" data-page-node-id="9W4PkqSVQColU2LkIa2n4c">--</span></div>
+                <div class="i-detail-row" id="iDetailAvgPriceRow" data-page-node-id="Z3BqYmon8nwFOE7sNaR7IM"><span class="i-detail-row-label" data-page-node-id="AegSXrkpH8zQfn57I9u3EI">购买均价</span><span class="i-detail-row-value" id="iDetailAvgPrice" data-page-node-id="HjIQ4f6gQZz5JQ4fXD7PAv">--</span></div>
+                <div class="i-detail-row" id="iDetailTotalPriceRow" data-page-node-id="ge7igknbnGTI0Y7LlpbRnz"><span class="i-detail-row-label" data-page-node-id="mY3KlgSQj3v1ohH2plSmas">购买总价</span><span class="i-detail-row-value" id="iDetailTotalPrice" data-page-node-id="9W4PkqSVQColU2LkIa2n4c">--</span></div>
                 <div class="i-detail-row" data-page-node-id="bqvTjG9PsDEHrDkCHhNbZE"><span class="i-detail-row-label" data-page-node-id="XkiSaGEi96stgIKKnWBqIy">库存总量</span><span class="i-detail-row-value" id="iDetailTotalQty" data-page-node-id="t9nP9upLAx1WcxLc5R06Wv">--</span></div>
                 <div class="i-detail-row" data-page-node-id="5BYVHEf7dNLvUKZKeM3e4e"><span class="i-detail-row-label" data-page-node-id="sRP17071VCg1GEgZRjTiD6">正在使用</span><span class="i-detail-row-value" id="iDetailInUse" data-page-node-id="6RVC5ImBSGEHVPhND7Eyjw">--</span></div>
                 <div class="i-detail-row" data-page-node-id="yqfXWJHuhoYeJu82bEuliS"><span class="i-detail-row-label" data-page-node-id="XExHcMoppswWXDOCJHDweo">当前状态</span><span class="i-detail-row-value" id="iDetailStatus" data-page-node-id="gJBWEVQ2Y5vpz6X9tEbVmv">--</span></div>
