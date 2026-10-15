@@ -3011,7 +3011,7 @@ button.i-action-pin.active {
   background: var(--i-bg);
   border: 1px solid var(--i-border);
 }
-.i-photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+.i-photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: default; }
 .i-photo-del {
   position: absolute;
   top: 2px;
@@ -3050,18 +3050,52 @@ button.i-action-pin.active {
 .i-photo-btn:active { background: #F1F4EE; }
 .i-photo-hint { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--i-text-ter); }
 
-/* 看图弹窗 */
-.i-photo-viewer {
+/* ==========================================================================
+   v112 照片交互改版：表单照片条「设为图标」按钮 + 档案页「点选 + 操作栏」
+   ========================================================================== */
+/* 表单照片条：左上角「☆ 设为图标」（与右上角「× 删除」对称） */
+.i-photo-seticon {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
-  max-height: 56vh;
-  margin-bottom: 14px;
-  border-radius: 14px;
-  background: var(--i-bg);
-  overflow: hidden;
+  cursor: pointer;
 }
-.i-photo-viewer img { max-width: 100%; max-height: 56vh; object-fit: contain; display: block; }
-.i-photo-viewer-actions { display: flex; gap: 8px; }
-.i-photo-viewer-actions .i-bs-btn { flex: 1; padding: 10px 8px; }
+.i-photo-seticon svg { width: 11px; height: 11px; display: block; }
+/* 当前已是物品图标的那张：绿描边 + 实心星标 */
+.i-photo-item.is-icon { border-color: var(--i-primary); box-shadow: 0 0 0 1.5px var(--i-primary); }
+.i-photo-item.is-icon .i-photo-seticon { background: var(--i-primary); }
+
+/* 档案页照片区：点选高亮（点照片不再弹窗） */
+.i-photo-strip-sel .i-photo-item { width: 76px; height: 76px; cursor: pointer; }
+.i-photo-strip-sel .i-photo-item img { cursor: pointer; }
+.i-photo-strip-sel .i-photo-item.selected { border-color: var(--i-primary); box-shadow: 0 0 0 2px var(--i-primary); }
+
+/* 档案页照片操作栏 */
+.i-dpa-tip { margin: 0 0 8px 2px; font-size: 12.5px; color: var(--i-text-ter); }
+.i-dpa-row { display: flex; gap: 8px; }
+.i-dpa-btn {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1px solid #E3E7DE;
+  border-radius: 12px;
+  background: #FAFBF8;
+  color: var(--i-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.i-dpa-btn:active { background: #F1F4EE; }
+.i-dpa-danger { color: #C25B5B; border-color: #F0D9D9; background: #FDF7F7; }
+.i-dpa-danger:active { background: #FAEDED; }
