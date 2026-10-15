@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v112';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v113';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -953,8 +953,9 @@
     });
     const groups=Object.values(map);
     groups.forEach(g=>{
-      // 购买均价：优先显示维护时填写的单价（item.avgPrice），不再用 totalPrice/qty 重算
-      g.avgPrice=(g.items[0]&&g.items[0].avgPrice!=null&&g.items[0].avgPrice!=='')?Number(g.items[0].avgPrice):(g.qty?g.totalPrice/g.qty:0);
+      // v113：购买均价一律 = 购买总价 ÷ 库存总量（与档案页展示的这两个数字自洽；
+      // 旧逻辑优先取 item.avgPrice，遇到历史遗留的单价脏数据会算出 0.25 这种离谱值）
+      g.avgPrice=g.qty>0?(g.totalPrice/g.qty):0;
       g.pRule=priceRuleForKind(virtualKindFor((g.items[0]||{}).categoryId));   // v110：价格字段显隐规则
       g.purchaseDates.sort();
       g.purchaseDate=g.purchaseDates[0];
@@ -2025,6 +2026,14 @@
       item.inUseQty=0;
       item.scrappedQty=0;
       item.retiredQty=0;
+    }
+
+    // v113：「入库后立即取用 1 件」——记一条取用流水（挂到本次新批次上）。
+    // 不改批次数量：可用量由 getBatchAvailableQty 用「批次数量 − 已取用」现算。
+    // 开关是一次性动作，不写进物品数据（下次打开表单默认关闭）。
+    if(isBatch && $('#iAutoTakeOne')?.classList.contains('on')){
+      if(!Array.isArray(item.usings)) item.usings=[];
+      item.usings.push({ batchId:newBatch.id, date:newBatch.date||todayStr(), quantity:1, note:'' });
     }
 
     if(isEdit){
@@ -4254,12 +4263,21 @@
   function renderIconPickerResults(){
     const list=getIconPickerList();
     const grid=$('#iIconGrid');
-    grid.innerHTML=list.map(c=>`
+    // v113：不同一级下可能有同名二级（如 家居日用/宠物用品 都有「洗护用品」）→
+    // 同名卡片补一行「所属一级」，否则两张卡片长得一样分不清。
+    const nameCount={};
+    list.forEach(c=>{ nameCount[c.name]=(nameCount[c.name]||0)+1; });
+    const primOf=id=>((SYSTEM_PRIMARY.find(p=>p.id===id)||{}).name||'');
+    grid.innerHTML=list.map(c=>{
+      const dup=nameCount[c.name]>1;
+      const hint=dup ? (c.type==='sys' ? primOf(c.parentId) : '自定义') : '';
+      return `
       <button type="button" class="i-picker-icon-btn ${c.icon===temp.selectedIcon?'selected':''}" data-icon="${escapeHtml(c.icon)}">
         <span class="i-picker-icon-img">${renderIcon(c.icon, c.name)}</span>
         <span class="i-picker-icon-label">${escapeHtml(c.name)}</span>
-      </button>
-    `).join('');
+        ${hint?`<span class="i-picker-icon-hint">${escapeHtml(hint)}</span>`:''}
+      </button>`;
+    }).join('');
     $$('.i-picker-icon-btn', grid).forEach(btn=>{
       btn.addEventListener('click', ()=>{
         temp.selectedIcon=btn.dataset.icon;
