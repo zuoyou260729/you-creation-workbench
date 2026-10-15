@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v109';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v110';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -953,6 +953,7 @@
     groups.forEach(g=>{
       // 购买均价：优先显示维护时填写的单价（item.avgPrice），不再用 totalPrice/qty 重算
       g.avgPrice=(g.items[0]&&g.items[0].avgPrice!=null&&g.items[0].avgPrice!=='')?Number(g.items[0].avgPrice):(g.qty?g.totalPrice/g.qty:0);
+      g.pRule=priceRuleForKind(virtualKindFor((g.items[0]||{}).categoryId));   // v110：价格字段显隐规则
       g.purchaseDates.sort();
       g.purchaseDate=g.purchaseDates[0];
       // 入库天数：从最早批次到今天，维护当天为第1天
@@ -1193,7 +1194,9 @@
         <div><strong>${g.retiredQty}</strong>退役</div>
       </div>
       <div class="i-list-footer">
-        <div class="i-list-meta">${metaIcon} 买入均价 ${formatMoney(g.avgPrice)}，总价值 ${formatMoney(g.totalPrice)}</div>
+        ${g.pRule && !g.pRule.detailAvg
+          ? (g.pRule.detailTotal ? `<div class="i-list-meta">${metaIcon} 总价值 ${formatMoney(g.totalPrice)}</div>` : '')
+          : `<div class="i-list-meta">${metaIcon} 买入均价 ${formatMoney(g.avgPrice)}，总价值 ${formatMoney(g.totalPrice)}</div>`}
         <div class="i-list-actions">
           <button class="i-action-pin ${g.pinned?'active':''}" data-key="${g.key}" aria-label="置顶">${pinSvg()}</button>
         </div>
@@ -1357,6 +1360,35 @@
     const path=getCategoryPath(categoryId);
     if(path.primaryId!=='sys_virtual') return null;
     return VIRTUAL_KIND_BY_SECONDARY[path.secondaryName||'']||null;
+  }
+  /* ==================================================================
+     v110 虚拟产品-会员订阅 / 账号密码：价格字段显隐
+     ------------------------------------------------------------------
+     · 会员订阅：不显示「物品单价」（批量表单的单价行）；单个表单的「购入价格」保留
+     · 账号密码：「物品单价」与「物品总价」都不显示（单个表单的「购入价格」也隐藏）
+     · 档案页同理：会员订阅隐藏「购买均价」保留「购买总价」；账号密码两行都隐藏
+     · 保存时被隐藏的价格字段一律写 0（旧值一并清掉）
+     ================================================================== */
+  function priceRuleForKind(kind){
+    const isMember=kind==='member', isAccount=kind==='account';
+    return {
+      kind,
+      batchUnit:   !(isMember||isAccount),   // 批量表单「物品单价」行
+      batchTotal:  !isAccount,               // 批量表单「物品总价」行
+      singlePrice: !isAccount,               // 单个表单「购入价格」卡片
+      detailAvg:   !(isMember||isAccount),   // 档案页「购买均价」行
+      detailTotal: !isAccount                // 档案页「购买总价」行
+    };
+  }
+  function priceRuleFor(categoryId){
+    return priceRuleForKind(virtualKindFor(categoryId));
+  }
+  // 按当前选中分类实时刷新价格字段显隐（单个表单 + 批量表单）
+  function applyPriceVisibility(categoryId){
+    const r=priceRuleFor(categoryId);
+    const sp=$('#iSinglePriceCard');  if(sp) sp.style.display=r.singlePrice?'':'none';
+    const bu=$('#iBatchUnitPriceRow'); if(bu) bu.style.display=r.batchUnit?'':'none';
+    const bt=$('#iBatchTotalPriceRow'); if(bt) bt.style.display=r.batchTotal?'':'none';
   }
   function virtualFieldId(prefix, key){ return prefix+key.charAt(0).toUpperCase()+key.slice(1); }
   function tlFieldIcon(kind){
@@ -1873,6 +1905,7 @@
     if(single) single.innerHTML=html;
     if(batch) batch.innerHTML=html;
     applyTimelineVisibility(temp.selectedCategory);   // v105：分类变化 → 实时刷新时间线字段显隐
+    applyPriceVisibility(temp.selectedCategory);      // v110：分类变化 → 实时刷新价格字段显隐
   }
   function updateIconBtn(){
     const ic=temp.selectedIcon||'📦';
@@ -1930,24 +1963,26 @@
         item.password=vv.password;
       }
     }
+    // v110：虚拟产品-会员订阅 / 账号密码 的价格字段显隐 → 被隐藏的价格字段保存时一律写 0（旧值一并清掉）
+    const pRule=priceRuleFor(temp.selectedCategory);
     if(isBatch){
       qty=Math.max(0, parseInt($('#iQty').value)||0);
       if(qty<=0){ showToast('请输入入库数量'); return; }   // 编辑/批量均需有效数量
       // 物品单价未手动填写、但填了物品总价时：单价 = 总价/数量（自动算出并保存，v80）
-      const unitPriceStr=$('#iBatchUnitPrice').value.trim();
-      const totalPriceStr=$('#iBatchTotalPrice').value.trim();
-      if(!unitPriceStr && totalPriceStr && qty>0){
+      const unitPriceStr=pRule.batchUnit?($('#iBatchUnitPrice').value.trim()):'';
+      const totalPriceStr=pRule.batchTotal?($('#iBatchTotalPrice').value.trim()):'';
+      if(pRule.batchUnit && !unitPriceStr && totalPriceStr && qty>0){
         price=Math.round((Number(totalPriceStr)/qty)*100)/100;
         $('#iBatchUnitPrice').value=price.toFixed(2);   // 回显，保证保存值可见
       }else{
-        price=Number(unitPriceStr)||0;
+        price=pRule.batchUnit?(Number(unitPriceStr)||0):0;   // v110：单价行隐藏 → 不保存单价
       }
-      totalPrice=Number(totalPriceStr)||(qty*price);
+      totalPrice=pRule.batchTotal?(Number(totalPriceStr)||(qty*price)):0;   // v110：总价行隐藏 → 不保存总价
       expiryDate=$('#iBatchExpiryDate').value;
       if(!vKind && tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }   // v107：专用字段分类不校验有效期
     }else{
       qty=1;
-      price=Number($('#iPrice').value)||0;
+      price=pRule.singlePrice?(Number($('#iPrice').value)||0):0;   // v110：账号密码隐藏「购入价格」→ 存 0
       totalPrice=price;
       expiryDate=$('#iExpiryDate').value;
       if(!vKind && tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }   // v107：专用字段分类不校验有效期
@@ -2078,6 +2113,11 @@
     $('#iDetailDays').textContent=g.holdingDays;
 
     // 库存档案明细
+    // v110：会员订阅隐藏「购买均价」、账号密码连「购买总价」也隐藏
+    const pRuleDetail=priceRuleFor(item.categoryId);
+    const avgRow=$('#iDetailAvgPriceRow'), totRow=$('#iDetailTotalPriceRow');
+    if(avgRow) avgRow.style.display=pRuleDetail.detailAvg?'':'none';
+    if(totRow) totRow.style.display=pRuleDetail.detailTotal?'':'none';
     $('#iDetailAvgPrice').textContent=formatMoney(g.avgPrice);
     $('#iDetailTotalPrice').textContent=formatMoney(g.totalPrice);
     $('#iDetailTotalQty').textContent=totalIn+' 件';
@@ -3005,12 +3045,14 @@
       ['退库日期', b.retiredDate?formatDateDot(b.retiredDate):'--'],
       ['质保期', b.warrantyDate?formatDateDot(b.warrantyDate):'--']
     ];
+    // v110：会员订阅不显示「物品单价」（购入价格），账号密码连「物品总价」也不显示
+    const pRuleBA=priceRuleFor(item.categoryId);
     if(isSingle){
-      rows.push(['购入价格', formatMoney(Number(b.unitPrice||item.price||0))]);
+      if(pRuleBA.singlePrice) rows.push(['购入价格', formatMoney(Number(b.unitPrice||item.price||0))]);
     }else{
       rows.push(['物品数量', String(Number(b.quantity||0))]);
-      rows.push(['物品单价', formatMoney(Number(b.unitPrice||0))]);
-      rows.push(['物品总价', formatMoney(Number(b.totalPrice||0))]);
+      if(pRuleBA.batchUnit)  rows.push(['物品单价', formatMoney(Number(b.unitPrice||0))]);
+      if(pRuleBA.batchTotal) rows.push(['物品总价', formatMoney(Number(b.totalPrice||0))]);
     }
     const title=$('#iBatchArchiveTitle');
     if(title) title.textContent=`${item.name} · ${b.id}`;
@@ -3475,6 +3517,12 @@
         b.productionDate=m.productionDate||'';
         if(m.expiryValue!=null && m.expiryValue!==''){ b.expiryValue=Number(m.expiryValue); b.expiryUnit=m.expiryUnit||'day'; }
       }
+    });
+    // v110：这两个分类不显示的价格字段，保存时一律写 0（旧值一并清掉）
+    const pRuleEdit=priceRuleFor(item.categoryId);
+    sbatches.forEach(b=>{
+      if(!pRuleEdit.batchUnit)  b.unitPrice=0;
+      if(!pRuleEdit.batchTotal) b.totalPrice=0;
     });
     // v107：会员订阅 → 会员结束日期同时作为物品/批次有效期（放在批次写回之后，避免被旧值覆盖）
     if(vKindEdit==='member' && temp.editVirtualMemberEnd){
