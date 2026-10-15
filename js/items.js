@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v111';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v112';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1539,12 +1539,16 @@
   }
 
   /* ==================================================================
-     v108 物品照片（拍照 / 从相册选择）
+     v108 物品照片（拍照 / 从相册选择）  —— v112 交互改版
      ------------------------------------------------------------------
      · 原图：压到最长边 1600px 的 JPEG → 存本机 IndexedDB（不受 localStorage 5MB 限制）
+       （v112 起界面不再展示大图，原图先保留在本机备用，photoGet 仍可用）
      · 缩略图：最长边 260px 的 JPEG(dataURL) → 存 item.photos 里，随物品数据云端同步
        （手机拍的，电脑上也能看到小图；原图只在本机）
-     · 每件最多 6 张；缩略图可直接「设为物品图标」
+     · 每件最多 6 张；照片**按物品级**保存/展示，不挂批次
+     · v112 交互：删除弹窗大图 ——
+         表单照片条：缩略图左上角「☆ 设为图标」、右上角「× 删除」，直接点即可
+         物品档案页：点缩略图「选中」（高亮描边），下方固定操作栏「设为图标 / 删除照片」
      ================================================================== */
   const PHOTO_MAX = 6;
   const PHOTO_FULL_MAX = 1600;
@@ -1558,7 +1562,6 @@
   };
   const photoStaging = { single:[], batch:[], edit:[] };   // 各表单当前的照片（含缩略图）
   let detailPhotoItem = null;                              // 档案页正在看照片的物品
-  let photoViewerCtx = null;                               // 看图弹窗上下文
 
   function photoUid(){ return 'ph_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
   function getItemPhotos(item){ return item&&Array.isArray(item.photos)?item.photos:[]; }
@@ -1656,13 +1659,25 @@
   }
 
   /* ---- 照片墙渲染 ---- */
+  // v112：缩略图不再点击弹窗看大图 —— 左上角「☆ 设为图标」、右上角「× 删除」直接可操作
   function renderPhotoStrip(slot){
     const cfg=PHOTO_SLOTS[slot]; if(!cfg) return;
     const box=document.querySelector(cfg.strip); if(!box) return;
     const list=photosOfStaging(slot);
-    box.innerHTML = list.length
-      ? list.map((p,i)=>`<div class="i-photo-item"><img src="${p.thumb}" alt="物品照片" onclick="__photoOpen('${slot}',${i})"><button type="button" class="i-photo-del" onclick="event.stopPropagation();__photoRemove('${slot}',${i})">×</button></div>`).join('')
-      : '<div class="i-photo-empty">还没有照片</div>';
+    if(!list.length){ box.innerHTML='<div class="i-photo-empty">还没有照片</div>'; return; }
+    const curIcon=temp.selectedIcon||'';
+    box.innerHTML = list.map((p,i)=>{
+      const isIcon=curIcon && p.thumb===curIcon;
+      return `<div class="i-photo-item${isIcon?' is-icon':''}">`
+        + `<img src="${p.thumb}" alt="物品照片">`
+        + `<button type="button" class="i-photo-seticon" title="设为物品图标" aria-label="设为物品图标"`
+        + ` onclick="event.stopPropagation();__photoSetIcon('${slot}',${i})">`
+        + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>`
+        + `</button>`
+        + `<button type="button" class="i-photo-del" title="删除这张照片" aria-label="删除这张照片"`
+        + ` onclick="event.stopPropagation();__photoRemove('${slot}',${i})">×</button>`
+        + `</div>`;
+    }).join('');
   }
   async function addPhotoFiles(slot, files){
     const list=photosOfStaging(slot);
@@ -1690,48 +1705,63 @@
     if(!p) return;
     list.splice(i,1);
     photoDel(p.id);                    // 原图一并删掉（未保存过的也不会留垃圾）
+    // 注意：item.icon 存的是缩略图的独立副本，删照片不影响已设好的图标，故此处不动 temp.selectedIcon
     renderPhotoStrip(slot);
     showToast('已删除照片');
   };
-  window.__photoOpen=function(slot, i){
+  // v112：表单照片条直接「设为物品图标」（不再需要点开照片弹窗）
+  window.__photoSetIcon=function(slot, i){
     const p=photosOfStaging(slot)[i];
     if(!p) return;
-    photoViewerCtx={ kind:'staging', slot, index:i };
-    openPhotoViewer(p.thumb);
+    temp.selectedIcon=p.thumb;
+    if(slot==='edit') updateEditIconBtn(); else updateIconBtn();   // updateIconBtn 同时刷新单个+批量两个图标按钮
+    renderPhotoStrip(slot);            // 重绘以标出「当前图标」
+    showToast('已设为物品图标');
   };
-  window.__photoOpenItem=function(i){
-    if(!detailPhotoItem) return;
-    const p=getItemPhotos(detailPhotoItem)[i];
-    if(!p) return;
-    photoViewerCtx={ kind:'item', item:detailPhotoItem, index:i };
-    openPhotoViewer(p.thumb);          // 先用缩略图立即打开（不等本机原图）
-    photoGet(p.id).then(blob=>{        // 本机原图到位后再替换成大图
-      if(!blob) return;
-      const ctx=photoViewerCtx;
-      if(!ctx || ctx.kind!=='item' || ctx.index!==i) return;
-      const img=$('#iPhotoViewerImg');
-      if(img) img.src=URL.createObjectURL(blob);
-    });
-  };
-  function openPhotoViewer(src, fallback){
-    const img=$('#iPhotoViewerImg');
-    if(img){
-      img.onerror=()=>{ if(fallback && img.src!==fallback) img.src=fallback; };
-      img.src=src;
-    }
-    openModal('iPhotoModal');
-  }
 
-  /* ---- 档案页照片区 ---- */
+  /* ---- 档案页照片区（v112：点选高亮 + 下方统一操作栏，不再弹窗看大图） ---- */
+  let detailPhotoSel=0;                // 当前选中的照片下标
   function renderDetailPhotos(item){
     const sec=$('#iDetailPhotoSection'), strip=$('#iDetailPhotoStrip');
     if(!sec||!strip) return;
     const list=getItemPhotos(item);
     detailPhotoItem=item;
-    if(!list.length){ sec.style.display='none'; strip.innerHTML=''; return; }
+    if(!list.length){ sec.style.display='none'; strip.innerHTML=''; detailPhotoSel=0; return; }
+    if(detailPhotoSel>=list.length || detailPhotoSel<0) detailPhotoSel=0;   // 默认选中第一张
     sec.style.display='block';
-    strip.innerHTML=list.map((p,i)=>`<div class="i-photo-item"><img src="${p.thumb}" alt="物品照片" onclick="__photoOpenItem(${i})"></div>`).join('');
+    strip.innerHTML=list.map((p,i)=>
+      `<div class="i-photo-item${i===detailPhotoSel?' selected':''}" onclick="__detailPhotoSelect(${i})">`
+      + `<img src="${p.thumb}" alt="物品照片"></div>`).join('');
   }
+  window.__detailPhotoSelect=function(i){
+    const list=getItemPhotos(detailPhotoItem);
+    if(!list[i]) return;
+    detailPhotoSel=i;
+    $$('#iDetailPhotoStrip .i-photo-item').forEach((el,k)=>el.classList.toggle('selected', k===i));
+  };
+  window.__detailPhotoSetIcon=function(){
+    const item=detailPhotoItem; if(!item) return;
+    const p=getItemPhotos(item)[detailPhotoSel]; if(!p) return;
+    item.icon=p.thumb;
+    item.updatedAt=new Date().toISOString();
+    save();
+    renderOverview();
+    const g=groupItems(state.items).groups.find(gg=>gg.items.includes(item));
+    if(g) showDetail(g);
+    showToast('已设为物品图标');
+  };
+  window.__detailPhotoDelete=function(){
+    const item=detailPhotoItem; if(!item) return;
+    const p=getItemPhotos(item)[detailPhotoSel]; if(!p) return;
+    item.photos.splice(detailPhotoSel,1);
+    photoDel(p.id);                    // 本机原图一并删掉
+    item.updatedAt=new Date().toISOString();
+    save();
+    renderOverview();
+    const g=groupItems(state.items).groups.find(gg=>gg.items.includes(item));
+    if(g) showDetail(g);               // 重新渲染档案页（照片区自动选中剩下的第一张）
+    showToast('已删除照片');
+  };
 
   function bindPhotoEvents(){
     Object.keys(PHOTO_SLOTS).forEach(slot=>{
@@ -1742,49 +1772,9 @@
       cam?.addEventListener('change',e=>{ addPhotoFiles(slot, e.target.files); e.target.value=''; });
       album?.addEventListener('change',e=>{ addPhotoFiles(slot, e.target.files); e.target.value=''; });
     });
-    // 看图弹窗：设为图标 / 删除
-    $('#iPhotoSetIconBtn')?.addEventListener('click',()=>{
-      const ctx=photoViewerCtx;
-      if(!ctx) return;
-      if(ctx.kind==='staging'){
-        const p=photosOfStaging(ctx.slot)[ctx.index];
-        if(!p) return;
-        temp.selectedIcon=p.thumb;
-        if(ctx.slot==='edit') updateEditIconBtn(); else updateIconBtn();
-      }else{
-        const item=ctx.item;
-        const p=getItemPhotos(item)[ctx.index];
-        if(!p) return;
-        item.icon=p.thumb;
-        item.updatedAt=new Date().toISOString();
-        save();
-        const g=groupItems(state.items).groups.find(gg=>gg.items.includes(item));
-        renderOverview();
-        if(g) showDetail(g);
-      }
-      closeModal('iPhotoModal');
-      showToast('已设为物品图标');
-    });
-    $('#iPhotoDeleteBtn')?.addEventListener('click',()=>{
-      const ctx=photoViewerCtx;
-      if(!ctx) return;
-      if(ctx.kind==='staging'){
-        window.__photoRemove(ctx.slot, ctx.index);
-      }else{
-        const item=ctx.item;
-        const p=getItemPhotos(item)[ctx.index];
-        if(!p) return;
-        item.photos.splice(ctx.index,1);
-        photoDel(p.id);
-        item.updatedAt=new Date().toISOString();
-        save();
-        const g=groupItems(state.items).groups.find(gg=>gg.items.includes(item));
-        renderOverview();
-        if(g) showDetail(g);
-        showToast('已删除照片');
-      }
-      closeModal('iPhotoModal');
-    });
+    // v112：档案页照片操作栏（作用于上方选中的那张照片，不再走弹窗）
+    $('#iDetailPhotoSetIconBtn')?.addEventListener('click',()=>window.__detailPhotoSetIcon());
+    $('#iDetailPhotoDeleteBtn')?.addEventListener('click',()=>window.__detailPhotoDelete());
   }
 
   function openAddItem(tab='single', editItem=null, presetCategory=null){
