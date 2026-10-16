@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v114';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v115';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -4347,9 +4347,16 @@
       const el=$(temp.dateTarget);
       if(el){
         el.value=temp.dateValue;
-        // 补货入库弹窗的日期行用 span 展示，需同步 textContent 才能在界面看到所选日期
-        if(temp.dateTarget==='#iRestockDate' || temp.dateTarget==='#iRestockProductionDate'){
+        // v115 修 BUG：补货入库弹窗的日期行是 span 展示，光同步 textContent 不够 ——
+        // 保存读的是 temp.restockDate / temp.restockProdDate，不写回去就会「界面上是选的日期、
+        // 存进去却是打开弹窗时默认的今天」（用户实测：选 7.16 保存后变 10.16）。
+        if(temp.dateTarget==='#iRestockDate'){
           el.textContent=formatDateDot(temp.dateValue);
+          temp.restockDate=temp.dateValue;
+        }
+        if(temp.dateTarget==='#iRestockProductionDate'){
+          el.textContent=formatDateDot(temp.dateValue);
+          temp.restockProdDate=temp.dateValue;
         }
         // 补货入库「退库日期」：span 展示 + 写入临时变量
         if(temp.dateTarget==='#iRestockRetiredDate'){
