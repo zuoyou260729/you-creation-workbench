@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v115';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v116';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -3346,6 +3346,8 @@
     updateEditCategoryUI();
     updateEditIconBtn();
     $('#iEditQty').textContent=getItemCurrentStock(item);
+    // v116：物品单位（编辑页可改；同步「物品数量」行尾的单位后缀）
+    setEditUnit(item.unit||DEFAULT_UNIT);
     const batches=getItemBatches(item);
     $('#iEditBatchCount').textContent=batches.length;
     $('#iEditLocation').value=item.location||'';
@@ -3505,6 +3507,8 @@
     item.categoryId=temp.selectedCategory;
     item.location=$('#iEditLocation').value.trim().slice(0,100);
     item.memo=$('#iEditMemo')?$('#iEditMemo').value.trim().slice(0,300):(item.memo||'');   // v91：备注说明（与物品维护页一致）
+    // v116：物品单位（编辑页可改）→ 物品级 + 各批次一起更新，保证后续「入库」沿用的是新单位
+    item.unit=temp.editUnit||item.unit||DEFAULT_UNIT;
     // v107：会员订阅 / 账号密码 → 写入专用字段（物品级）
     const vKindEdit=virtualKindFor(item.categoryId);
     if(vKindEdit){
@@ -3538,6 +3542,7 @@
     sbatches.forEach(b=>{
       if(!pRuleEdit.batchUnit)  b.unitPrice=0;
       if(!pRuleEdit.batchTotal) b.totalPrice=0;
+      b.unit=item.unit;                 // v116：批次单位跟随物品单位
     });
     // v107：会员订阅 → 会员结束日期同时作为物品/批次有效期（放在批次写回之后，避免被旧值覆盖）
     if(vKindEdit==='member' && temp.editVirtualMemberEnd){
@@ -4016,7 +4021,7 @@
   }
 
   // 物品单位（v88）：允许值按「单位类型」排序（计件/容量/重量/包装/车辆），界面不显示分组标题
-  const UNIT_OPTIONS=['件','个','套','组','张','ml','l','mg','g','kg','瓶','罐','桶','箱','盒','包','袋','卷','捆','辆'];
+  const UNIT_OPTIONS=['件','个','套','组','张','支','ml','l','mg','g','kg','瓶','罐','桶','箱','盒','包','袋','卷','捆','辆'];
   const DEFAULT_UNIT='件';
   function currentBatchUnit(){ return ($('#iBatchUnit')||{}).value||DEFAULT_UNIT; }
   function setBatchUnit(unit){
@@ -4027,19 +4032,34 @@
     if(txt) txt.textContent=u;
   }
   function renderUnitOptions(){
-    const cur=currentBatchUnit();
+    // v116：同一个单位弹窗服务两处 —— 添加页批量表单（target='batch'）与编辑库存品页（target='edit'）
+    const isEdit=temp.unitTarget==='edit';
+    const cur=isEdit?(temp.editUnit||DEFAULT_UNIT):currentBatchUnit();
     const box=$('#iUnitOptions');
     if(!box) return;
+    const title=$('#iUnitModalTitle');
+    if(title) title.textContent=isEdit?'选择物品单位':'选择单位';
     box.innerHTML=UNIT_OPTIONS.map(u=>
       `<button type="button" class="i-option ${u===cur?'active':''}" data-unit="${escapeHtml(u)}">${escapeHtml(u)}</button>`
     ).join('');
     $$('#iUnitOptions .i-option').forEach(btn=>{
-      btn.addEventListener('click', ()=>{ setBatchUnit(btn.dataset.unit); closeModal('iUnitModal'); });
+      btn.addEventListener('click', ()=>{
+        if(isEdit) setEditUnit(btn.dataset.unit); else setBatchUnit(btn.dataset.unit);
+        closeModal('iUnitModal');
+      });
     });
   }
-  function openUnitModal(){
+  function openUnitModal(target){
+    temp.unitTarget=(target==='edit')?'edit':'batch';   // 兼容 addEventListener 直接传 event 的老写法
     renderUnitOptions();
     openModal('iUnitModal');
+  }
+  // 编辑库存品页：物品单位（同时刷新「物品数量」行尾的单位后缀）
+  function setEditUnit(unit){
+    const u=unit||DEFAULT_UNIT;
+    temp.editUnit=u;
+    const t=$('#iEditUnitText'); if(t) t.textContent=u;
+    const qu=$('#iEditQtyUnit'); if(qu) qu.textContent=u;
   }
 
   function openCategoryPicker(){
@@ -4663,7 +4683,9 @@
 
     // form actions
     $('#iCategoryTrigger')?.addEventListener('click', openCategoryPicker);
-    $('#iBatchUnitTrigger')?.addEventListener('click', openUnitModal);
+    $('#iBatchUnitTrigger')?.addEventListener('click', ()=>openUnitModal('batch'));
+    // v116：编辑库存品页「物品单位」行 → 复用同一个单位弹窗（点击换单位）
+    $('#iEditUnitRow')?.addEventListener('click', ()=>openUnitModal('edit'));
     $('#iCatWheelCancel')?.addEventListener('click',()=>closeModal('iCategoryModal'));
     $('#iCatWheelConfirm')?.addEventListener('click',()=>{
       const p=(temp.wheelList||[])[temp.wheelIndex];
