@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v113';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v114';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2099,8 +2099,12 @@
     // "批量"角标：多个批次或总入库量 > 1 才显示
     $('#iDetailBatch').textContent='批量';
     $('#iDetailBatch').classList.toggle('i-hide', isSingleItem);
-    // 底部「入库」按钮：与「批量」角标同条件 —— 单个物品隐藏，批量物品显示
-    $('#iDetailRestockBtn').classList.toggle('i-hide', isSingleItem);
+    // 底部「入库」按钮：v114 起**对单个物品也开放** ——
+    // 数量只有 1 的东西（如美妆）以后还会复购，原来跟「批量」角标同条件隐藏，
+    // 导致用户没有补货入口、只能重新建一条物品。入库后总入库变 2 → 自动变批量。
+    // 例外：虚拟产品（会员订阅/账号密码）界面不展示批次（v107），不放入口。
+    const vKindDetail=virtualKindFor(item.categoryId);
+    $('#iDetailRestockBtn').classList.toggle('i-hide', !!vKindDetail);
     const starBtn=$('#iDetailStar');
     starBtn.classList.toggle('active', !!g.starred);
     // 收藏功能暂未启用：点击仅做居中提示
@@ -3077,6 +3081,15 @@
   let restockTargetItem=null;
   function openRestockModal(item){
     restockTargetItem=item;
+    // v114：入库弹窗同样遵守「时间线字段按分类显隐」（v105/v106 的规则），
+    // 否则给数码/衣服这类（有效期隐藏）补货时会被强制填有效期，与添加/编辑页不一致。
+    const rRule=timelineRuleFor(item.categoryId);
+    const isV=!!virtualKindFor(item.categoryId);
+    const rowVis={'#iRestockProductionDateRow':!isV&&!!rRule.production,
+                  '#iRestockExpiryRow':!isV&&!!rRule.expiry,
+                  '#iRestockRetiredDateRow':!isV&&!!rRule.retire,
+                  '#iRestockWarrantyDateRow':!isV&&!!rRule.warranty};
+    Object.keys(rowVis).forEach(sel=>{ const el=$(sel); if(el) el.style.display=rowVis[sel]?'':'none'; });
     temp.restockDate=todayStr();
     temp.restockProdDate=temp.restockDate;
     temp.restockTotalManual=false;
@@ -3139,7 +3152,8 @@
     const qty=Number($('#iRestockQty').value)||0;
     if(qty<=0){ showToast('请输入入库数量'); return; }
     const expiry=$('#iRestockExpiry').value;
-    if(!expiry || expiry==='请选择'){ showToast('请选择有效期'); return; }
+    // v114：只有该分类「有效期」可见时才要求必填（与添加/编辑页同一规则）
+    if(timelineRuleFor(restockTargetItem.categoryId).expiry && (!expiry || expiry==='请选择')){ showToast('请选择有效期'); return; }
     // 单价未填而已填总价时：单价 = 总价/数量（与批量添加页一致，v80）
     const restockUnitStr=$('#iRestockUnitPrice').value.trim();
     const restockTotalStr=$('#iRestockTotalPrice').value.trim();
