@@ -3150,16 +3150,18 @@ button.i-action-pin.active {
 .i-edit-qty-note {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 16px 12px;
-  margin-top: -6px;
+  gap: 10px;
+  /* 左边距 = 卡片内边距16 + 图标18 + 间距12 → 与「物品数量/物品单位」的标签左对齐 */
+  padding: 9px 16px 9px 46px;
+  background: #FAFBF8;
+  border-bottom: 1px solid #F5F5F5;
 }
 .i-edit-qty-note-text {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--i-text-ter);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--i-text-sec);
 }
 .i-edit-dup-btn {
   flex: 0 0 auto;
@@ -3175,3 +3177,16 @@ button.i-action-pin.active {
   -webkit-tap-highlight-color: transparent;
 }
 .i-edit-dup-btn:active { background: #DB9526; }
+
+/* ==========================================================================
+   v118 编辑库存品页：照片卡片对齐/紧凑化 + 数量说明行
+   ========================================================================== */
+/* 照片卡片原来没有内边距，内容贴着卡片边缘、也与其他卡片的行不对齐 */
+.i-edit-photo-card { padding: 16px; }
+/* 空状态不再预留 64px 高度，消掉「还没有照片」与按钮之间的大空白 */
+.i-edit-photo-card .i-photo-strip { min-height: 0; margin-bottom: 0; }
+.i-edit-photo-card .i-photo-empty { padding: 0 0 12px; }
+.i-edit-photo-card .i-photo-actions { margin-top: 12px; }
+/* 两个按钮改为固定宽度（窄屏自动收缩），不再被 flex 拉满整张卡 */
+.i-edit-photo-card .i-photo-btn { flex: 0 1 168px; }
+.i-edit-photo-card .i-photo-hint { margin-top: 10px; font-size: 11.5px; }
