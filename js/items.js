@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v118';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v119';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -3436,7 +3436,7 @@
     // 每批次档案：以每个批次为单位维护 单价 / 总价 / 退库日期
     temp.editBatchMap={};
     batches.forEach(b=>{
-      temp.editBatchMap[b.id]={ unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'', expiryDate:b.expiryDate||'', productionDate:b.productionDate||'', expiryValue:(b.expiryValue!=null?b.expiryValue:''), expiryUnit:b.expiryUnit||'' };
+      temp.editBatchMap[b.id]={ quantity:Number(b.quantity||0), unitPrice:Number(b.unitPrice||0), totalPrice:Number(b.totalPrice||0), retiredDate:b.retiredDate||'', warrantyDate:b.warrantyDate||'', expiryDate:b.expiryDate||'', productionDate:b.productionDate||'', expiryValue:(b.expiryValue!=null?b.expiryValue:''), expiryUnit:b.expiryUnit||'' };
     });
     const isSingle=batches.length<=1 && getItemTotalIn(item)<=1;
     if(isSingle && batches[0]){
@@ -3463,6 +3463,11 @@
     if(!m) return;
     temp.editBatchSel=batchId;
     $('#iEditBatchArchiveSel').textContent=batchId;
+    // v119：显示这一批次的数量（原来完全看不到，导致「单价 = 总价 ÷ 数量」无法核对）
+    const qEl=$('#iEditBatchQty');
+    if(qEl) qEl.value=String(Number(m.quantity||0));
+    const quEl=$('#iEditBatchQtyUnit');
+    if(quEl) quEl.textContent=(editTargetItem&&editTargetItem.unit)||'件';
     $('#iEditBatchUnitPrice').value=Number(m.unitPrice||0).toFixed(2);
     $('#iEditBatchTotalPrice').value=Number(m.totalPrice||0).toFixed(2);
     $('#iEditBatchRetiredDate').value=m.retiredDate||'';
@@ -3521,12 +3526,31 @@
     $('#iEditBatchListClose')?.addEventListener('click',()=>closeModal('iEditBatchListModal'));
     // 每批次档案：选择批次 → 弹出批次清单；单价/总价可编辑；退库日期点击选日期
     $('#iEditBatchArchiveSelRow')?.addEventListener('click',()=>openEditBatchArchiveModal());
-    $('#iEditBatchUnitPrice')?.addEventListener('input',()=>{
-      if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]) temp.editBatchMap[temp.editBatchSel].unitPrice=Number($('#iEditBatchUnitPrice').value)||0;
+    // 每批次档案：物品数量 / 单价 / 总价 三者联动，保证「单价 = 总价 ÷ 数量」自洽（v119）
+    //   改数量或总价 → 重算单价；改单价 → 重算总价（与入库弹窗的口径一致）
+    const syncBatchPrice=source=>{
+      const sel=temp.editBatchSel; if(!sel) return;
+      const m=temp.editBatchMap[sel]; if(!m) return;
+      const q=Number($('#iEditBatchQty').value)||0;
+      const upEl=$('#iEditBatchUnitPrice'), tpEl=$('#iEditBatchTotalPrice');
+      if(source==='unit'){
+        const up=Number(upEl.value)||0;
+        m.quantity=q; m.unitPrice=up;
+        m.totalPrice=Math.round(up*q*100)/100;
+        tpEl.value=m.totalPrice.toFixed(2);
+      }else{
+        const tp=Number(tpEl.value)||0;
+        m.quantity=q; m.totalPrice=tp;
+        m.unitPrice=q>0?(Math.round((tp/q)*100)/100):0;
+        upEl.value=q>0?m.unitPrice.toFixed(2):'';
+      }
+    };
+    $('#iEditBatchQty')?.addEventListener('input',()=>{
+      if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]) temp.editBatchMap[temp.editBatchSel].quantity=Number($('#iEditBatchQty').value)||0;
+      syncBatchPrice('qty');
     });
-    $('#iEditBatchTotalPrice')?.addEventListener('input',()=>{
-      if(temp.editBatchSel && temp.editBatchMap[temp.editBatchSel]) temp.editBatchMap[temp.editBatchSel].totalPrice=Number($('#iEditBatchTotalPrice').value)||0;
-    });
+    $('#iEditBatchUnitPrice')?.addEventListener('input',()=>{ syncBatchPrice('unit'); });
+    $('#iEditBatchTotalPrice')?.addEventListener('input',()=>{ syncBatchPrice('total'); });
     $('#iEditBatchRetiredRow')?.addEventListener('click',()=>{
       openDatePicker('#iEditBatchRetiredDate', $('#iEditBatchRetiredDate').value||todayStr());
     });
@@ -3603,11 +3627,22 @@
         item.password=vv.password;
       }
     }
-    // 每批次档案：将每个批次编辑后的 单价 / 总价 / 退库日期 写回对应批次对象
+    // 每批次档案：将每个批次编辑后的 数量 / 单价 / 总价 / 退库日期 写回对应批次对象
+    // v119：批次数量可改，但不能小于该批次已取用的数量（否则库存与取用记录会冲突）
     const sbatches=getItemBatches(item);
+    const allUsings=getItemUsings(item);
+    for(const b of sbatches){
+      const m=temp.editBatchMap[b.id];
+      if(!m || m.quantity==null) continue;
+      const nq=Number(m.quantity);
+      if(!isFinite(nq) || nq<0){ showToast('物品数量不能为负数'); return; }
+      const usedQty=allUsings.filter(u=>u.batchId===b.id).reduce((s,u)=>s+(Number(u.quantity)||0),0);
+      if(nq < usedQty){ showToast('批次 '+b.id+' 的数量不能小于已取用的 '+usedQty); return; }
+    }
     sbatches.forEach(b=>{
       const m=temp.editBatchMap[b.id];
       if(m){
+        if(m.quantity!=null) b.quantity=Number(m.quantity)||0;
         b.unitPrice=Number(m.unitPrice)||0;
         b.totalPrice=Number(m.totalPrice)||0;
         b.retiredDate=m.retiredDate||'';
@@ -3630,6 +3665,7 @@
       sbatches.forEach(b=>{ b.expiryDate=temp.editVirtualMemberEnd; });
     }
     // 兼容字段：物品级 总价 = 各批次总价之和；均价 = 最新批次单价
+    item.qty=getItemTotalIn(item);                       // v119：批次数量可改 → 物品数量跟着重算
     item.totalPrice=sbatches.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
     item.price=getItemTotalIn(item)>0?item.totalPrice/getItemTotalIn(item):0;
     item.avgPrice=sbatches.length?Number(sbatches[sbatches.length-1].unitPrice||0):0;
