@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v116';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v117';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -728,6 +728,12 @@
 
   /* ===== 批次相关计算 ===== */
   function getItemBatches(item){ return Array.isArray(item.batches)?item.batches:[]; }
+  // v117：物品分组键（同名 + 同一级 + 同二级 + 同图标 = 同一件物品；档案页按组汇总，编辑页按单条记录）
+  function groupKeyOf(item){
+    if(!item) return '';
+    const path=getCategoryPath(item.categoryId||'');
+    return `${item.name}|${path.primaryId}|${path.secondaryId||''}|${item.icon||'📦'}`;
+  }
   // 有效批次 = 未退库的批次（退库日期为空，或退库日期 > 今天）
   function getActiveBatches(item){
     const today=todayStr();
@@ -896,7 +902,7 @@
       if(activeBatches.length) avgDailyCost+=dailyCost;
 
       const path=getCategoryPath(item.categoryId);
-      const key=`${item.name}|${path.primaryId}|${path.secondaryId||''}|${item.icon||'📦'}`;
+      const key=groupKeyOf(item);
       if(!map[key]){
         map[key]={
           key,
@@ -3335,6 +3341,75 @@
 
   /* ===== 编辑库存品 子页 ===== */
   let editTargetItem=null;
+  /* ---- v117：编辑页「数量说明」+ 同名多条记录合并 ---- */
+  function renderEditQtyNote(item){
+    const note=$('#iEditQtyNote'), txt=$('#iEditQtyNoteText'), btn=$('#iEditDupMergeBtn');
+    if(!note||!txt) return;
+    const unit=item.unit||'件';
+    const inQty=getItemTotalIn(item), usedQty=getItemTotalUsed(item);
+    const stock=Math.max(0, inQty-usedQty);
+    const key=groupKeyOf(item);
+    const g=(groupItems(state.items).groups||[]).find(x=>x.key===key);
+    const sibs=g?g.items.filter(it=>it!==item):[];
+    let s='累计入库 '+inQty+' '+unit+' · 已取用 '+usedQty+' '+unit+' · 当前剩 '+stock+' '+unit;
+    if(sibs.length){
+      const sum=g.items.reduce((a,it)=>a+getItemTotalIn(it),0);
+      s+='；同一物品另有 '+sibs.length+' 条记录，合计 '+sum+' '+unit;
+      temp.editDupKey=key;
+      if(btn) btn.style.display='';
+    }else{
+      temp.editDupKey=null;
+      if(btn) btn.style.display='none';
+    }
+    txt.textContent=s;
+    note.style.display='flex';
+  }
+  // 把同一物品的多条记录合并成一条（批次/取用/照片/维护支出都保留；被合并的 id 写进墓碑，避免云同步又拉回来）
+  function mergeDuplicateItems(){
+    const key=temp.editDupKey;
+    if(!key){ showToast('没有需要合并的记录'); return; }
+    const g=(groupItems(state.items).groups||[]).find(x=>x.key===key);
+    if(!g || g.items.length<2){ showToast('没有需要合并的记录'); return; }
+    const keep=g.items[0];
+    const others=g.items.slice(1);
+    if(!Array.isArray(keep.batches)) keep.batches=[];
+    if(!Array.isArray(keep.usings)) keep.usings=[];
+    others.forEach(o=>{
+      (Array.isArray(o.batches)?o.batches:[]).forEach(b=>{
+        const same=keep.batches.find(x=>x.id===b.id);
+        if(same){   // 同一天的两个批次：数量与金额累加，单价重算
+          same.quantity=(Number(same.quantity)||0)+(Number(b.quantity)||0);
+          same.totalPrice=(Number(same.totalPrice)||0)+(Number(b.totalPrice)||0);
+          same.unitPrice=same.quantity>0?same.totalPrice/same.quantity:0;
+          ['productionDate','expiryDate','retiredDate','warrantyDate'].forEach(k=>{ if(!same[k] && b[k]) same[k]=b[k]; });
+        }else{
+          keep.batches.push({ ...b });
+        }
+      });
+      (Array.isArray(o.usings)?o.usings:[]).forEach(u=>keep.usings.push({ ...u }));
+      if(Array.isArray(o.photos) && o.photos.length){
+        const cur=Array.isArray(keep.photos)?keep.photos:[];
+        keep.photos=cur.concat(o.photos).filter((p,i,arr)=>arr.findIndex(x=>x.id===p.id)===i).slice(0,PHOTO_MAX);
+      }
+      keep.maintenanceTotal=(Number(keep.maintenanceTotal)||0)+(Number(o.maintenanceTotal)||0);
+      if(Array.isArray(o.maintenanceLog) && o.maintenanceLog.length){
+        keep.maintenanceLog=(Array.isArray(keep.maintenanceLog)?keep.maintenanceLog:[]).concat(o.maintenanceLog);
+      }
+      if(o.id && !TOMB.includes(o.id)) TOMB.push(o.id);
+    });
+    const dropIds=new Set(others.map(o=>o.id));
+    state.items=state.items.filter(it=>!dropIds.has(it.id));
+    mergeSameDayBatches(keep);
+    keep.qty=getItemTotalIn(keep);
+    keep.totalPrice=keep.batches.reduce((s,b)=>s+(Number(b.totalPrice)||0),0);
+    keep.price=keep.qty>0?keep.totalPrice/keep.qty:0;
+    keep.avgPrice=keep.price;
+    keep.updatedAt=new Date().toISOString();
+    save();
+    showToast('已合并 '+others.length+' 条重复记录');
+    openEditItem(keep);          // 重开编辑页，数字立即刷新
+  }
+
   function openEditItem(item){
     editTargetItem=item;
     temp.editVirtualMemberEnd='';   // v107：清理上一次编辑的会员结束日期，避免串值
@@ -3345,7 +3420,12 @@
     $('#iEditName').value=item.name||'';
     updateEditCategoryUI();
     updateEditIconBtn();
-    $('#iEditQty').textContent=getItemCurrentStock(item);
+    // v117：这里显示「累计入库」= 各批次数量之和（用户口径：我一共入库了多少）。
+    // 原先是 getItemCurrentStock()（= 累计入库 − 已取用），容易与档案页的「库存总量」对不上；
+    // 当前还剩多少请看物品档案页的「库存总量 − 已取用」。
+    $('#iEditQty').textContent=getItemTotalIn(item);
+    // v117：数量说明（累计入库 / 已取用 / 当前剩）+ 同名多条记录的提示与合并入口
+    renderEditQtyNote(item);
     // v116：物品单位（编辑页可改；同步「物品数量」行尾的单位后缀）
     setEditUnit(item.unit||DEFAULT_UNIT);
     const batches=getItemBatches(item);
@@ -4686,6 +4766,10 @@
     $('#iBatchUnitTrigger')?.addEventListener('click', ()=>openUnitModal('batch'));
     // v116：编辑库存品页「物品单位」行 → 复用同一个单位弹窗（点击换单位）
     $('#iEditUnitRow')?.addEventListener('click', ()=>openUnitModal('edit'));
+    // v117：同名多条记录 → 合并为一条
+    $('#iEditDupMergeBtn')?.addEventListener('click', ()=>{
+      if(confirm('把同一物品的多条记录合并成一条？\n批次、取用记录、照片、维护支出都会保留。')) mergeDuplicateItems();
+    });
     $('#iCatWheelCancel')?.addEventListener('click',()=>closeModal('iCategoryModal'));
     $('#iCatWheelConfirm')?.addEventListener('click',()=>{
       const p=(temp.wheelList||[])[temp.wheelIndex];
