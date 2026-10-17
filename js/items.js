@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v119';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v120';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1977,6 +1977,12 @@
         price=pRule.batchUnit?(Number(unitPriceStr)||0):0;   // v110：单价行隐藏 → 不保存单价
       }
       totalPrice=pRule.batchTotal?(Number(totalPriceStr)||(qty*price)):0;   // v110：总价行隐藏 → 不保存总价
+      // v120：单价是「总价 ÷ 数量」的派生值 —— 两者都填了就以总价为准重算，
+      // 否则会存出「数量3 / 单价0.67 / 总价231.80」这种自相矛盾的数据（均价、日均成本随之全错）
+      if(pRule.batchUnit && qty>0 && totalPrice>0){
+        price=Math.round((totalPrice/qty)*100)/100;
+        $('#iBatchUnitPrice').value=price.toFixed(2);
+      }
       expiryDate=$('#iBatchExpiryDate').value;
       if(!vKind && tRule.expiry && !expiryDate){ showToast('请填写有效期'); return; }   // v107：专用字段分类不校验有效期
     }else{
@@ -3171,6 +3177,8 @@
       price=Number(restockUnitStr)||0;
     }
     const total=Number(restockTotalStr)||(qty*price);
+    // v120：单价一律按「总价 ÷ 数量」派生（用户手动改过总价也能自洽）
+    if(qty>0 && total>0) price=Math.round((total/qty)*100)/100;
     const date=temp.restockDate||todayStr();
     const item=restockTargetItem;
     if(!Array.isArray(item.batches)) item.batches=[];
@@ -3468,8 +3476,18 @@
     if(qEl) qEl.value=String(Number(m.quantity||0));
     const quEl=$('#iEditBatchQtyUnit');
     if(quEl) quEl.textContent=(editTargetItem&&editTargetItem.unit)||'件';
-    $('#iEditBatchUnitPrice').value=Number(m.unitPrice||0).toFixed(2);
-    $('#iEditBatchTotalPrice').value=Number(m.totalPrice||0).toFixed(2);
+    // v120：单价是「总价 ÷ 数量」的派生值 —— 历史数据不一致时，这里按总价重算显示（保存即落库）
+    const bqFix=Number(m.quantity)||0, btpFix=Number(m.totalPrice)||0, bupFix=Number(m.unitPrice)||0;
+    let showUp=bupFix;
+    if(bqFix>0 && btpFix>0){
+      showUp=Math.round((btpFix/bqFix)*100)/100;
+      if(Math.abs(showUp-bupFix)>0.009){
+        m.unitPrice=showUp;
+        showToast('该批次单价与总价不符：已按 总价÷数量 修正为 '+showUp.toFixed(2)+'，保存后生效');
+      }
+    }
+    $('#iEditBatchUnitPrice').value=Number(showUp||0).toFixed(2);
+    $('#iEditBatchTotalPrice').value=Number(btpFix||0).toFixed(2);
     $('#iEditBatchRetiredDate').value=m.retiredDate||'';
     $('#iEditBatchRetiredDateText').textContent=m.retiredDate?formatDateDot(m.retiredDate):'请选择';
     $('#iEditBatchWarrantyDate').value=m.warrantyDate||'';
@@ -3645,6 +3663,13 @@
         if(m.quantity!=null) b.quantity=Number(m.quantity)||0;
         b.unitPrice=Number(m.unitPrice)||0;
         b.totalPrice=Number(m.totalPrice)||0;
+        // v120：单价 = 总价 ÷ 数量（总价为准）。总价为 0 而单价有值时，反过来用 单价×数量 补总价。
+        // 这样历史遗留的「单价与总价不符」在保存时自愈。
+        const bq=Number(b.quantity)||0;
+        if(bq>0){
+          if(b.totalPrice>0) b.unitPrice=Math.round((b.totalPrice/bq)*100)/100;
+          else if(b.unitPrice>0) b.totalPrice=Math.round(b.unitPrice*bq*100)/100;
+        }
         b.retiredDate=m.retiredDate||'';
         b.warrantyDate=m.warrantyDate||'';
         b.expiryDate=m.expiryDate||'';
@@ -4849,11 +4874,11 @@
         }
       }
     }
-    // 总价输入时：单价为空则实时反算单价（总价/数量）
+    // 总价输入时：以总价为准实时反算单价（v120：原来只在单价为空时反算，导致两者可以不一致后一起存进去）
     $('#iBatchTotalPrice')?.addEventListener('input', ()=>{
       const qty=Math.max(0, parseInt($('#iQty').value)||0);
       const t=Number($('#iBatchTotalPrice').value)||0;
-      if(!$('#iBatchUnitPrice').value.trim() && t>0 && qty>0){
+      if(t>0 && qty>0){
         $('#iBatchUnitPrice').value=(Math.round((t/qty)*100)/100).toFixed(2);
       }
     });
