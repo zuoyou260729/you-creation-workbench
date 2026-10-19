@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v120';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v121';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2137,8 +2137,8 @@
     if(totRow) totRow.style.display=pRuleDetail.detailTotal?'':'none';
     $('#iDetailAvgPrice').textContent=formatMoney(g.avgPrice);
     $('#iDetailTotalPrice').textContent=formatMoney(g.totalPrice);
-    $('#iDetailTotalQty').textContent=totalIn+' 件';
-    $('#iDetailInUse').textContent=totalUsed+' 件';
+    $('#iDetailTotalQty').textContent=totalIn+' '+(item.unit||'件');   // v121：不再写死「件」
+    $('#iDetailInUse').textContent=totalUsed+' '+(item.unit||'件');   // v121：同上
     // 当前状态：按「正在使用」数量判定 —— 0 件=待使用，≥1 件=现役中
     $('#iDetailStatus').textContent=totalUsed<=0?'待使用':'现役中';
     // 「首次入库时间」= 最早入库批次的日期（第一次填写的入库日期），纯展示，不再点击选批次
@@ -2166,7 +2166,7 @@
       $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
-      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' '+(item.unit||'件');   // v121
       setBatchNoteText(b.note);   // v91：带出该批次的备注说明
       setBatchDelBtn(true);   // 批次已选中且数据已加载 → 按钮可用
     }else{
@@ -2277,7 +2277,7 @@
       $('#iDetailExpiry').textContent=b.expiryDate?formatDateDot(b.expiryDate):'--';
       $('#iDetailBatchRetired').textContent=b.retiredDate?formatDateDot(b.retiredDate):'--';
       $('#iDetailBatchWarranty').textContent=b.warrantyDate?formatDateDot(b.warrantyDate):'--';
-      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' 件';
+      $('#iDetailBatchQty').textContent=(Number(b.quantity)||0)+' '+((owner&&owner.unit)||'件');   // v121
       setBatchNoteText(b.note);   // v91：带出所选批次的备注说明
       setBatchDelBtn(true);   // 批次已选中且数据已加载 → 「删除本批次数据」按钮变亮
       closeModal('iBatchDateModal'); hideTabbar(false);
@@ -3067,7 +3067,7 @@
     if(isSingle){
       if(pRuleBA.singlePrice) rows.push(['购入价格', formatMoney(Number(b.unitPrice||item.price||0))]);
     }else{
-      rows.push(['物品数量', String(Number(b.quantity||0))]);
+      rows.push(['物品数量', String(Number(b.quantity||0))+' '+(item.unit||'件')]);   // v121：补单位
       if(pRuleBA.batchUnit)  rows.push(['物品单价', formatMoney(Number(b.unitPrice||0))]);
       if(pRuleBA.batchTotal) rows.push(['物品总价', formatMoney(Number(b.totalPrice||0))]);
     }
