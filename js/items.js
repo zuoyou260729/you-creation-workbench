@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v121';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v122';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -429,6 +429,8 @@
   };
 
   const SORT_FIELDS = [
+    // v122：默认排序 = 先按一级分类（系统一级按系统顺序，自定义一级排后），同一级内按名称拼音首字母
+    { key:'catName', label:'分类+首字母', asc:'分类顺序 + 首字母 A→Z', desc:'分类顺序 + 首字母 Z→A' },
     { key:'purchaseDate', label:'购买时间', asc:'由远及近', desc:'由近及远' },
     { key:'price', label:'购买价格', asc:'由低到高', desc:'由高到低' },
     { key:'usageCount', label:'使用次数', asc:'由少到多', desc:'由多到少' },
@@ -442,7 +444,7 @@
     settings: {
       hideAmount: false,
       viewMode: 'grid',
-      sortField: 'purchaseDate',
+      sortField: 'catName',   // v122：默认「分类+首字母」
       sortDir: 'asc',
       filters: { categories: [], statuses: [], starred: false }
     }
@@ -636,6 +638,11 @@
     consolidateAllBatches();
     // 回填缺失的 id/updatedAt（旧数据），并落盘，避免同步时整条被丢弃
     if(ensureSyncMeta()){ try{ save(); }catch(e){} }
+    // v122：默认排序改为「分类+首字母」——老数据若还是旧的默认值（购买时间）则一次性切过来
+    if(!state.settings.sortMig122){
+      state.settings.sortMig122=true;
+      if(state.settings.sortField==='purchaseDate'){ state.settings.sortField='catName'; state.settings.sortDir='asc'; }
+    }
   }
   function save(){
     localStorage.setItem(ITEMS_KEY, JSON.stringify(state.items));
@@ -999,7 +1006,22 @@
 
     const field=SORT_FIELDS.find(x=>x.key===state.settings.sortField)||SORT_FIELDS[0];
     const dir=state.settings.sortDir==='desc'?-1:1;
+    // v122：「分类+首字母」——给每个一级分类定一个排名（系统一级按系统顺序在前，自定义一级在后）
+    const rankMap={};
+    (function(){
+      let i=0;
+      SYSTEM_PRIMARY.forEach(p=>{ rankMap[p.id]=i++; });
+      customPrimaryCategories().filter(c=>c.id!==UNCATEGORIZED_ID).forEach(c=>{ rankMap[c.id]=i++; });
+    })();
+    const rankOf=id=>(rankMap[id]!=null?rankMap[id]:9999);
     arr.sort((a,b)=>{
+      if(field.key==='catName'){
+        const ra=rankOf(a.primaryId), rb=rankOf(b.primaryId);
+        if(ra!==rb) return ra-rb;                       // 一级分类顺序不随升降序翻转
+        const c=String(a.name).localeCompare(String(b.name),'zh-Hans-CN');
+        if(c) return c*dir;
+        return String(a.key).localeCompare(String(b.key))*dir;
+      }
       let av=a[field.key], bv=b[field.key];
       if(field.key==='price'){ av=a.totalPrice; bv=b.totalPrice; }
       if(field.key==='purchaseDate'){
@@ -2893,7 +2915,8 @@
 
   function todayCardHtml(entry, idx){
     const g=entry.g, unit=groupUnit(g);
-    const meta=[groupLocation(g)||g.primaryName||'未分类'];
+    // v122：不再显示「存放位置」，只保留「仅剩 N 单位」
+    const meta=[];
     if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
     const status=[];
     if(entry.expiring) status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
@@ -2914,7 +2937,7 @@
       <div class="i-td-icon">${renderIcon(g.icon, g.name)}${todayBatchBadge(g)}</div>
       <div class="i-td-main">
         <div class="i-td-name">${escapeHtml(g.name)}</div>
-        <div class="i-td-sub"><span class="i-td-meta">${escapeHtml(meta.join(' · '))}</span>${status.length?' · '+status.join(' · '):''}</div>
+        <div class="i-td-sub">${[meta.length?`<span class="i-td-meta">${escapeHtml(meta.join(' · '))}</span>`:'', status.length?status.join(' · '):''].filter(Boolean).join(' · ')}</div>
       </div>
       ${btn}
     </div>`;
@@ -4699,7 +4722,7 @@
       state.settings.sortDir=btn.dataset.dir;
       renderSortOptions(SORT_FIELDS.find(f=>f.key===state.settings.sortField), state.settings.sortDir);
     };
-    $('#iSortReset').onclick=()=>{ state.settings.sortField='purchaseDate'; state.settings.sortDir='asc'; save(); closeModal('iSortModal'); renderOverview(); };
+    $('#iSortReset').onclick=()=>{ state.settings.sortField='catName'; state.settings.sortDir='asc'; save(); closeModal('iSortModal'); renderOverview(); };
     $('#iSortApply').onclick=()=>{ save(); closeModal('iSortModal'); renderOverview(); };
   }
   function renderSortOptions(field, dir){
