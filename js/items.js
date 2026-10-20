@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v122';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v123';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2169,6 +2169,15 @@
     $('#iDetailCategory').textContent=path.secondaryName?`${path.primaryName} > ${path.secondaryName}`:path.primaryName;
     $('#iDetailLocation').textContent=item.location||'-';
     $('#iDetailUpdated').textContent=formatIsoDot(item.updatedAt);
+    // v123：物品级「备注说明」（表单/编辑页维护，之前档案页没有展示位）
+    // 同组若有多条记录，各自备注去重后逐行显示；都没有则整块隐藏
+    const memoList=[];
+    (g.items||[]).forEach(it=>{ const m=String(it.memo||'').trim(); if(m && memoList.indexOf(m)===-1) memoList.push(m); });
+    const memoSec=$('#iDetailMemoSection'), memoTxt=$('#iDetailMemoText');
+    if(memoSec){
+      if(memoList.length){ if(memoTxt) memoTxt.textContent=memoList.join('\n'); memoSec.style.display=''; }
+      else { if(memoTxt) memoTxt.textContent=''; memoSec.style.display='none'; }
+    }
     // v92/v95：累计维护支出（汇总该物品/该组各物品的累计金额；不参与平均每日成本计算）
     // v95：仅「单个物品」的档案页显示，批量物品不显示（与「批量」角标、「入库」按钮同一判定）
     const maintTotal=Number(g.maintenanceTotal||0);
