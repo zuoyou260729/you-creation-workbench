@@ -3190,3 +3190,14 @@ button.i-action-pin.active {
 /* 两个按钮改为固定宽度（窄屏自动收缩），不再被 flex 拉满整张卡 */
 .i-edit-photo-card .i-photo-btn { flex: 0 1 168px; }
 .i-edit-photo-card .i-photo-hint { margin-top: 10px; font-size: 11.5px; }
+
+/* ==========================================================================
+   v123 物品档案页：备注说明区块（物品级 memo，长文本保留换行）
+   ========================================================================== */
+.i-detail-memo {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--i-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
