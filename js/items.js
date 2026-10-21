@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v124';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v125';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1064,49 +1064,6 @@
     }).filter(x=>x.delta<=5).sort((a,b)=>a.delta-b.delta);
   }
 
-  /* ===== 到期清单：按「批次」计算（有效期 - 今天 ≤ 5 天，含已过期）=====
-     返回 [{item, hits:[{batch, delta, expired}]}]，hits 按剩余天数升序。 */
-  function getExpiringBatchEntries(){
-    const today=todayStr();
-    const out=[];
-    state.items.forEach(item=>{
-      const batches=getItemBatches(item);
-      const hits=[];
-      batches.forEach(b=>{
-        const exp=b.expiryDate||item.expiryDate;
-        if(!exp) return;
-        const delta=daysDiff(today, exp);
-        if(delta<=5) hits.push({ batch:b, delta, expired:delta<0 });
-      });
-      if(hits.length){
-        hits.sort((a,b)=>a.delta-b.delta);
-        out.push({ item, hits });
-      }
-    });
-    return out;
-  }
-  // 到期清单卡片：仅物品名称 + 符合条件的入库批次（竖向排列，可点击）
-  // 采用「内联 onclick + 数组下标」而非 addEventListener：不依赖绑定时机，
-  // 也不会因 id 匹配失败而静默 return（此前「点击无反应」的隐患点）。
-  let expiringEntries=[];
-  function expiringCardHtml(entry, idx){
-    const { item, hits }=entry;
-    return `
-    <div class="i-exp-card">
-      <div class="i-exp-name">${escapeHtml(item.name)}</div>
-      <div class="i-exp-batches">
-        ${hits.map((h,j)=>`<div class="i-exp-batch" onclick="__openExpBatch(${idx},${j})">${escapeHtml(h.batch.id)}</div>`).join('')}
-      </div>
-    </div>`;
-  }
-  // 全局入口：由卡片内联 onclick 调用，直接用下标取渲染时缓存的数据
-  window.__openExpBatch=function(i,j){
-    const e=expiringEntries[i];
-    if(!e){ showToast('列表已更新，请返回后重新进入'); return; }
-    const h=e.hits[j];
-    if(!h) return;
-    showBatchArchive(e.item, h.batch);
-  };
 
   /* ===== 渲染总览 ===== */
   function renderOverview(){
@@ -1136,7 +1093,6 @@
       galleryBtn.innerHTML=`${isGrid?gridSvg():listSvg()} <span>${isGrid?'画廊':'清单'}</span>`;
     }
 
-    renderExpiringModule();
 
     const container=$('#iItemsContainer');
     if(!container) return;
@@ -1152,22 +1108,6 @@
     bindItemCards(container);
   }
 
-  function renderExpiringModule(){
-    const el=$('#iExpiringModule');
-    if(!el) return;
-    const entries=getExpiringBatchEntries();   // 与到期清单页同一套「按批次」判定
-    if(entries.length===0){ el.style.display='none'; return; }
-    el.style.display='block';
-    const groups=groupItems(entries.map(x=>x.item)).groups;
-    const max5=entries.slice(0,5);
-    el.querySelector('.i-expiring-list').innerHTML=max5.map(x=>{
-      const g=groups.find(gg=>gg.items.includes(x.item));
-      if(!g) return '';
-      const h=x.hits[0];   // 取最接近到期的那个批次
-      return listCardHtml(g, h.expired, Math.abs(h.delta), h.expired);
-    }).join('');
-    bindItemCards(el);
-  }
 
   function bindItemCards(ctx){
     $$('.i-grid-card, .i-list-card', ctx).forEach(card=>{
@@ -1286,11 +1226,10 @@
     const target=$('#i-subpage-'+name);
     if(target) target.classList.add('active');
     $('.main').scrollTop=0;
-    if(['overview','categories','expiring','today'].includes(name)) currentItemsSub=name;
+    if(['overview','categories','today'].includes(name)) currentItemsSub=name;   // v125：到期清单页已下线
     if(name==='today') renderTodayPage();
     if(name==='overview') renderOverview();
     if(name==='categories') renderCategoriesPage();
-    if(name==='expiring') renderExpiringPage();
     if(name==='detail'){
       // 进入详情页时隐藏物品模块的悬浮添加按钮，避免与底部操作栏冲突
       const fab=$('.i-fab');
@@ -1299,19 +1238,8 @@
       const fab=$('.i-fab');
       if(fab) fab.style.display='';
     }
-    updateExpiringBadge();
   }
 
-  // 侧边栏「到期清单」未读数量角标
-  function updateExpiringBadge(){
-    const el=$('#iNavExpiringBadge');
-    if(el){
-      const n=getExpiringBatchEntries().length;   // 与到期清单页一致：按批次判定后的物品数
-      if(n>0){ el.textContent=n>99?'99+':String(n); el.style.display='inline-flex'; }
-      else el.style.display='none';
-    }
-    updateTodayBadge();   // v99：今日待办角标一并刷新
-  }
 
   /* ===== 添加物品 ===== */
   /* ==================================================================
@@ -2737,26 +2665,6 @@
     save(); renderCategoriesPage(); renderOverview();
   }
 
-  /* ===== 到期清单页 ===== */
-  function renderExpiringPage(){
-    const entries=getExpiringBatchEntries();
-    let soon=0, expired=0, batchCount=0;
-    entries.forEach(e=>{
-      batchCount+=e.hits.length;
-      if(e.hits.some(h=>h.expired)) expired++; else soon++;
-    });
-    const sum=$('#iExpiringSummary');
-    if(sum) sum.textContent=`${soon} 件即将到期 / ${expired} 件已过期（共 ${batchCount} 个批次）`;
-    const list=$('#iExpiringList');
-    if(!list) return;
-    if(entries.length===0){
-      list.innerHTML=`<div class="i-empty"><p>暂无到期物品</p></div>`;
-      return;
-    }
-    // 缓存本次渲染的数据，卡片内联 onclick 按下标取用
-    expiringEntries=entries;
-    list.innerHTML=entries.map((e,i)=>expiringCardHtml(e,i)).join('');
-  }
 
   /* ==================================================================
      v99 今日（Today）页
@@ -2845,6 +2753,7 @@
   function todayEntries(){
     const { groups }=groupItems(state.items);
     const out=[];
+    const today=todayStr();
     groups.forEach(g=>{
       if(!g.items||!g.items.length) return;
       const delta=groupExpiryDelta(g);
@@ -2852,7 +2761,18 @@
       const lowStock=line!=null && g.currentStock<=line;
       const expiring=delta!==null && delta<=TODAY_WINDOW;
       if(!expiring && !lowStock) return;
-      out.push({ g, delta, line, lowStock, expiring });
+      // v125：该物品「未退库批次」里已进入 5 天紧急区（含已过期）的批次，供卡片显示「N 个批次快到期」
+      const expBatches=[];
+      (g.items||[]).forEach(item=>{
+        getActiveBatches(item).forEach(b=>{
+          const exp=b.expiryDate||item.expiryDate;
+          if(!exp) return;
+          const d=daysDiff(today, exp);
+          if(d<=5) expBatches.push({ item, batch:b, delta:d });
+        });
+      });
+      expBatches.sort((x,y)=>x.delta-y.delta);
+      out.push({ g, delta, line, lowStock, expiring, expBatches });
     });
     // 排序：已过期（越久越前）→ 今天/明天 → 剩余天数升序 → 仅低于补货线（库存越少越前）
     out.sort((a,b)=>{
@@ -2948,6 +2868,10 @@
     if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
     const status=[];
     if(entry.expiring) status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
+    // v125：多批次物品 → 显示有几个批次进了 5 天紧急区（点它看该批次的批次档案）
+    if(entry.expBatches && entry.expBatches.length>=2){
+      status.push(`<span class="i-td-st i-td-amber i-td-batchwarn" onclick="event.stopPropagation();__todayBatch(${idx})">${entry.expBatches.length} 个批次快到期</span>`);
+    }
     if(entry.lowStock) status.push(`<span class="i-td-st ${g.currentStock<=0?'i-td-red':'i-td-amber'}">低于补货线</span>`);
     const inList=shopHas(g);
     let btn;
@@ -3071,8 +2995,16 @@
     showToast('已取用 1 '+(bestItem.unit||'件'));
     renderTodayPage();
     renderOverview();
-    updateExpiringBadge();
   }
+
+  // v125：点「N 个批次快到期」→ 打开最快到期那一批的批次档案页
+  window.__todayBatch=function(i){
+    const row=todayRows[i];
+    if(!row){ showToast('列表已更新，请重试'); return; }
+    const first=(row.expBatches||[])[0];
+    if(!first){ showToast('该物品没有临期批次'); return; }
+    showBatchArchive(first.item, first.batch);
+  };
 
   window.__todayAct=function(i, act){
     const row=todayRows[i];
