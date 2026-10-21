@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v123';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v124';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -75,8 +75,8 @@
     sys_clothing: [null,'衬衫','毛衣','卫衣','外套','羽绒服','西装','裤子',null,'半身裙','连衣裙','内衣','袜子','运动鞋','靴子','拖鞋','双肩包','手提包','钱包','帽子','围巾','手套','腰带','其他','半袖','长袖','短裤','高跟鞋','皮鞋','领带','睡衣','眼镜墨镜'], // 下标0=T恤、下标8=牛仔裤 已删除(null占位，保持其余下标不变)
     sys_beauty: ['洁面','爽肤水','精华','乳液','面霜','防晒','面膜','眼霜',null,'香水','剃须刀','洗发护发','身体护理','女性护理','口腔护理','饰品','其他','梳子','香氛','卸妆油','修容','眼妆','定妆用品','粉底液','口红','腮红','上妆产品','化妆刷','隐形眼镜','美发用品','护肤工具','发圈'], // 下标8=彩妆 已删除(null占位，保持其余下标不变)
     sys_appliance: ['冰箱','洗衣机','烘干机','空调','电视','热水器','油烟机','洗碗机','微波炉','电磁炉','烤箱','电饭煲','空气炸锅','咖啡机','破壁机','吸尘器','扫地机器人','空气净化器','加湿器','电风扇','吹风机','洗地机','其他','电动打蛋器','绞肉机','搅面机','烤面包机','净水机','前置净水器','软水机','洗烘套装','饮水机','烧水壶'],
-    sys_home: ['沙发','床','床垫','桌子','椅子','柜子','收纳','衣架','雨伞','厨具','餐具','清洁用品','洗衣用品','茶几','灯具','家纺','其他','地毯','洗护用品','四件套','坐垫靠垫','手帕纸','厨房湿巾','厨房用纸','净水机滤芯','滤网套','清洁膏','软水盐','手套','湿厕纸','洗洁精','洗脸巾','洗碗擦','洗碗盐','香皂肥皂','消毒液','油污净'],
-    sys_consumable: ['边刷','玻璃水','车载香薰','地板清洁液','滚刷','集尘袋','滤网','滤芯','毛发切割器','拖布','吸尘器替换头','吸尘器延长杆','其他','泡沫发泡剂'], // v87 新增一级分类；v111 追加「泡沫发泡剂」（显示层「其他」置底）
+    sys_home: ['沙发','床','床垫','桌子','椅子','柜子','收纳','衣架','雨伞','厨具','餐具','清洁用品','洗衣用品','茶几','灯具','家纺','其他','地毯','洗护用品','四件套','坐垫靠垫','手帕纸','厨房湿巾','厨房用纸',null,null,'清洁膏',null,'手套','湿厕纸','洗洁精','洗脸巾','洗碗擦',null,'香皂肥皂','消毒液','油污净'],
+    sys_consumable: ['边刷','玻璃水','车载香薰','地板清洁液','滚刷','集尘袋','滤网','滤芯','毛发切割器','拖布','吸尘器替换头','吸尘器延长杆','其他','泡沫发泡剂','净水机滤芯','滤网套','软水盐','洗碗盐'],   // v124：从「家居日用」移入 4 个（下标 14~17） // v87 新增一级分类；v111 追加「泡沫发泡剂」（显示层「其他」置底）
     sys_office: ['书籍','计算器','书写用品','绘画工具','办公用品',null,null,'收纳用品','其他','裁切粘贴','电脑包','书包','学习仪器'],
     sys_outdoor: ['帐篷',null,'睡袋垫子','徒步登山','电器照明','钓鱼用品','球类用品','健身用品','滑雪用品','游泳用品','攀岩用品','救生用品','其他','露营用品','骑行用品','冰上运动','极限运动'],
     sys_baby: ['婴儿车','安全座椅','婴儿床','奶瓶','奶粉','纸尿裤','纸巾湿巾','童装','童鞋','玩具','绘本','孕妇用品','其他','儿童补剂','儿童餐具','平衡车','辅食','婴儿湿巾'],
@@ -312,16 +312,16 @@
     'sys_home:手帕纸':'assets/items/icons/sys_home_手帕纸.png',
     'sys_home:厨房湿巾':'assets/items/icons/sys_home_厨房湿巾.png',
     'sys_home:厨房用纸':'assets/items/icons/sys_home_厨房用纸.png',
-    'sys_home:净水机滤芯':'assets/items/icons/sys_home_净水机滤芯.png',
-    'sys_home:滤网套':'assets/items/icons/sys_home_滤网套.png',
+    'sys_consumable:净水机滤芯':'assets/items/icons/sys_consumable_净水机滤芯.png',   // v124 随分类移入
+    'sys_consumable:滤网套':'assets/items/icons/sys_consumable_滤网套.png',   // v124 随分类移入
     'sys_home:清洁膏':'assets/items/icons/sys_home_清洁膏.png',
-    'sys_home:软水盐':'assets/items/icons/sys_home_软水盐.png',
+    'sys_consumable:软水盐':'assets/items/icons/sys_consumable_软水盐.png',   // v124 随分类移入
     'sys_home:手套':'assets/items/icons/sys_home_手套.png',
     'sys_home:湿厕纸':'assets/items/icons/sys_home_湿厕纸.png',
     'sys_home:洗洁精':'assets/items/icons/sys_home_洗洁精.png',
     'sys_home:洗脸巾':'assets/items/icons/sys_home_洗脸巾.png',
     'sys_home:洗碗擦':'assets/items/icons/sys_home_洗碗擦.png',
-    'sys_home:洗碗盐':'assets/items/icons/sys_home_洗碗盐.png',
+    'sys_consumable:洗碗盐':'assets/items/icons/sys_consumable_洗碗盐.png',   // v124 随分类移入
     'sys_home:香皂肥皂':'assets/items/icons/sys_home_香皂肥皂.png',
     'sys_home:消毒液':'assets/items/icons/sys_home_消毒液.png',
     'sys_home:油污净':'assets/items/icons/sys_home_油污净.png',
@@ -636,6 +636,8 @@
     migrateItemsToBatches();
     // 同一天多次入库合并为一条批次（修复旧数据里每条入库都独立成行的问题）
     consolidateAllBatches();
+    // v124：4 个二级分类从「家居日用」移到「耗品配件」→ 已选这些分类的物品跟着改 id
+    if(migrateCatMoveV124()){ try{ save(); }catch(e){} }
     // 回填缺失的 id/updatedAt（旧数据），并落盘，避免同步时整条被丢弃
     if(ensureSyncMeta()){ try{ save(); }catch(e){} }
     // v122：默认排序改为「分类+首字母」——老数据若还是旧的默认值（购买时间）则一次性切过来
@@ -669,6 +671,23 @@
      新模型：item.batches[] (入库批次) + item.usings[] (取用记录)
      迁移策略：旧物品视为 1 个批次（取 purchaseDate 生成 batchId=YYYYMMDD入库），
      usings[] 留空。运行后保存一次即固化。 */
+  // v124：分类移动映射（旧 id → 新 id）。幂等：跑完后物品上就不再是旧 id；云端回滚成旧数据时下次加载会再修一次
+  // 注意：映射表放在函数内部，避免 load() 早于顶层 const 执行时踩 TDZ
+  function migrateCatMoveV124(){
+    const MAP={
+      'sys_home_sub_24':'sys_consumable_sub_14',   // 净水机滤芯
+      'sys_home_sub_25':'sys_consumable_sub_15',   // 滤网套
+      'sys_home_sub_27':'sys_consumable_sub_16',   // 软水盐
+      'sys_home_sub_33':'sys_consumable_sub_17'    // 洗碗盐
+    };
+    let changed=false;
+    (state.items||[]).forEach(it=>{
+      const n=MAP[it.categoryId];
+      if(n){ it.categoryId=n; it.updatedAt=new Date().toISOString(); changed=true; }
+    });
+    return changed;
+  }
+
   function migrateItemsToBatches(){
     let changed=false;
     state.items.forEach(item=>{
@@ -2767,8 +2786,8 @@
     // 家居日用
     'sys_home:纸抽':3, 'sys_home:手帕纸':3, 'sys_home:厨房湿巾':3, 'sys_home:湿厕纸':3, 'sys_home:洗脸巾':3,
     'sys_home:厨房用纸':2, 'sys_home:洗洁精':2, 'sys_home:洗衣用品':2, 'sys_home:清洁用品':2, 'sys_home:洗碗擦':2,
-    'sys_home:洗碗盐':2, 'sys_home:香皂肥皂':2, 'sys_home:手套':2, 'sys_home:净水机滤芯':2, 'sys_home:滤网套':2,
-    'sys_home:消毒液':1, 'sys_home:软水盐':1, 'sys_home:清洁膏':1, 'sys_home:油污净':1,
+    'sys_consumable:洗碗盐':2, 'sys_home:香皂肥皂':2, 'sys_home:手套':2, 'sys_consumable:净水机滤芯':2, 'sys_consumable:滤网套':2,
+    'sys_home:消毒液':1, 'sys_consumable:软水盐':1, 'sys_home:清洁膏':1, 'sys_home:油污净':1,
     // 耗品配件
     'sys_consumable:集尘袋':3, 'sys_consumable:滤网':2, 'sys_consumable:滤芯':2, 'sys_consumable:滚刷':2,
     'sys_consumable:边刷':2, 'sys_consumable:拖布':2, 'sys_consumable:地板清洁液':2, 'sys_consumable:玻璃水':2,
