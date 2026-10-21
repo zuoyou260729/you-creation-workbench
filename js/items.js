@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v125';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v126';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2676,53 +2676,49 @@
      配色：≤5 天（含已过期/今天/明天）红字；6~20 天黄字；21~30 天蓝字
      ================================================================== */
 
-  /* ---- 补货线配置 ----
-     语义：当前库存 ≤ 补货线 → 提示「低于补货线」。
-     未列出的分类默认「不做补货提醒」（耐用/大件/服务/虚拟类不需要囤货）。 */
-  const RESTOCK_LINE_PRIMARY = {   // 一级分类默认补货线
-    sys_home: 2,        // 家居日用
-    sys_consumable: 2,  // 耗品配件
-    sys_beauty: 2,      // 个护美妆
-    sys_baby: 3,        // 母婴儿童
-    sys_snack: 3,       // 零食饮料
-    sys_tea: 2,         // 酒咖品茗
-    sys_pet: 2,         // 宠物用品
-    sys_medical: 2,     // 健康医疗
-    sys_office: 1       // 办公学习
-  };
-  const RESTOCK_LINE_SECONDARY = { // 二级分类覆盖值（键 = 一级id:二级名）
-    // 家居日用
-    'sys_home:纸抽':3, 'sys_home:手帕纸':3, 'sys_home:厨房湿巾':3, 'sys_home:湿厕纸':3, 'sys_home:洗脸巾':3,
-    'sys_home:厨房用纸':2, 'sys_home:洗洁精':2, 'sys_home:洗衣用品':2, 'sys_home:清洁用品':2, 'sys_home:洗碗擦':2,
-    'sys_consumable:洗碗盐':2, 'sys_home:香皂肥皂':2, 'sys_home:手套':2, 'sys_consumable:净水机滤芯':2, 'sys_consumable:滤网套':2,
-    'sys_home:消毒液':1, 'sys_consumable:软水盐':1, 'sys_home:清洁膏':1, 'sys_home:油污净':1,
-    // 耗品配件
-    'sys_consumable:集尘袋':3, 'sys_consumable:滤网':2, 'sys_consumable:滤芯':2, 'sys_consumable:滚刷':2,
-    'sys_consumable:边刷':2, 'sys_consumable:拖布':2, 'sys_consumable:地板清洁液':2, 'sys_consumable:玻璃水':2,
-    'sys_consumable:车载香薰':1, 'sys_consumable:吸尘器替换头':1, 'sys_consumable:吸尘器延长杆':1, 'sys_consumable:毛发切割器':1,
+  /* ---- 补货线配置（v126：以用户维护的「物品分类清单.xlsx」F 列为准）----
+     语义：当前库存（总入库 − 已取用）≤ 补货线 → 提示「低于补货线」。
+     **只有列在下表里的二级分类才参与补货提醒**；未列出的（含整类不参与的一级）一律不提醒。
+     键 = `${一级id}:${二级名}`，与分类树解耦：分类改名/移动位置不会影响这里。 */
+  const RESTOCK_LINES = {
     // 个护美妆
-    'sys_beauty:面膜':3, 'sys_beauty:女性护理':3, 'sys_beauty:口腔护理':2, 'sys_beauty:洗发护发':2,
-    'sys_beauty:身体护理':2, 'sys_beauty:防晒':2, 'sys_beauty:洁面':2, 'sys_beauty:爽肤水':2, 'sys_beauty:卸妆油':2,
+    'sys_beauty:洁面':1, 'sys_beauty:爽肤水':2, 'sys_beauty:精华':1, 'sys_beauty:乳液':2, 'sys_beauty:面霜':2,
+    'sys_beauty:防晒':1, 'sys_beauty:面膜':3, 'sys_beauty:眼霜':2, 'sys_beauty:香水':1, 'sys_beauty:洗发护发':2,
+    'sys_beauty:身体护理':2, 'sys_beauty:女性护理':3, 'sys_beauty:口腔护理':2, 'sys_beauty:饰品':2, 'sys_beauty:其他':2,
+    'sys_beauty:梳子':1, 'sys_beauty:香氛':1, 'sys_beauty:卸妆油':1, 'sys_beauty:修容':1, 'sys_beauty:眼妆':2,
+    'sys_beauty:定妆用品':1, 'sys_beauty:粉底液':1, 'sys_beauty:口红':2, 'sys_beauty:腮红':2, 'sys_beauty:上妆产品':2,
+    'sys_beauty:化妆刷':2, 'sys_beauty:隐形眼镜':5, 'sys_beauty:美发用品':2, 'sys_beauty:护肤工具':1, 'sys_beauty:发圈':2,
+    // 家居日用
+    'sys_home:清洁用品':2, 'sys_home:洗衣用品':2, 'sys_home:洗护用品':2, 'sys_home:手帕纸':3, 'sys_home:厨房湿巾':1,
+    'sys_home:厨房用纸':2, 'sys_home:清洁膏':1, 'sys_home:手套':1, 'sys_home:湿厕纸':2, 'sys_home:洗洁精':1,
+    'sys_home:洗脸巾':2, 'sys_home:洗碗擦':2, 'sys_home:香皂肥皂':2, 'sys_home:消毒液':1, 'sys_home:油污净':1,
+    // 耗品配件
+    'sys_consumable:边刷':1, 'sys_consumable:玻璃水':1, 'sys_consumable:车载香薰':1, 'sys_consumable:地板清洁液':1, 'sys_consumable:滚刷':1,
+    'sys_consumable:集尘袋':2, 'sys_consumable:滤网':2, 'sys_consumable:滤芯':2, 'sys_consumable:毛发切割器':1, 'sys_consumable:拖布':2,
+    'sys_consumable:吸尘器替换头':1, 'sys_consumable:吸尘器延长杆':1, 'sys_consumable:其他':2, 'sys_consumable:泡沫发泡剂':1, 'sys_consumable:净水机滤芯':1,
+    'sys_consumable:滤网套':2, 'sys_consumable:软水盐':1, 'sys_consumable:洗碗盐':1,
     // 母婴儿童
-    'sys_baby:纸尿裤':3, 'sys_baby:奶粉':3, 'sys_baby:婴儿湿巾':3, 'sys_baby:纸巾湿巾':3, 'sys_baby:辅食':2,
-    // 零食饮料 / 酒咖品茗
-    'sys_snack:乳制品':3, 'sys_snack:饮料':3, 'sys_snack:干果':2, 'sys_snack:面包零食':2,
-    'sys_tea:茶叶':2, 'sys_tea:咖啡':2, 'sys_tea:酒水':1,
+    'sys_baby:奶粉':2, 'sys_baby:纸尿裤':2, 'sys_baby:纸巾湿巾':2, 'sys_baby:孕妇用品':2, 'sys_baby:其他':2,
+    'sys_baby:儿童补剂':1, 'sys_baby:辅食':2, 'sys_baby:婴儿湿巾':3,
+    // 健康医疗
+    'sys_medical:药品':1, 'sys_medical:急救用品':1,
     // 宠物用品
-    'sys_pet:猫砂':3, 'sys_pet:宠物粮':3, 'sys_pet:垃圾袋':2, 'sys_pet:冻干':2, 'sys_pet:宠物零食':2,
-    'sys_pet:罐头':2, 'sys_pet:驱虫用品':1, 'sys_pet:消毒除臭':1, 'sys_pet:洗护用品':1, 'sys_pet:补剂药品':1
+    'sys_pet:宠物粮':1, 'sys_pet:猫砂':2, 'sys_pet:洗护用品':1, 'sys_pet:其他':2, 'sys_pet:宠物零食':2,
+    'sys_pet:冻干':2, 'sys_pet:罐头':2, 'sys_pet:垃圾袋':2, 'sys_pet:美容用品':2, 'sys_pet:驱虫用品':1,
+    'sys_pet:消毒除臭':1, 'sys_pet:补剂药品':1,
+    // 零食饮料
+    'sys_snack:干果':2, 'sys_snack:面包零食':2, 'sys_snack:乳制品':3, 'sys_snack:饮料':3, 'sys_snack:其他':3,
+    // 酒咖品茗
+    'sys_tea:茶叶':2, 'sys_tea:酒水':1, 'sys_tea:咖啡':2, 'sys_tea:其他':2,
   };
   function restockLineOf(g){
     const key=(g.primaryId||'')+':'+(g.secondaryName||'');
-    if(RESTOCK_LINE_SECONDARY[key]!=null) return RESTOCK_LINE_SECONDARY[key];
-    const line=RESTOCK_LINE_PRIMARY[g.primaryId];
-    return (line==null)?null:line;
+    const v=RESTOCK_LINES[key];
+    return (v==null)?null:v;
   }
   function restockLineOfCategory(primaryId, secondaryName){
-    const key=(primaryId||'')+':'+(secondaryName||'');
-    if(RESTOCK_LINE_SECONDARY[key]!=null) return RESTOCK_LINE_SECONDARY[key];
-    const line=RESTOCK_LINE_PRIMARY[primaryId];
-    return (line==null)?null:line;
+    const v=RESTOCK_LINES[(primaryId||'')+':'+(secondaryName||'')];
+    return (v==null)?null:v;
   }
   function groupUnit(g){ const it=g&&g.items&&g.items[0]; return (it&&it.unit)||'件'; }
   function groupLocation(g){ const it=g&&g.items&&g.items[0]; return (it&&it.location)||''; }
