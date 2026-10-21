@@ -3201,3 +3201,13 @@ button.i-action-pin.active {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* ==========================================================================
+   v125 今日卡片：「N 个批次快到期」可点（虚线提示 + 手指光标）
+   ========================================================================== */
+.i-td-batchwarn {
+  white-space: nowrap;      /* 整块换行，避免「2 个批次快到 / 期」被挤断 */
+  cursor: pointer;
+  border-bottom: 1px dashed currentColor;
+  -webkit-tap-highlight-color: transparent;
+}
