@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v131';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v132';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2908,13 +2908,17 @@
   function todayCardHtml(entry, idx){
     const g=entry.g, unit=groupUnit(g);
     // v122：不再显示「存放位置」；v127：只剩最后一件且在用时改为「最后一瓶已开封」，用光改为「已用完」
-    const lastOne=(g.totalUsed||0)>0 && (g.currentStock||0)<=1 && entry.line!=null;
+    // v132（用户定）：只有库存=0（全都取用完了）才算「最后一X已开封」；库存 1 是"还剩一瓶没开"，仍写「仅剩 1 X」
+    const lastOne=(g.totalUsed||0)>0 && (g.currentStock||0)<=0 && entry.line!=null;
     const meta=[];
-    // v131（用户定）：库存 ≤1 且有过取用 → 一律显示「最后一X已开封」（库存 0 也一样，不再写「已用完」）
     if(lastOne) meta.push('最后一'+unitWord(unit)+'已开封');
     else if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
     const status=[];
-    if(entry.expiring) status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
+    // v132：最后一瓶已开封且维护了开封期限 → 不受 30 天窗口限制，一律显示剩余/过期天数
+    const hasPao=(g.items||[]).some(it=>Number(it.paoValue)>0);
+    if(entry.expiring || (lastOne && hasPao && entry.delta!==null)){
+      status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
+    }
     // v125：多批次物品 → 显示有几个批次进了 5 天紧急区（点它看该批次的批次档案）
     if(entry.expBatches && entry.expBatches.length>=2){
       status.push(`<span class="i-td-st i-td-amber i-td-batchwarn" onclick="event.stopPropagation();__todayBatch(${idx})">${entry.expBatches.length} 个批次快到期</span>`);
