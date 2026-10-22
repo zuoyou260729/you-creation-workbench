@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v128';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v129';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -4642,7 +4642,8 @@
   }
   // v127：PAO 展示与选择（复用有效期弹窗，只存时长）
   function setPaoText(elId, v, unit){
-    const el=$(elId); if(!el) return;
+    const el=document.getElementById(elId)||$('#'+elId);   // v129 修：原来漏了 # 选择器，导致一直显示「请选择」
+    if(!el) return;
     const t=paoTextOf(v, unit);
     el.textContent=t||'请选择';
   }
