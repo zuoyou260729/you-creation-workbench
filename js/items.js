@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v130';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v131';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2910,7 +2910,8 @@
     // v122：不再显示「存放位置」；v127：只剩最后一件且在用时改为「最后一瓶已开封」，用光改为「已用完」
     const lastOne=(g.totalUsed||0)>0 && (g.currentStock||0)<=1 && entry.line!=null;
     const meta=[];
-    if(lastOne) meta.push((g.currentStock||0)<=0 ? '已用完' : ('最后一'+unitWord(unit)+'已开封'));
+    // v131（用户定）：库存 ≤1 且有过取用 → 一律显示「最后一X已开封」（库存 0 也一样，不再写「已用完」）
+    if(lastOne) meta.push('最后一'+unitWord(unit)+'已开封');
     else if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
     const status=[];
     if(entry.expiring) status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
