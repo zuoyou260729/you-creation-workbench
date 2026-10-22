@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v126';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v127';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -638,6 +638,8 @@
     consolidateAllBatches();
     // v124：4 个二级分类从「家居日用」移到「耗品配件」→ 已选这些分类的物品跟着改 id
     if(migrateCatMoveV124()){ try{ save(); }catch(e){} }
+    // v127：计量单位统一大写（ml→ML、l→L、g→G、kg→KG、mg→MG），幂等
+    if(migrateUnitsV127()){ try{ save(); }catch(e){} }
     // 回填缺失的 id/updatedAt（旧数据），并落盘，避免同步时整条被丢弃
     if(ensureSyncMeta()){ try{ save(); }catch(e){} }
     // v122：默认排序改为「分类+首字母」——老数据若还是旧的默认值（购买时间）则一次性切过来
@@ -806,11 +808,41 @@
   // 平均每日成本（v80 改）：只按【已取用】物品的价值计算 ——
   // 单个物品：无取用记录不计；批量物品：Σ(批次单价 × 该批次已取用数量)，
   // 例：10件×¥2、已取用3件 → 分子为 ¥6，再除以有效天数
+  // v127：计量单位大写迁移（幂等）
+  function migrateUnitsV127(){
+    let ch=false;
+    (state.items||[]).forEach(it=>{
+      const n=UNIT_ALIAS[it.unit]; if(n){ it.unit=n; ch=true; }
+      getItemBatches(it).forEach(b=>{ const m=UNIT_ALIAS[b.unit]; if(m){ b.unit=m; ch=true; } });
+    });
+    return ch;
+  }
+  /* ---- v127：开封后使用期限（PAO）—— 物品级，只存「时长」，不存日期 ----
+     开封日 = 该物品最早一条取用记录的日期（用户定：开封=取用；删批次连带删取用，接受）
+     有效到期日 = min(包装有效期, 开封日 + PAO)；未填 PAO 或从未取用 → 只用包装有效期 */
+  function paoOpenedDate(item){
+    const ds=getItemUsings(item).map(u=>u.date).filter(Boolean).sort();
+    return ds.length?ds[0]:'';
+  }
+  function paoExpiryOfItem(item){
+    const v=Number(item&&item.paoValue)||0;
+    if(!v) return '';
+    const opened=paoOpenedDate(item);
+    if(!opened) return '';
+    return computeExpiryDate(opened, v, (item&&item.paoUnit)||'month');
+  }
+  function paoTextOf(v, unit){
+    const n=Number(v)||0;
+    if(!n) return '';
+    return n+(unit==='year'?' 年':unit==='month'?' 个月':' 天');
+  }
   function getItemDailyCost(item){
     const all=getActiveBatches(item);
     const bs=all.filter(b=>b.expiryDate);
-    if(!bs.length) return 0;
-    const minExp=bs.map(b=>b.expiryDate).sort()[0];
+    const minExpBatch=bs.length?bs.map(b=>b.expiryDate).sort()[0]:'';
+    // v127：已开封且填了 PAO → 分母截止日改取 min(包装有效期, 开封日+PAO)
+    const paoEnd=paoExpiryOfItem(item);
+    const minExp=(minExpBatch && paoEnd)?(paoEnd<minExpBatch?paoEnd:minExpBatch):(minExpBatch||paoEnd);
     const firstDate=all.map(b=>b.date).filter(Boolean).sort()[0];
     if(!firstDate || !minExp) return 0;
     const days=daysDiffInclusive(firstDate, minExp);
@@ -1761,6 +1793,8 @@
 
     // reset form
     $$('#i-subpage-add input, #i-subpage-add textarea').forEach(el=>el.value='');
+    temp.paoValue=0; temp.paoUnit='month';                 // v127：重置 PAO
+    setPaoText('iPaoText',0,'month'); setPaoText('iBatchPaoText',0,'month');
     $$('#i-subpage-add .i-switch').forEach(el=>el.classList.remove('on'));
     // v108：照片暂存区（编辑已有物品时带出它的照片）
     photoStaging.single=[]; photoStaging.batch=[];
@@ -2009,6 +2043,9 @@
       item.retiredQty=0;
     }
 
+    // v127：开封后使用期限（PAO）—— 物品级，只存时长
+    item.paoValue=Number(temp.paoValue)||0;
+    item.paoUnit=temp.paoUnit||'month';
     // v113：「入库后立即取用 1 件」——记一条取用流水（挂到本次新批次上）。
     // 不改批次数量：可用量由 getBatchAvailableQty 用「批次数量 − 已取用」现算。
     // 开关是一次性动作，不写进物品数据（下次打开表单默认关闭）。
@@ -2740,6 +2777,9 @@
         const d=daysDiff(today, item.expiryDate);
         if(min===null||d<min) min=d;
       }
+      // v127：开封后按 PAO 得到的到期日也参与「取最早」
+      const pe=paoExpiryOfItem(item);
+      if(pe){ const d=daysDiff(today, pe); if(min===null||d<min) min=d; }
     });
     return min;
   }
@@ -2859,9 +2899,11 @@
 
   function todayCardHtml(entry, idx){
     const g=entry.g, unit=groupUnit(g);
-    // v122：不再显示「存放位置」，只保留「仅剩 N 单位」
+    // v122：不再显示「存放位置」；v127：只剩最后一件且在用时改为「最后一瓶已开封」，用光改为「已用完」
+    const lastOne=(g.totalUsed||0)>0 && (g.currentStock||0)<=1 && entry.line!=null;
     const meta=[];
-    if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
+    if(lastOne) meta.push((g.currentStock||0)<=0 ? '已用完' : ('最后一'+unitWord(unit)+'已开封'));
+    else if(entry.lowStock) meta.push('仅剩 '+g.currentStock+unit);
     const status=[];
     if(entry.expiring) status.push(`<span class="i-td-st ${expiryStatusCls(entry.delta)}">${escapeHtml(expiryStatusText(entry.delta))}</span>`);
     // v125：多批次物品 → 显示有几个批次进了 5 天紧急区（点它看该批次的批次档案）
@@ -3415,6 +3457,9 @@
     renderEditQtyNote(item);
     // v116：物品单位（编辑页可改；同步「物品数量」行尾的单位后缀）
     setEditUnit(item.unit||DEFAULT_UNIT);
+    // v127：回填 PAO（物品级）
+    temp.paoValue=Number(item.paoValue)||0; temp.paoUnit=item.paoUnit||'month';
+    setPaoText('iEditPaoText',temp.paoValue,temp.paoUnit);
     const batches=getItemBatches(item);
     $('#iEditBatchCount').textContent=batches.length;
     $('#iEditLocation').value=item.location||'';
@@ -3610,6 +3655,9 @@
     item.memo=$('#iEditMemo')?$('#iEditMemo').value.trim().slice(0,300):(item.memo||'');   // v91：备注说明（与物品维护页一致）
     // v116：物品单位（编辑页可改）→ 物品级 + 各批次一起更新，保证后续「入库」沿用的是新单位
     item.unit=temp.editUnit||item.unit||DEFAULT_UNIT;
+    // v127：PAO（物品级，只存时长）
+    item.paoValue=Number(temp.paoValue)||0;
+    item.paoUnit=temp.paoUnit||'month';
     // v107：会员订阅 / 账号密码 → 写入专用字段（物品级）
     const vKindEdit=virtualKindFor(item.categoryId);
     if(vKindEdit){
@@ -4141,7 +4189,11 @@
   }
 
   // 物品单位（v88）：允许值按「单位类型」排序（计件/容量/重量/包装/车辆），界面不显示分组标题
-  const UNIT_OPTIONS=['件','个','套','组','张','支','ml','l','mg','g','kg','瓶','罐','桶','箱','盒','包','袋','卷','捆','辆'];
+  // v127：新增 片/盘/盆；计量单位统一大写（老数据由 migrateUnitsV127 迁移）
+  const UNIT_OPTIONS=['件','个','套','组','张','支','片','盘','盆','ML','L','MG','G','KG','瓶','罐','桶','箱','盒','包','袋','卷','捆','辆'];
+  const UNIT_ALIAS={'ml':'ML','l':'L','g':'G','kg':'KG','mg':'MG'};
+  const UNIT_MEASURE=['ML','L','G','KG','MG'];            // 计量单位 → 文案不能说「最后一瓶」
+  function unitWord(u){ const x=UNIT_ALIAS[u]||u||'件'; return UNIT_MEASURE.indexOf(x)>=0?'件':x; }
   const DEFAULT_UNIT='件';
   function currentBatchUnit(){ return ($('#iBatchUnit')||{}).value||DEFAULT_UNIT; }
   function setBatchUnit(unit){
@@ -4587,7 +4639,22 @@
     else d=$('#iBatchProductionDate').value;
     return d||productionDate||'';
   }
+  // v127：PAO 展示与选择（复用有效期弹窗，只存时长）
+  function setPaoText(elId, v, unit){
+    const el=$(elId); if(!el) return;
+    const t=paoTextOf(v, unit);
+    el.textContent=t||'请选择';
+  }
+  function openPaoPicker(targetTextId){
+    temp.paoMode=true;
+    temp.paoTarget=targetTextId;
+    temp.expiryUnit=temp.paoUnit||'month';
+    const inp=$('#iExpiryInput'); if(inp) inp.value=temp.paoValue?String(temp.paoValue):'';
+    $$('#iExpiryUnits button').forEach(b=>b.classList.toggle('active', b.dataset.unit===temp.expiryUnit));
+    openModal('iExpiryModal');
+  }
   function openExpiryPicker(targetId, productionDate){
+    temp.paoMode=false;   // v127：正常有效期选择
     temp.dateTarget=targetId;
     temp.expiryValue='';
     temp.expiryUnit='day';
@@ -4629,6 +4696,15 @@
   function confirmExpiryPicker(){
     const v=Number($('#iExpiryInput').value);
     if(!v || v<=0){ showToast('请输入有效数字'); return; }
+    // v127：PAO 只记录「时长」，不按日期计算
+    if(temp.paoMode){
+      temp.paoValue=v; temp.paoUnit=temp.expiryUnit||'month';
+      setPaoText('iPaoText',temp.paoValue,temp.paoUnit);
+      setPaoText('iBatchPaoText',temp.paoValue,temp.paoUnit);
+      setPaoText('iEditPaoText',temp.paoValue,temp.paoUnit);
+      closeModal('iExpiryModal');
+      return;
+    }
     // 基准日期：每次确认都【重新】从对应的生产日期字段实时解析（v80 加固）——
     // 绝不以「当前有效期字段的值」为基准，避免 6年→2031、再填10年→2043 这类叠加错误
     let pd=resolveExpiryBase(temp.dateTarget,'')||temp.expiryBaseDate;
@@ -4806,6 +4882,10 @@
     $('#iBatchUnitTrigger')?.addEventListener('click', ()=>openUnitModal('batch'));
     // v116：编辑库存品页「物品单位」行 → 复用同一个单位弹窗（点击换单位）
     $('#iEditUnitRow')?.addEventListener('click', ()=>openUnitModal('edit'));
+    // v127：三处「开封后使用期限」入口
+    $('#iPaoTrigger')?.addEventListener('click',()=>openPaoPicker('iPaoText'));
+    $('#iBatchPaoTrigger')?.addEventListener('click',()=>openPaoPicker('iBatchPaoText'));
+    $('#iEditPaoRow')?.addEventListener('click',()=>openPaoPicker('iEditPaoText'));
     // v117：同名多条记录 → 合并为一条
     $('#iEditDupMergeBtn')?.addEventListener('click', ()=>{
       if(confirm('把同一物品的多条记录合并成一条？\n批次、取用记录、照片、维护支出都会保留。')) mergeDuplicateItems();
