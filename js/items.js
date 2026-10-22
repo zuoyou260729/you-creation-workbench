@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v127';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v128';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -843,10 +843,11 @@
     // v127：已开封且填了 PAO → 分母截止日改取 min(包装有效期, 开封日+PAO)
     const paoEnd=paoExpiryOfItem(item);
     const minExp=(minExpBatch && paoEnd)?(paoEnd<minExpBatch?paoEnd:minExpBatch):(minExpBatch||paoEnd);
-    const firstDate=all.map(b=>b.date).filter(Boolean).sort()[0];
-    if(!firstDate || !minExp) return 0;
-    const days=daysDiffInclusive(firstDate, minExp);
-    if(days<=0) return 0;
+    // v128（用户选 B）：分母起点改为「首次取用日」——使用期口径，避免『囤很久才用』被摊薄
+    const startDate=paoOpenedDate(item);
+    if(!startDate || !minExp) return 0;
+    let days=daysDiffInclusive(startDate, minExp);
+    if(days<=0) days=1;              // 过期后才开封 → 至少按 1 天，避免除 0
     const usings=getItemUsings(item);
     const usedValue=all.reduce((s,b)=>{
       const used=usings.filter(u=>u.batchId===b.id).reduce((x,u)=>x+(Number(u.quantity)||0),0);
