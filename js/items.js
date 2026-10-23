@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v132';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v133';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -824,10 +824,16 @@
     const ds=getItemUsings(item).map(u=>u.date).filter(Boolean).sort();
     return ds.length?ds[0]:'';
   }
+  // v133（用户定）：开封日 = 【最近一次取用】的日期 —— "取用一瓶就把这瓶的取用日记为开封日"，
+  // 尤其是最后一瓶（库存用光时），它的开封日就是它被取用的那天
+  function paoLatestUseDate(item){
+    const ds=getItemUsings(item).map(u=>u.date).filter(Boolean).sort();
+    return ds.length?ds[ds.length-1]:'';
+  }
   function paoExpiryOfItem(item){
     const v=Number(item&&item.paoValue)||0;
     if(!v) return '';
-    const opened=paoOpenedDate(item);
+    const opened=paoLatestUseDate(item);
     if(!opened) return '';
     return computeExpiryDate(opened, v, (item&&item.paoUnit)||'month');
   }
