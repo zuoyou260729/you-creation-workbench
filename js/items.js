@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v133';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v134';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -3968,7 +3968,14 @@
       state.customCategories=mergeByUpdatedAt(state.customCategories, data.customCategories);
       applyTombstones();
       save();
-      renderOverview(); renderCategoriesPage();
+      // v134：补货清单也参与同步（按 key 合并，保留在清单/已买状态）
+      if(Array.isArray(data.shopping) && data.shopping.length){
+        const cur=shopList(), map={};
+        cur.forEach(x=>{ if(x&&x.key) map[x.key]=x; });
+        data.shopping.forEach(x=>{ if(x&&x.key && !map[x.key]) map[x.key]=x; });
+        shopSave(Object.keys(map).map(k=>map[k]));
+      }
+      renderOverview(); renderCategoriesPage(); renderTodayPage();
       refreshSyncStats();
       showToast('已从云端同步（'+state.items.length+' 件）');
       setSyncStatus('云端更新于 '+fmtSyncTime(data.syncedAt));
@@ -4010,7 +4017,7 @@
       const uploadCats=mergeByUpdatedAt(state.customCategories, (cloudData.customCategories||[]).filter(c=>c&&c.id&&!TOMB.includes(c.id)));
       const uploadTomb=unionTombstones(TOMB, cloudData.deletedIds);
       // 2) 上传合并后的完整数据（含删除标记）。本地数据原封不动，不 save、不改写。
-      const payload={ version:3, syncedAt:new Date().toISOString(), items:uploadItems, customCategories:uploadCats, deletedIds:uploadTomb };
+      const payload={ version:3, syncedAt:new Date().toISOString(), items:uploadItems, customCategories:uploadCats, deletedIds:uploadTomb, shopping:shopList() };   // v134：补货清单参与同步
       const body={ message:'物品数据同步 '+payload.syncedAt, content:b64utf8(JSON.stringify(payload,null,2)), branch: syncBranch() };
       if(cloudSha) body.sha=cloudSha;
       // Gitee 新建文件用 POST，更新已有文件用 PUT；GitHub 统一 PUT（无 sha 即新建）
