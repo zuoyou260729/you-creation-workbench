@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v134';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v135';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -4666,6 +4666,20 @@
     return d||productionDate||'';
   }
   // v127：PAO 展示与选择（复用有效期弹窗，只存时长）
+  // v135：从「开封期限」打开的弹窗里，标题与小字要换成对应文案
+  function applyPaoModalCopy(on){
+    const modal=$('#iExpiryModal'); if(!modal) return;
+    const leaves=[...modal.querySelectorAll('div,span,h3,p,strong')].filter(el=>el.children.length===0);
+    leaves.forEach(el=>{
+      const t=(el.textContent||'').trim();
+      if(el.dataset.expTitle==='1' || t==='有效期'){ el.dataset.expTitle='1'; el.textContent=on?'开封期限':'有效期'; }
+      else if(el.dataset.expHint==='1' || /^基准日期/.test(t)){
+        el.dataset.expHint='1';
+        if(!el.dataset.baseOrig) el.dataset.baseOrig=t;
+        el.textContent=on?'基准日期为每一件的取用日期':el.dataset.baseOrig;
+      }
+    });
+  }
   function setPaoText(elId, v, unit){
     const el=document.getElementById(elId)||$('#'+elId);   // v129 修：原来漏了 # 选择器，导致一直显示「请选择」
     if(!el) return;
@@ -4673,6 +4687,7 @@
     el.textContent=t||'请选择';
   }
   function openPaoPicker(targetTextId){
+    applyPaoModalCopy(true);
     temp.paoMode=true;
     temp.paoTarget=targetTextId;
     temp.expiryUnit=temp.paoUnit||'month';
@@ -4682,6 +4697,7 @@
   }
   function openExpiryPicker(targetId, productionDate){
     temp.paoMode=false;   // v127：正常有效期选择
+    applyPaoModalCopy(false);
     temp.dateTarget=targetId;
     temp.expiryValue='';
     temp.expiryUnit='day';
@@ -4722,9 +4738,13 @@
   }
   function confirmExpiryPicker(){
     const v=Number($('#iExpiryInput').value);
-    if(!v || v<=0){ showToast('请输入有效数字'); return; }
-    // v127：PAO 只记录「时长」，不按日期计算
+    // v135：PAO 模式下允许 0 / 空 → 清空已维护的值
     if(temp.paoMode){
+      if(!v || v<=0){
+        temp.paoValue=0; temp.paoUnit='month';
+        setPaoText('iPaoText',0,'month'); setPaoText('iBatchPaoText',0,'month'); setPaoText('iEditPaoText',0,'month');
+        closeModal('iExpiryModal'); showToast('已清除开封期限'); return;
+      }
       temp.paoValue=v; temp.paoUnit=temp.expiryUnit||'month';
       setPaoText('iPaoText',temp.paoValue,temp.paoUnit);
       setPaoText('iBatchPaoText',temp.paoValue,temp.paoUnit);
@@ -4732,6 +4752,7 @@
       closeModal('iExpiryModal');
       return;
     }
+    if(!v || v<=0){ showToast('请输入有效数字'); return; }
     // 基准日期：每次确认都【重新】从对应的生产日期字段实时解析（v80 加固）——
     // 绝不以「当前有效期字段的值」为基准，避免 6年→2031、再填10年→2043 这类叠加错误
     let pd=resolveExpiryBase(temp.dateTarget,'')||temp.expiryBaseDate;
