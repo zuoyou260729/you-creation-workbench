@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v135';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v136';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -1265,10 +1265,11 @@
     const target=$('#i-subpage-'+name);
     if(target) target.classList.add('active');
     $('.main').scrollTop=0;
-    if(['overview','categories','today'].includes(name)) currentItemsSub=name;   // v125：到期清单页已下线
+    if(['overview','categories','today','restock'].includes(name)) currentItemsSub=name;   // v125：到期清单页已下线；v136 加该备货
     if(name==='today') renderTodayPage();
     if(name==='overview') renderOverview();
     if(name==='categories') renderCategoriesPage();
+    if(name==='restock') renderRestockPage();   // v136
     if(name==='detail'){
       // 进入详情页时隐藏物品模块的悬浮添加按钮，避免与底部操作栏冲突
       const fab=$('.i-fab');
@@ -2734,11 +2735,9 @@
   const RESTOCK_LINES = {
     // 个护美妆
     'sys_beauty:洁面':1, 'sys_beauty:爽肤水':2, 'sys_beauty:精华':1, 'sys_beauty:乳液':2, 'sys_beauty:面霜':2,
-    'sys_beauty:防晒':1, 'sys_beauty:面膜':3, 'sys_beauty:眼霜':2, 'sys_beauty:香水':1, 'sys_beauty:洗发护发':2,
-    'sys_beauty:身体护理':2, 'sys_beauty:女性护理':3, 'sys_beauty:口腔护理':2, 'sys_beauty:饰品':2, 'sys_beauty:其他':2,
-    'sys_beauty:梳子':1, 'sys_beauty:香氛':1, 'sys_beauty:卸妆油':1, 'sys_beauty:修容':1, 'sys_beauty:眼妆':2,
-    'sys_beauty:定妆用品':1, 'sys_beauty:粉底液':1, 'sys_beauty:口红':2, 'sys_beauty:腮红':2, 'sys_beauty:上妆产品':2,
-    'sys_beauty:化妆刷':2, 'sys_beauty:隐形眼镜':5, 'sys_beauty:美发用品':2, 'sys_beauty:护肤工具':1, 'sys_beauty:发圈':2,
+    'sys_beauty:防晒':1, 'sys_beauty:面膜':3, 'sys_beauty:眼霜':2, 'sys_beauty:洗发护发':2,
+    'sys_beauty:身体护理':2, 'sys_beauty:女性护理':3, 'sys_beauty:口腔护理':2, 'sys_beauty:其他':2,
+    'sys_beauty:卸妆油':1, 'sys_beauty:隐形眼镜':5, 'sys_beauty:发圈':2,
     // 家居日用
     'sys_home:清洁用品':2, 'sys_home:洗衣用品':2, 'sys_home:洗护用品':2, 'sys_home:手帕纸':3, 'sys_home:厨房湿巾':1,
     'sys_home:厨房用纸':2, 'sys_home:清洁膏':1, 'sys_home:手套':1, 'sys_home:湿厕纸':2, 'sys_home:洗洁精':1,
@@ -2762,6 +2761,11 @@
     // 酒咖品茗
     'sys_tea:茶叶':2, 'sys_tea:酒水':1, 'sys_tea:咖啡':2, 'sys_tea:其他':2,
   };
+  // v136：长期耐用品（彩妆/工具类）不参与补货提醒，只在「该备货」页底部折叠区展示
+  const LONG_TERM_KEYS=['sys_beauty:眼妆','sys_beauty:粉底液','sys_beauty:定妆用品','sys_beauty:修容','sys_beauty:腮红','sys_beauty:口红','sys_beauty:上妆产品','sys_beauty:化妆刷','sys_beauty:香水','sys_beauty:香氛','sys_beauty:梳子','sys_beauty:美发用品','sys_beauty:护肤工具','sys_beauty:饰品'];
+  function isLongTerm(g){
+    return LONG_TERM_KEYS.indexOf((g.primaryId||'')+':'+(g.secondaryName||''))>=0;
+  }
   function restockLineOf(g){
     const key=(g.primaryId||'')+':'+(g.secondaryName||'');
     const v=RESTOCK_LINES[key];
@@ -2808,7 +2812,7 @@
       if(!g.items||!g.items.length) return;
       const delta=groupExpiryDelta(g);
       const line=restockLineOf(g);
-      const lowStock=line!=null && g.currentStock<=line;
+      const lowStock=line!=null && g.currentStock<=0;   // v136：库存=1 的移交「该备货」
       const expiring=delta!==null && delta<=TODAY_WINDOW;
       if(!expiring && !lowStock) return;
       // v125：该物品「未退库批次」里已进入 5 天紧急区（含已过期）的批次，供卡片显示「N 个批次快到期」
@@ -2906,6 +2910,79 @@
     showToast('已从清单划掉');
   };
   function openShopModal(){ renderShopModal(); openModal('iShopModal'); }
+
+  /* ===== v136：该备货（库存只剩最后 1 件、低于补货线；与今日页互斥） ===== */
+  let stockRows=[];
+  function restockEntries(){
+    const { groups }=groupItems(state.items);
+    const out=[];
+    groups.forEach(g=>{
+      if(!g.items||!g.items.length) return;
+      const line=restockLineOf(g);
+      if(line==null) return;                     // 不参与补货提醒（含长期耐用品）
+      if((g.currentStock||0)!==1) return;        // 只收"还剩最后一件"
+      const d=groupExpiryDelta(g);
+      if(d!==null && d<=TODAY_WINDOW) return;    // 快到期 → 归今日页
+      out.push({ g, line });
+    });
+    out.sort((a,b)=>{
+      const pin=(b.g.pinned?1:0)-(a.g.pinned?1:0); if(pin) return pin;
+      return String(a.g.name).localeCompare(String(b.g.name),'zh-Hans-CN');
+    });
+    return out;
+  }
+  function stockCardHtml(entry, idx){
+    const g=entry.g, unit=groupUnit(g), inList=shopHas(g);
+    const btn = inList
+      ? `<button class="i-td-btn i-td-btn-added" onclick="event.stopPropagation();__stockAct(${idx})">已在清单</button>`
+      : `<button class="i-td-btn i-td-btn-buy" onclick="event.stopPropagation();__stockAct(${idx})">加入清单</button>`;
+    return `
+    <div class="i-td-card" data-key="${escapeHtml(g.key)}" onclick="__stockView(${idx})">
+      <div class="i-td-icon">${renderIcon(g.icon, g.name)}${todayBatchBadge(g)}</div>
+      <div class="i-td-main">
+        <div class="i-td-name">${escapeHtml(g.name)}</div>
+        <div class="i-td-sub"><span class="i-td-meta">仅剩 ${g.currentStock}${unit}</span> · <span class="i-td-st i-td-amber">低于补货线</span></div>
+      </div>
+      ${btn}
+    </div>`;
+  }
+  window.__stockAct=function(i){
+    const row=stockRows[i];
+    if(!row){ showToast('列表已更新，请重试'); return; }
+    if(shopHas(row.g)){ showToast('已在补货清单中'); return; }
+    shopAdd(row.g); renderRestockPage(); showToast('已加入补货清单');
+  };
+  window.__stockView=function(i){
+    const row=stockRows[i]; if(row) showDetail(row.g);
+  };
+  window.__ltOpen=function(key){
+    const { groups }=groupItems(state.items);
+    const g=groups.find(x=>x.key===key); if(g) showDetail(g);
+  };
+  function renderRestockPage(){
+    const entries=restockEntries();
+    stockRows=entries;
+    const cnt=$('#iRestockCount'); if(cnt) cnt.textContent=entries.length+' 件';
+    const list=$('#iRestockList');
+    if(list){
+      list.innerHTML = entries.length
+        ? entries.map((e,i)=>stockCardHtml(e,i)).join('')
+        : '<div class="i-empty"><p>暂无需要备货的物品</p></div>';
+    }
+    // 长期耐用品：只展示，不计入件数
+    const { groups }=groupItems(state.items);
+    const lt=groups.filter(g=>isLongTerm(g));
+    const lc=$('#iLongTermCount'); if(lc) lc.textContent=String(lt.length);
+    const ll=$('#iLongTermList');
+    if(ll){
+      ll.innerHTML = lt.length
+        ? lt.map(g=>`<div class="i-longterm-row" onclick="__ltOpen('${escapeHtml(g.key)}')">
+             <span class="i-longterm-name">${escapeHtml(g.name)}</span>
+             <span class="i-longterm-stock">库存 ${g.currentStock}${groupUnit(g)}</span>
+           </div>`).join('')
+        : '<div class="i-longterm-empty">暂无</div>';
+    }
+  }
 
   /* ---- 今日页渲染 ---- */
   let todayRows=[];             // 渲染时缓存，卡片内联 onclick 按下标取用
@@ -4898,6 +4975,14 @@
       if(input) input.focus();
     });
     $('#iTodayShopPill')?.addEventListener('click', openShopModal);
+    // v136：该备货页「长期耐用品」折叠
+    $('#iLongTermToggle')?.addEventListener('click',()=>{
+      const list=$('#iLongTermList'), arrow=$('#iLongTermArrow');
+      if(!list) return;
+      const open=list.style.display==='none';
+      list.style.display=open?'':'none';
+      if(arrow) arrow.style.transform=open?'rotate(90deg)':'';
+    });
     // v105：分类物品弹窗 →「用此分类添加物品」
     $('#iCatItemsAddBtn')?.addEventListener('click', ()=>{
       const catId=catItemsTargetId;
