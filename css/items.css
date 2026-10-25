@@ -3219,3 +3219,17 @@ button.i-action-pin.active {
 #iEditPaoRow .i-edit-row-value { flex: 0 0 auto; white-space: nowrap; max-width: 52%; }
 #iPaoTrigger .i-label-txt, #iBatchPaoTrigger .i-label-txt { white-space: nowrap; }
 #iPaoTrigger .i-value, #iBatchPaoTrigger .i-value { flex: 0 0 auto; white-space: nowrap; padding-left: 12px; }
+
+/* ==========================================================================
+   v136 「该备货」页：长期耐用品折叠区
+   ========================================================================== */
+.i-longterm { margin: 18px 0 8px; border: 1px solid var(--i-border-light); border-radius: 12px; background: var(--i-surface); overflow: hidden; }
+.i-longterm-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 14px 16px; background: none; border: 0; font-size: 14px; color: var(--i-text); text-align: left; cursor: pointer; }
+.i-longterm-num { margin-left: auto; color: var(--i-text-ter); font-size: 13px; }
+.i-longterm-arrow { transition: transform .2s; color: var(--i-text-ter); }
+.i-longterm-list { border-top: 1px solid var(--i-border-light); }
+.i-longterm-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--i-border-light); font-size: 14px; cursor: pointer; }
+.i-longterm-row:last-child { border-bottom: 0; }
+.i-longterm-name { color: var(--i-text); }
+.i-longterm-stock { color: var(--i-text-ter); font-size: 13px; }
+.i-longterm-empty { padding: 14px 16px; color: var(--i-text-ter); font-size: 13px; }
