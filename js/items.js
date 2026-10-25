@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v137';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v138';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -2978,7 +2978,7 @@
       ll.innerHTML = lt.length
         ? lt.map(g=>`<div class="i-longterm-row" onclick="__ltOpen('${escapeHtml(g.key)}')">
              <span class="i-longterm-name">${escapeHtml(g.name)}</span>
-             <span class="i-longterm-stock">库存 ${g.currentStock}${groupUnit(g)}</span>
+             <span class="i-longterm-stock">在用 ${g.totalUsed||0}${groupUnit(g)} · 未开封 ${g.currentStock||0}${groupUnit(g)}</span>
            </div>`).join('')
         : '<div class="i-longterm-empty">暂无</div>';
     }
@@ -3587,6 +3587,15 @@
     }
     hideTabbar(true);
     showSubpage('edit');
+    // v138：编辑页也压一层 history —— 手机侧滑/返回时回到「物品档案」而不是直接跳回今日/该备货
+    try{
+      const hs=history.state;
+      if(window.innerWidth<=767 && !(hs && hs.lvl===2 && hs.edit)){
+        history.pushState({ lvl:2, section:'items', sub:currentItemsSub, edit:true,
+          detailId:(editTargetItem&&editTargetItem.id)||'' }, '',
+          '#/items/'+currentItemsSub+'/detail/'+((editTargetItem&&editTargetItem.id)||''));
+      }
+    }catch(e){}
   }
   function fillEditBatchArchive(batchId){
     const m=temp.editBatchMap[batchId];
