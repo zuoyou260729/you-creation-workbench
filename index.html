@@ -86,6 +86,12 @@
           </svg>
           <span class="nav-label" data-page-node-id="l6gLqvAol57NIKsgfXLmw6">物品分类</span>
         </li>
+        <li class="nav-item" data-page="items" data-subpage="restock" data-page-node-id="v136RestockNav">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="v136RestockNavIcon">
+            <path d="M6 6h15l-1.5 9h-12z" data-page-node-id="v136RestockNavP1"/><circle cx="9" cy="20" r="1.4" data-page-node-id="v136RestockNavC1"/><circle cx="18" cy="20" r="1.4" data-page-node-id="v136RestockNavC2"/>
+          </svg>
+          <span class="nav-label" data-page-node-id="v136RestockNavLbl">该备货</span>
+        </li>
         <li class="nav-item" data-page="word-input" data-page-node-id="ySBN63Zm3SL10ohHXTWn68">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="0lc8oL5XK47I2giMT3bUfL">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" data-page-node-id="yZv4r6bs4phBXj2RCcz8EA"/>
@@ -704,6 +710,26 @@
         </div>
 
         <!-- 分类管理 -->
+        <!-- v136：该备货（库存只剩 1 件、低于补货线；与今日页互斥） -->
+        <div class="i-subpage" id="i-subpage-restock" data-page-node-id="v136RestockPage">
+          <div class="i-today-head" data-page-node-id="v136RestockHead">
+            <div class="i-today-title" data-page-node-id="v136RestockTitle">该备货</div>
+            <div class="i-today-date" data-page-node-id="v136RestockSub">只剩最后一件 · 有空就买</div>
+          </div>
+          <div class="i-today-bar" data-page-node-id="v136RestockBar">
+            <span class="i-today-bar-title" data-page-node-id="v136RestockBarTitle">需要备货</span>
+            <span class="i-today-bar-count" id="iRestockCount" data-page-node-id="v136RestockCount">0 件</span>
+          </div>
+          <div id="iRestockList" data-page-node-id="v136RestockList"></div>
+          <div class="i-longterm" data-page-node-id="v136LongTerm">
+            <button class="i-longterm-btn" id="iLongTermToggle" type="button" data-page-node-id="v136LtBtn">
+              <span data-page-node-id="v136LtLbl">长期耐用品</span>
+              <span class="i-longterm-num" id="iLongTermCount" data-page-node-id="v136LtNum">0</span>
+              <span class="i-longterm-arrow" id="iLongTermArrow" data-page-node-id="v136LtArrow">›</span>
+            </button>
+            <div class="i-longterm-list" id="iLongTermList" style="display:none" data-page-node-id="v136LtList"></div>
+          </div>
+        </div>
         <div class="i-subpage" id="i-subpage-categories" data-page-node-id="WmScuBlcoJzmC5NRcnklrV">
           <div class="i-page-header i-header-stacked" data-page-node-id="fsev9eoG2I6YE0krBpmJ3q">
             <button class="i-back" id="iCatBackBtn" data-page-node-id="zDU8wWt8GSxLpaOet12b5B">
