@@ -82,6 +82,7 @@
         { key: 'today',      label: '今日',     page: 'page-items', subpage: 'today' },
         { key: 'overview',   label: '物品统计', page: 'page-items', subpage: 'overview' },
         { key: 'categories', label: '物品分类', page: 'page-items', subpage: 'categories' },
+        { key: 'restock',    label: '该备货',   page: 'page-items', subpage: 'restock' },   // v136
       ],
     },
   };
