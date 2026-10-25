@@ -3,7 +3,7 @@
    ========================================== */
 (function () {
   'use strict';
-  window.APP_VERSION = 'v136';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
+  window.APP_VERSION = 'v137';   // 与 sw.js 的 CACHE 版本保持一致，用于同步弹窗显示
 
   // 移动端视图判断（与 app.js 的 isMobile 同步：<=767px 走底部标签栏 + 系统返回手势）
   const isMobileView = () => !!(window.matchMedia && window.matchMedia('(max-width: 767px)').matches);
@@ -3543,6 +3543,8 @@
     temp.selectedCategory=item.categoryId;
     temp.selectedIcon=item.icon||'📦';
     $('#iEditName').value=item.name||'';
+    autoGrowEditName();                       // v137：名称可换行，自动撑高
+    setTimeout(autoGrowEditName, 80);         // 子页显示后再量一次（隐藏时 scrollHeight 为 0）
     updateEditCategoryUI();
     updateEditIconBtn();
     // v117：这里显示「累计入库」= 各批次数量之和（用户口径：我一共入库了多少）。
@@ -3655,7 +3657,14 @@
       : escapeHtml(ic);
     $('#iEditIconPreview').innerHTML=html;
   }
+  // v137：编辑页名称输入框随内容自动撑高（最多 3 行 ≈ 100px）
+  function autoGrowEditName(){
+    const el=$('#iEditName'); if(!el) return;
+    el.style.height='auto';
+    el.style.height=Math.min(el.scrollHeight||0,100)+'px';
+  }
   function bindEditEvents(){
+    $('#iEditName')?.addEventListener('input', autoGrowEditName);
     $('#iEditBack')?.addEventListener('click',()=>{ editTargetItem=null; hideTabbar(false); showSubpage('detail'); });
     $('#iEditCancel')?.addEventListener('click',()=>{ editTargetItem=null; hideTabbar(false); showSubpage('detail'); });
     $('#iEditIconBtn')?.addEventListener('click',()=>openIconPicker());
