@@ -1130,9 +1130,11 @@ button {
   .sidebar { display: none !important; }
 
   /* 主内容占满全宽，并留出底部标签栏高度，避免内容被遮住 */
+  /* v139：留白从 78px 提到 112px —— 底部子导航 5 项实际高约 60~72px，
+     原留白在部分机型（字体放大/安全区）不足，最后一张卡片会被压住 */
   .main {
     width: 100%;
-    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
   }
 
   /* 常驻安装横幅上移，压在底部标签栏之上 */
